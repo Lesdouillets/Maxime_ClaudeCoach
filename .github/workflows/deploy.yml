@@ -36,7 +36,7 @@ jobs:
           NEXT_PUBLIC_STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
           NEXT_PUBLIC_STRAVA_REDIRECT_URI: ${{ secrets.STRAVA_REDIRECT_URI }}
           NEXT_PUBLIC_STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
-          NEXT_PUBLIC_BASE_PATH: /claude-coach
+          NEXT_PUBLIC_BASE_PATH: /Maxime_ClaudeCoach
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
