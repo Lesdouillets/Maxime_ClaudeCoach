@@ -173,7 +173,65 @@ export function formatDuration(seconds: number): string {
 
 /** Map Strava sport type to app session type */
 export function mapStravaTypeToSession(stravaType: string): "run" | "fitness" | null {
-  if (stravaType === "Run") return "run";
-  if (["WeightTraining", "Workout"].includes(stravaType)) return "fitness";
+  if (["Run", "TrailRun", "VirtualRun"].includes(stravaType)) return "run";
+  if (["WeightTraining", "Workout", "CrossFit"].includes(stravaType)) return "fitness";
   return null;
+}
+
+/** Guess upper/lower body from activity name */
+export function guessFitnessCategory(activityName: string): "upper" | "lower" {
+  const name = activityName.toLowerCase();
+  const lowerKeywords = [
+    "bas", "lower", "jambe", "leg", "squat", "dead", "deadlift",
+    "fesse", "glute", "hip", "rdl", "soulevé",
+  ];
+  const upperKeywords = [
+    "haut", "upper", "chest", "pec", "dos", "back", "bras", "épaule",
+    "shoulder", "bicep", "tricep", "pull", "push", "traction", "rowing",
+    "bench", "développé",
+  ];
+  const lowerScore = lowerKeywords.filter((k) => name.includes(k)).length;
+  const upperScore = upperKeywords.filter((k) => name.includes(k)).length;
+  if (lowerScore > upperScore) return "lower";
+  return "upper"; // default to upper
+}
+
+/** Convert a StravaActivity to a WorkoutSession and save it */
+export function autoImportActivity(
+  activity: StravaActivity
+): import("./types").WorkoutSession | null {
+  const sessionType = mapStravaTypeToSession(activity.type);
+  if (!sessionType) return null;
+
+  const { generateId } = require("./storage");
+
+  if (sessionType === "run") {
+    return {
+      id: generateId(),
+      type: "run",
+      date: activity.start_date,
+      distanceKm: activity.distance / 1000,
+      durationSeconds: activity.moving_time,
+      avgPaceSecPerKm:
+        activity.distance > 0
+          ? activity.moving_time / (activity.distance / 1000)
+          : 0,
+      avgHeartRate: activity.average_heartrate,
+      elevationGainM: activity.total_elevation_gain,
+      comment: "",
+      stravaActivityId: activity.id,
+      importedFromStrava: true,
+    };
+  }
+
+  return {
+    id: generateId(),
+    type: "fitness",
+    date: activity.start_date,
+    category: guessFitnessCategory(activity.name),
+    exercises: [],
+    comment: "",
+    stravaActivityId: activity.id,
+    importedFromStrava: true,
+  };
 }

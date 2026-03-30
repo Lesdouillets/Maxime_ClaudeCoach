@@ -60,3 +60,9 @@ export function downloadExport(): void {
 
   URL.revokeObjectURL(url);
 }
+
+export async function copyExportToClipboard(): Promise<void> {
+  const data = buildExportData();
+  const json = JSON.stringify(data, null, 2);
+  await navigator.clipboard.writeText(json);
+}

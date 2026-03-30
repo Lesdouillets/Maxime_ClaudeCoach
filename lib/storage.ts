@@ -11,6 +11,8 @@ const KEYS = {
   lastStravaFetch: "cc_last_strava_fetch",
   pendingStrava: "cc_pending_strava",
   bodyWeight: "cc_body_weight",
+  cancelledDays: "cc_cancelled_days",
+  rescheduledDays: "cc_rescheduled_days",
 } as const;
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
@@ -127,6 +129,56 @@ export function addWeightEntry(entry: WeightEntry): void {
   const entries = getWeightHistory();
   entries.unshift(entry);
   localStorage.setItem(KEYS.bodyWeight, JSON.stringify(entries));
+}
+
+// ─── Cancelled & Rescheduled Days ─────────────────────────────────────────────
+
+export function getCancelledDays(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(KEYS.cancelledDays);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function cancelDay(date: string): void {
+  if (typeof window === "undefined") return;
+  const days = getCancelledDays();
+  if (!days.includes(date)) {
+    days.push(date);
+    localStorage.setItem(KEYS.cancelledDays, JSON.stringify(days));
+  }
+}
+
+export function uncancelDay(date: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEYS.cancelledDays, JSON.stringify(
+    getCancelledDays().filter((d) => d !== date)
+  ));
+}
+
+export interface RescheduledDay { from: string; to: string }
+
+export function getRescheduledDays(): RescheduledDay[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(KEYS.rescheduledDays);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function rescheduleDay(from: string, to: string): void {
+  if (typeof window === "undefined") return;
+  const days = getRescheduledDays().filter((d) => d.from !== from);
+  days.push({ from, to });
+  localStorage.setItem(KEYS.rescheduledDays, JSON.stringify(days));
+}
+
+export function unrescheduleDay(from: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEYS.rescheduledDays, JSON.stringify(
+    getRescheduledDays().filter((d) => d.from !== from)
+  ));
 }
 
 // ─── Full State Export ────────────────────────────────────────────────────────

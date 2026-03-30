@@ -4,20 +4,27 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
-import { getTodayPlan, getThisWeekDays, formatPace, getDayName } from "@/lib/plan";
-import { getSessions, getStravaTokens, getPendingStravaActivities, setPendingStravaActivities, addSession, generateId } from "@/lib/storage";
-import { fetchNewActivitiesSinceLastVisit, formatDistance, formatDuration, speedToPace, mapStravaTypeToSession, getStravaAuthUrl } from "@/lib/strava";
-import { downloadExport } from "@/lib/export";
-import type { StravaActivity, WorkoutSession } from "@/lib/types";
+import { getTodayPlan, getThisWeekDays, formatPace } from "@/lib/plan";
+import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
+import { fetchNewActivitiesSinceLastVisit, formatDuration, speedToPace, autoImportActivity, getStravaAuthUrl } from "@/lib/strava";
+import { downloadExport, copyExportToClipboard } from "@/lib/export";
+import type { WorkoutSession } from "@/lib/types";
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [todayPlan] = useState(() => getTodayPlan());
   const [weekDays] = useState(() => getThisWeekDays());
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
-  const [newStravaActivities, setNewStravaActivities] = useState<StravaActivity[]>([]);
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [fetchingStrava, setFetchingStrava] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await copyExportToClipboard();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const refreshSessions = useCallback(() => {
     setSessions(getSessions());
@@ -29,83 +36,40 @@ export default function Dashboard() {
     const tokens = getStravaTokens();
     setIsStravaConnected(!!tokens);
 
-    // Check for pending strava activities
-    const pending = getPendingStravaActivities();
-    if (pending.length > 0) {
-      setNewStravaActivities(pending);
-    } else if (tokens) {
-      // Silently fetch new activities
-      setFetchingStrava(true);
-      fetchNewActivitiesSinceLastVisit()
-        .then((activities) => {
-          if (activities.length > 0) {
-            setPendingStravaActivities(activities);
-            setNewStravaActivities(activities);
+    if (!tokens) return;
+
+    // Auto-fetch and auto-import on every app open
+    setFetchingStrava(true);
+    fetchNewActivitiesSinceLastVisit()
+      .then((activities) => {
+        if (activities.length === 0) return;
+        let count = 0;
+        activities.forEach((activity) => {
+          const session = autoImportActivity(activity);
+          if (session) {
+            addSession(session);
+            count++;
           }
-        })
-        .catch(() => {})
-        .finally(() => setFetchingStrava(false));
-    }
+        });
+        if (count > 0) {
+          setImportedCount(count);
+          refreshSessions();
+          // Hide notification after 4s
+          setTimeout(() => setImportedCount(0), 4000);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setFetchingStrava(false));
   }, [refreshSessions]);
-
-  const importStravaActivity = (activity: StravaActivity) => {
-    const sessionType = mapStravaTypeToSession(activity.type);
-    if (!sessionType) return;
-
-    let session: WorkoutSession;
-    if (sessionType === "run") {
-      session = {
-        id: generateId(),
-        type: "run",
-        date: activity.start_date,
-        distanceKm: activity.distance / 1000,
-        durationSeconds: activity.moving_time,
-        avgPaceSecPerKm: activity.distance > 0 ? (activity.moving_time / (activity.distance / 1000)) : 0,
-        avgHeartRate: activity.average_heartrate,
-        elevationGainM: activity.total_elevation_gain,
-        comment: "",
-        stravaActivityId: activity.id,
-        importedFromStrava: true,
-      };
-    } else {
-      session = {
-        id: generateId(),
-        type: "fitness",
-        date: activity.start_date,
-        category: "upper",
-        exercises: [],
-        stravaActivityId: activity.id,
-        importedFromStrava: true,
-      };
-    }
-
-    addSession(session);
-    const remaining = newStravaActivities.filter((a) => a.id !== activity.id);
-    setNewStravaActivities(remaining);
-    setPendingStravaActivities(remaining);
-    refreshSessions();
-  };
-
-  const dismissStravaActivity = (activityId: number) => {
-    const remaining = newStravaActivities.filter((a) => a.id !== activityId);
-    setNewStravaActivities(remaining);
-    setPendingStravaActivities(remaining);
-  };
 
   if (!mounted) return null;
 
-  // Week stats
   const thisWeekDates = weekDays.map((d) => d.date.toISOString().slice(0, 10));
   const thisWeekSessions = sessions.filter((s) =>
     thisWeekDates.includes(s.date.slice(0, 10))
   );
   const plannedThisWeek = weekDays.filter((d) => d.plan).length;
   const completedThisWeek = thisWeekSessions.length;
-
-  // Last run
-  const lastRun = sessions.find((s) => s.type === "run");
-  // Last fitness
-  const lastFitness = sessions.find((s) => s.type === "fitness");
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("fr-FR", {
@@ -121,24 +85,74 @@ export default function Dashboard() {
         subtitle={dateStr}
         accent="neon"
         right={
-          <button
-            onClick={() => downloadExport()}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide press-effect"
-            style={{
-              background: "rgba(57,255,20,0.1)",
-              border: "1px solid rgba(57,255,20,0.3)",
-              color: "#39ff14",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15L8 11M12 15L16 11M12 15V3M5 21H19" stroke="#39ff14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide press-effect"
+              style={{
+                background: copied ? "rgba(57,255,20,0.15)" : "rgba(57,255,20,0.1)",
+                border: "1px solid rgba(57,255,20,0.3)",
+                color: "#39ff14",
+                minWidth: "100px",
+              }}
+            >
+              {copied ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Copié !
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m0 0h2a2 2 0 0 1 2 2v3" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                  Pour Alex
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => downloadExport()}
+              className="p-2 rounded-xl press-effect"
+              style={{ background: "#111", border: "1px solid #222" }}
+              title="Télécharger sessions.json"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15L8 11M12 15L16 11M12 15V3M5 21H19" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
         }
       />
 
       <div className="px-5 space-y-5">
+
+        {/* Auto-import toast */}
+        {importedCount > 0 && (
+          <div
+            className="rounded-2xl p-4 flex items-center gap-3 animate-slide-up"
+            style={{
+              background: "rgba(57,255,20,0.06)",
+              border: "1px solid rgba(57,255,20,0.3)",
+            }}
+          >
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(57,255,20,0.15)" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: "#39ff14" }}>
+                {importedCount} activité{importedCount > 1 ? "s" : ""} importée{importedCount > 1 ? "s" : ""} depuis Strava
+              </p>
+              <p className="text-xs text-muted">Type et catégorie détectés automatiquement</p>
+            </div>
+          </div>
+        )}
 
         {/* Today's Session */}
         {todayPlan ? (
@@ -149,7 +163,6 @@ export default function Dashboard() {
               border: "1px solid rgba(57,255,20,0.2)",
             }}
           >
-            {/* Glow blob */}
             <div
               className="absolute -top-6 -right-6 w-32 h-32 rounded-full pointer-events-none"
               style={{
@@ -215,57 +228,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Strava new activities */}
-        {newStravaActivities.map((activity) => (
-          <div
-            key={activity.id}
-            className="rounded-2xl p-4 animate-slide-up"
-            style={{
-              background: "rgba(252,76,2,0.05)",
-              border: "1px solid rgba(252,76,2,0.3)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff6b00">
-                <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
-              </svg>
-              <span className="text-sm font-bold" style={{ color: "#ff6b00" }}>
-                Nouvelle activité Strava
-              </span>
-            </div>
-            <p className="font-semibold mb-1">{activity.name}</p>
-            <div className="flex gap-3 text-sm text-gray-400 mb-3">
-              {activity.distance > 0 && (
-                <span>{formatDistance(activity.distance)} km</span>
-              )}
-              <span>{formatDuration(activity.moving_time)}</span>
-              {activity.average_speed > 0 && activity.type === "Run" && (
-                <span>{speedToPace(activity.average_speed)} /km</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => importStravaActivity(activity)}
-                className="flex-1 py-2 rounded-xl text-sm font-bold press-effect"
-                style={{
-                  background: "rgba(255,107,0,0.2)",
-                  border: "1px solid rgba(255,107,0,0.4)",
-                  color: "#ff6b00",
-                }}
-              >
-                Importer
-              </button>
-              <button
-                onClick={() => dismissStravaActivity(activity.id)}
-                className="px-3 py-2 rounded-xl text-sm press-effect"
-                style={{ background: "#1a1a1a", color: "#666" }}
-              >
-                Ignorer
-              </button>
-            </div>
-          </div>
-        ))}
-
         {/* Week overview */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -282,25 +244,14 @@ export default function Dashboard() {
                 (s) => s.date.slice(0, 10) === day.date.toISOString().slice(0, 10)
               );
               const isPlanned = !!day.plan;
-
-              let bg = "#111";
-              let border = "#222";
-              let dotColor = "transparent";
-
+              let bg = "#111", border = "#222", dotColor = "transparent";
               if (hasSession) {
-                bg = "rgba(57,255,20,0.08)";
-                border = "rgba(57,255,20,0.4)";
-                dotColor = "#39ff14";
+                bg = "rgba(57,255,20,0.08)"; border = "rgba(57,255,20,0.4)"; dotColor = "#39ff14";
               } else if (isPlanned && !day.isPast) {
-                bg = "#111";
-                border = "#333";
-                dotColor = "#333";
+                bg = "#111"; border = "#333"; dotColor = "#333";
               } else if (isPlanned && day.isPast) {
-                bg = "rgba(255,107,0,0.05)";
-                border = "rgba(255,107,0,0.2)";
-                dotColor = "#ff6b00";
+                bg = "rgba(255,107,0,0.05)"; border = "rgba(255,107,0,0.2)"; dotColor = "#ff6b00";
               }
-
               return (
                 <div
                   key={day.dow}
@@ -311,23 +262,17 @@ export default function Dashboard() {
                     boxShadow: day.isToday ? "0 0 12px rgba(57,255,20,0.1)" : "none",
                   }}
                 >
-                  <span
-                    className="text-[10px] font-bold tracking-wide"
-                    style={{ color: day.isToday ? "#39ff14" : "#555" }}
-                  >
+                  <span className="text-[10px] font-bold tracking-wide" style={{ color: day.isToday ? "#39ff14" : "#555" }}>
                     {day.label}
                   </span>
-                  <div
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: dotColor }}
-                  />
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Recent activity */}
+        {/* Recent sessions */}
         <div>
           <h2 className="font-bold text-sm tracking-wide uppercase text-muted mb-3">
             Dernières séances
@@ -339,16 +284,11 @@ export default function Dashboard() {
             >
               <span className="text-3xl">🏃</span>
               <p className="font-bold">Aucune séance enregistrée</p>
-              <p className="text-sm text-muted">
-                Commence par logger ta première séance.
-              </p>
+              <p className="text-sm text-muted">Commence par logger ta première séance.</p>
               <Link
                 href="/log/fitness"
                 className="mt-1 px-5 py-2.5 rounded-xl text-sm font-bold press-effect"
-                style={{
-                  background: "linear-gradient(135deg, #39ff14, #1a7a09)",
-                  color: "#0a0a0a",
-                }}
+                style={{ background: "linear-gradient(135deg, #39ff14, #1a7a09)", color: "#0a0a0a" }}
               >
                 Logger une séance
               </Link>
@@ -362,7 +302,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Strava Connection */}
+        {/* Strava status */}
         <div
           className="rounded-2xl p-4 flex items-center justify-between"
           style={{ background: "#111", border: "1px solid #1a1a1a" }}
@@ -382,8 +322,8 @@ export default function Dashboard() {
               </p>
               <p className="text-xs text-muted">
                 {isStravaConnected
-                  ? fetchingStrava ? "Synchronisation..." : "Activités synchronisées"
-                  : "Importe tes activités auto"}
+                  ? fetchingStrava ? "Synchronisation en cours..." : "Import auto à chaque ouverture"
+                  : "Import automatique des activités"}
               </p>
             </div>
           </div>
@@ -391,10 +331,7 @@ export default function Dashboard() {
             <a
               href={getStravaAuthUrl()}
               className="px-3 py-1.5 rounded-xl text-xs font-bold press-effect"
-              style={{
-                background: "#ff6b00",
-                color: "white",
-              }}
+              style={{ background: "#ff6b00", color: "white" }}
             >
               Connecter
             </a>
@@ -408,22 +345,12 @@ export default function Dashboard() {
 
 function SessionRow({ session }: { session: WorkoutSession }) {
   const date = new Date(session.date);
-  const dateLabel = date.toLocaleDateString("fr-FR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+  const dateLabel = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
 
   if (session.type === "run") {
     return (
-      <div
-        className="rounded-2xl p-4 flex items-center gap-4 card-hover"
-        style={{ background: "#111", border: "1px solid #1a1a1a" }}
-      >
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(57,255,20,0.1)" }}
-        >
+      <div className="rounded-2xl p-4 flex items-center gap-4 card-hover" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(57,255,20,0.1)" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M5.5 16.5l2.5-3.5 3 2.5 3.5-5L17 14M3 20h18" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -434,8 +361,7 @@ function SessionRow({ session }: { session: WorkoutSession }) {
         </div>
         <div className="text-right">
           <p className="font-display text-xl" style={{ color: "#39ff14" }}>
-            {session.distanceKm.toFixed(1)}
-            <span className="text-xs text-muted ml-1">km</span>
+            {session.distanceKm.toFixed(1)}<span className="text-xs text-muted ml-1">km</span>
           </p>
           {session.avgPaceSecPerKm > 0 && (
             <p className="text-xs text-muted">
@@ -453,28 +379,19 @@ function SessionRow({ session }: { session: WorkoutSession }) {
   }
 
   return (
-    <div
-      className="rounded-2xl p-4 flex items-center gap-4 card-hover"
-      style={{ background: "#111", border: "1px solid #1a1a1a" }}
-    >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: "rgba(255,107,0,0.1)" }}
-      >
+    <div className="rounded-2xl p-4 flex items-center gap-4 card-hover" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,107,0,0.1)" }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M6.5 6.5h11M6.5 17.5h11M3 10h18M3 14h18" stroke="#ff6b00" strokeWidth="1.8" strokeLinecap="round"/>
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm capitalize">
-          {session.category === "upper" ? "Haut du corps" : "Bas du corps"}
-        </p>
+        <p className="font-bold text-sm">{session.category === "upper" ? "Haut du corps" : "Bas du corps"}</p>
         <p className="text-xs text-muted truncate">{dateLabel}</p>
       </div>
       <div className="text-right">
         <p className="font-display text-xl" style={{ color: "#ff6b00" }}>
-          {session.exercises.length}
-          <span className="text-xs text-muted ml-1">exos</span>
+          {session.exercises.length}<span className="text-xs text-muted ml-1">exos</span>
         </p>
       </div>
       {session.importedFromStrava && (
