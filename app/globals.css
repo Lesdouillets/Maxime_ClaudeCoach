@@ -2,11 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap');
-
+/* Fonts are loaded via <link> in layout.tsx (runtime, works offline build) */
 :root {
-  --font-bebas: 'Bebas Neue', sans-serif;
-  --font-outfit: 'Outfit', sans-serif;
+  --font-bebas: 'Bebas Neue', Anton, Impact, sans-serif;
+  --font-outfit: 'Outfit', 'DM Sans', system-ui, sans-serif;
 }
 
 * {
@@ -45,7 +44,7 @@ body {
 
 /* Display font utility */
 .font-display {
-  font-family: 'Bebas Neue', 'Anton', Impact, sans-serif;
+  font-family: var(--font-bebas);
 }
 
 /* Neon text glow */
@@ -106,12 +105,6 @@ textarea::placeholder {
 /* Bottom nav safe area */
 .pb-nav {
   padding-bottom: calc(72px + env(safe-area-inset-bottom));
-}
-
-/* Animated gradient border */
-@keyframes border-glow {
-  0%, 100% { border-color: #39ff14; }
-  50% { border-color: #ff6b00; }
 }
 
 /* Progress bar animation */
