@@ -7,7 +7,7 @@ import Badge from "@/components/Badge";
 import { getTodayPlan, getThisWeekDays, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, formatDuration, speedToPace, autoImportActivity, getStravaAuthUrl } from "@/lib/strava";
-import { downloadExport } from "@/lib/export";
+import { downloadExport, copyExportToClipboard } from "@/lib/export";
 import type { WorkoutSession } from "@/lib/types";
 
 export default function Dashboard() {
@@ -18,6 +18,13 @@ export default function Dashboard() {
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [fetchingStrava, setFetchingStrava] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await copyExportToClipboard();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const refreshSessions = useCallback(() => {
     setSessions(getSessions());
@@ -78,20 +85,44 @@ export default function Dashboard() {
         subtitle={dateStr}
         accent="neon"
         right={
-          <button
-            onClick={() => downloadExport()}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide press-effect"
-            style={{
-              background: "rgba(57,255,20,0.1)",
-              border: "1px solid rgba(57,255,20,0.3)",
-              color: "#39ff14",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15L8 11M12 15L16 11M12 15V3M5 21H19" stroke="#39ff14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide press-effect"
+              style={{
+                background: copied ? "rgba(57,255,20,0.15)" : "rgba(57,255,20,0.1)",
+                border: "1px solid rgba(57,255,20,0.3)",
+                color: "#39ff14",
+                minWidth: "100px",
+              }}
+            >
+              {copied ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Copié !
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m0 0h2a2 2 0 0 1 2 2v3" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                  Pour Alex
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => downloadExport()}
+              className="p-2 rounded-xl press-effect"
+              style={{ background: "#111", border: "1px solid #222" }}
+              title="Télécharger sessions.json"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15L8 11M12 15L16 11M12 15V3M5 21H19" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
         }
       />
 

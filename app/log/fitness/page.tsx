@@ -48,6 +48,7 @@ export default function LogFitness() {
   const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState<FitnessCategory>("upper");
   const [exercises, setExercises] = useState<Exercise[]>([newExercise()]);
+  const [comment, setComment] = useState("");
   const [showLibrary, setShowLibrary] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -134,6 +135,7 @@ export default function LogFitness() {
       type: "fitness",
       date: new Date().toISOString(),
       category,
+      comment,
       exercises: validExercises,
     });
     // Remove coach plan once session is logged
@@ -323,6 +325,21 @@ export default function LogFitness() {
             <span>⚡</span>
             Finisher abdos
           </button>
+        </div>
+
+        {/* Session comment */}
+        <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
+          <div className="px-4 pt-3 pb-1" style={{ background: "#111" }}>
+            <label className="text-xs text-muted uppercase tracking-wide">Ressenti global</label>
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Comment s'est passée la séance ? Difficultés, énergie, douleurs, points à revoir..."
+            className="w-full px-4 pb-4 pt-2 text-sm resize-none focus:outline-none"
+            style={{ background: "#111", color: "#ccc", minHeight: "80px", border: "none" }}
+            rows={3}
+          />
         </div>
 
         {/* Save */}

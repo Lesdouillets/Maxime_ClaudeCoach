@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const LogPicker = dynamic(() => import("./LogPicker"), { ssr: false });
 
 const NAV_ITEMS = [
   {
@@ -24,50 +28,26 @@ const NAV_ITEMS = [
     label: "Plan",
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect
-          x="3" y="4" width="18" height="18" rx="2"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="1.8"
-        />
-        <path
-          d="M3 9H21M8 2V6M16 2V6"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        <path
-          d="M8 13H8.01M12 13H12.01M16 13H16.01M8 17H8.01M12 17H12.01"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
+        <rect x="3" y="4" width="18" height="18" rx="2"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" />
+        <path d="M3 9H21M8 2V6M16 2V6"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M8 13H8.01M12 13H12.01M16 13H16.01M8 17H8.01M12 17H12.01"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
   },
   {
-    href: "/log/fitness",
+    href: null, // handled by LogPicker
     label: "Log",
     icon: (active: boolean) => (
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center -mt-5 shadow-lg"
-        style={{
-          background: active
-            ? "linear-gradient(135deg, #39ff14, #1a7a09)"
-            : "linear-gradient(135deg, #ff6b00, #7a3300)",
-          boxShadow: active
-            ? "0 0 20px rgba(57,255,20,0.5)"
-            : "0 0 20px rgba(255,107,0,0.5)",
-        }}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 5V19M5 12H19"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9"
+          stroke={active ? "#ff6b00" : "#555"} strokeWidth="1.8"
+          fill={active ? "rgba(255,107,0,0.08)" : "none"} />
+        <path d="M12 8V16M8 12H16"
+          stroke={active ? "#ff6b00" : "#555"} strokeWidth="2" strokeLinecap="round" />
+      </svg>
     ),
   },
   {
@@ -75,31 +55,8 @@ const NAV_ITEMS = [
     label: "Stats",
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M3 20V14M8 20V8M13 20V11M18 20V4"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/plan",
-    label: "Profil",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="12" cy="8" r="4"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="1.8"
-        />
-        <path
-          d="M4 20C4 16.686 7.582 14 12 14C16.418 14 20 16.686 20 20"
-          stroke={active ? "#39ff14" : "#555"}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
+        <path d="M3 20V14M8 20V8M13 20V11M18 20V4"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -107,46 +64,63 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [showLogPicker, setShowLogPicker] = useState(false);
+
+  const isLogActive = pathname.startsWith("/log");
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50"
-      style={{
-        background: "rgba(10,10,10,0.95)",
-        backdropFilter: "blur(20px)",
-        borderTop: "1px solid #1a1a1a",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      <div className="flex items-end justify-around h-16 px-2">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
-          const isCenter = item.label === "Log";
+    <>
+      {showLogPicker && <LogPicker onClose={() => setShowLogPicker(false)} />}
 
-          return (
-            <Link
-              key={item.href + item.label}
-              href={item.href}
-              className={`flex flex-col items-center gap-0.5 press-effect ${
-                isCenter ? "pb-1" : "pt-2"
-              }`}
-            >
-              {item.icon(isActive)}
-              {!isCenter && (
-                <span
-                  className="text-[10px] font-medium tracking-wide"
-                  style={{ color: isActive ? "#39ff14" : "#555" }}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50"
+        style={{
+          background: "rgba(10,10,10,0.95)",
+          backdropFilter: "blur(20px)",
+          borderTop: "1px solid #1a1a1a",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        <div className="flex items-center justify-around h-16 px-4">
+          {NAV_ITEMS.map((item) => {
+            const isActive = item.href === null
+              ? isLogActive || showLogPicker
+              : item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+
+            if (item.href === null) {
+              return (
+                <button
+                  key="log"
+                  onClick={() => setShowLogPicker((v) => !v)}
+                  className="flex flex-col items-center gap-0.5 pt-2 press-effect"
                 >
+                  {item.icon(isActive)}
+                  <span className="text-[10px] font-medium tracking-wide"
+                    style={{ color: isActive ? "#ff6b00" : "#555" }}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center gap-0.5 pt-2 press-effect"
+              >
+                {item.icon(isActive)}
+                <span className="text-[10px] font-medium tracking-wide"
+                  style={{ color: isActive ? "#39ff14" : "#555" }}>
                   {item.label}
                 </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

@@ -18,6 +18,7 @@ export interface FitnessSession {
   date: string; // ISO
   category: FitnessCategory;
   exercises: Exercise[];
+  comment: string;
   stravaActivityId?: number;
   importedFromStrava?: boolean;
 }

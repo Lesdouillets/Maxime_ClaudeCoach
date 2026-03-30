@@ -230,6 +230,7 @@ export function autoImportActivity(
     date: activity.start_date,
     category: guessFitnessCategory(activity.name),
     exercises: [],
+    comment: "",
     stravaActivityId: activity.id,
     importedFromStrava: true,
   };
