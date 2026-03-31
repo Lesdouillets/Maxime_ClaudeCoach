@@ -112,11 +112,15 @@ export default function LogFitness() {
   const handleImportJSON = useCallback(() => {
     setImportError("");
     try {
-      const workout = parseCoachWorkoutJSON(importJson);
-      addCoachWorkout(workout);
-      setCoachWorkout(workout);
-      setCategory(workout.category);
-      setExercises(workout.exercises.map(coachExerciseToExercise));
+      const workouts = parseCoachWorkoutJSON(importJson);
+      // Save all workouts to storage
+      workouts.forEach((w) => addCoachWorkout(w));
+      // Load today's workout (or first one) into the form
+      const today = new Date().toISOString().slice(0, 10);
+      const active = workouts.find((w) => w.date === today) ?? workouts[0];
+      setCoachWorkout(active);
+      setCategory(active.category);
+      setExercises(active.exercises.map(coachExerciseToExercise));
       setLoadedFromCoach(true);
       setShowImportPanel(false);
       setImportJson("");

@@ -63,21 +63,17 @@ export function getTodayCoachWorkout(): CoachWorkout | null {
 
 // ─── JSON Parser ──────────────────────────────────────────────────────────────
 
-/** Parse a coach workout from a JSON string pasted by the user */
-export function parseCoachWorkoutJSON(raw: string): CoachWorkout {
-  const data = JSON.parse(raw.trim());
-
+function parseOne(data: Record<string, unknown>, index = 0): CoachWorkout {
   if (!data.exercises || !Array.isArray(data.exercises)) {
-    throw new Error("Le JSON doit contenir un tableau 'exercises'.");
+    throw new Error("Chaque séance doit contenir un tableau 'exercises'.");
   }
-
   return {
-    id: `coach-${Date.now()}`,
-    date: data.date ?? new Date().toISOString().slice(0, 10),
+    id: `coach-${Date.now()}-${index}`,
+    date: String(data.date ?? new Date().toISOString().slice(0, 10)),
     category: data.category === "lower" ? "lower" : "upper",
-    label: data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS"),
-    coachNote: data.coachNote ?? data.note ?? undefined,
-    exercises: data.exercises.map((ex: Record<string, unknown>) => ({
+    label: String(data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS")),
+    coachNote: data.coachNote != null ? String(data.coachNote) : (data.note != null ? String(data.note) : undefined),
+    exercises: (data.exercises as Record<string, unknown>[]).map((ex) => ({
       name: String(ex.name ?? ""),
       sets: Number(ex.sets ?? 3),
       reps: Number(ex.reps ?? 10),
@@ -86,6 +82,15 @@ export function parseCoachWorkoutJSON(raw: string): CoachWorkout {
       coachNote: ex.note ? String(ex.note) : undefined,
     })),
   };
+}
+
+/** Parse one or multiple coach workouts from a JSON string pasted by the user */
+export function parseCoachWorkoutJSON(raw: string): CoachWorkout[] {
+  const data = JSON.parse(raw.trim());
+  if (Array.isArray(data)) {
+    return data.map((item, i) => parseOne(item as Record<string, unknown>, i));
+  }
+  return [parseOne(data as Record<string, unknown>)];
 }
 
 // ─── Example JSON for coach ───────────────────────────────────────────────────
