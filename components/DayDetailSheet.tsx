@@ -188,12 +188,17 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
                   )}
                   <div className="space-y-2">
                     {coachWorkout.exercises.map((ex, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{ex.name}</span>
-                        <span className="text-muted">
-                          {ex.sets}×{ex.reps}
-                          {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
-                        </span>
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-muted">
+                            {ex.sets}×{ex.reps}
+                            {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
+                          </span>
+                        </div>
+                        {ex.coachNote && (
+                          <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.coachNote}</p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -206,12 +211,17 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
                   <p className="text-xs text-muted uppercase tracking-wide mb-3">Exercices réalisés</p>
                   <div className="space-y-2">
                     {session.exercises.map((ex) => (
-                      <div key={ex.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{ex.name}</span>
-                        <span className="text-muted">
-                          {ex.sets}×{ex.reps}
-                          {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
-                        </span>
+                      <div key={ex.id} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-muted">
+                            {ex.sets}×{ex.reps}
+                            {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
+                          </span>
+                        </div>
+                        {ex.comment && (
+                          <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.comment}</p>
+                        )}
                       </div>
                     ))}
                   </div>
