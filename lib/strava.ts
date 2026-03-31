@@ -224,6 +224,12 @@ export function autoImportActivity(
     };
   }
 
+  const dateStr = activity.start_date.slice(0, 10);
+  const { getCoachWorkouts } = require("./coachPlan");
+  const coachWorkout = (getCoachWorkouts() as Array<{ id: string; date: string }>).find(
+    (w) => w.date === dateStr
+  );
+
   return {
     id: generateId(),
     type: "fitness",
@@ -231,6 +237,7 @@ export function autoImportActivity(
     category: guessFitnessCategory(activity.name),
     exercises: [],
     comment: "",
+    coachWorkoutId: coachWorkout?.id,
     stravaActivityId: activity.id,
     importedFromStrava: true,
   };

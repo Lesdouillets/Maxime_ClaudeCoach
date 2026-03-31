@@ -62,14 +62,16 @@ export function formatPace(secPerKm: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}/km`;
 }
 
-export function getThisWeekDays(): Array<{
+export type WeekDay = {
   date: Date;
   dow: number;
   plan: PlannedDay | null;
   label: string;
   isToday: boolean;
   isPast: boolean;
-}> {
+};
+
+export function getWeekDays(weekOffset = 0): WeekDay[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -77,7 +79,7 @@ export function getThisWeekDays(): Array<{
   const startOfWeek = new Date(today);
   const dow = today.getDay();
   const diff = dow === 0 ? -6 : 1 - dow;
-  startOfWeek.setDate(today.getDate() + diff);
+  startOfWeek.setDate(today.getDate() + diff + weekOffset * 7);
 
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(startOfWeek);
@@ -92,4 +94,8 @@ export function getThisWeekDays(): Array<{
       isPast: date < today,
     };
   });
+}
+
+export function getThisWeekDays(): WeekDay[] {
+  return getWeekDays(0);
 }

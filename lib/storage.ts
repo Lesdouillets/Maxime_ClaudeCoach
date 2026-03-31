@@ -3,6 +3,7 @@ import type {
   StravaTokens,
   StravaActivity,
   AppState,
+  CancelledDay,
 } from "./types";
 
 const KEYS = {
@@ -133,27 +134,37 @@ export function addWeightEntry(entry: WeightEntry): void {
 
 // ─── Cancelled & Rescheduled Days ─────────────────────────────────────────────
 
-export function getCancelledDays(): string[] {
+export function getCancelledDays(): CancelledDay[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEYS.cancelledDays);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Backward-compat: migrate old string[] format
+    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string") {
+      const migrated: CancelledDay[] = (parsed as string[]).map((d) => ({ date: d, reason: "" }));
+      localStorage.setItem(KEYS.cancelledDays, JSON.stringify(migrated));
+      return migrated;
+    }
+    return parsed as CancelledDay[];
   } catch { return []; }
 }
 
-export function cancelDay(date: string): void {
+export function getCancelledDay(date: string): CancelledDay | undefined {
+  return getCancelledDays().find((d) => d.date === date);
+}
+
+export function cancelDay(date: string, reason = ""): void {
   if (typeof window === "undefined") return;
-  const days = getCancelledDays();
-  if (!days.includes(date)) {
-    days.push(date);
-    localStorage.setItem(KEYS.cancelledDays, JSON.stringify(days));
-  }
+  const days = getCancelledDays().filter((d) => d.date !== date);
+  days.push({ date, reason });
+  localStorage.setItem(KEYS.cancelledDays, JSON.stringify(days));
 }
 
 export function uncancelDay(date: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(KEYS.cancelledDays, JSON.stringify(
-    getCancelledDays().filter((d) => d !== date)
+    getCancelledDays().filter((d) => d.date !== date)
   ));
 }
 

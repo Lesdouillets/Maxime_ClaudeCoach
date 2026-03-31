@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import { WEEKLY_PLAN, getThisWeekDays, formatPace } from "@/lib/plan";
-import { getSessions, getCancelledDays, cancelDay, uncancelDay, rescheduleDay, unrescheduleDay, getRescheduledDays } from "@/lib/storage";
-import type { WorkoutSession } from "@/lib/types";
+import {
+  getSessions, getCancelledDays, cancelDay, uncancelDay,
+  rescheduleDay, unrescheduleDay, getRescheduledDays,
+} from "@/lib/storage";
+import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
 
 const DAY_FULL_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
 export default function PlanPage() {
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
-  const [cancelledDays, setCancelledDays] = useState<string[]>([]);
+  const [cancelledDays, setCancelledDays] = useState<CancelledDayType[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
   const [rescheduleTarget, setRescheduleTarget] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
+  // Cancel reason state: dateStr → reason being typed
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const weekDays = getThisWeekDays();
 
@@ -31,8 +36,10 @@ export default function PlanPage() {
     refresh();
   }, []);
 
-  const handleCancel = (date: string) => {
-    cancelDay(date);
+  const handleCancelConfirm = (date: string) => {
+    cancelDay(date, cancelReason.trim());
+    setCancelTarget(null);
+    setCancelReason("");
     refresh();
   };
 
@@ -65,7 +72,8 @@ export default function PlanPage() {
           const dateStr = day.date.toISOString().slice(0, 10);
           const session = sessions.find((s) => s.date.slice(0, 10) === dateStr);
           const plan = day.plan;
-          const isCancelled = cancelledDays.includes(dateStr);
+          const cancelledDay = cancelledDays.find((d) => d.date === dateStr);
+          const isCancelled = !!cancelledDay;
           const reschedule = rescheduledDays.find((r) => r.from === dateStr);
 
           let status: "done" | "cancelled" | "rescheduled" | "missed" | "upcoming" | "today-planned" | "rest";
@@ -78,13 +86,13 @@ export default function PlanPage() {
           else status = "upcoming";
 
           const statusConfig = {
-            done:          { color: "#39ff14", label: "Fait ✓",    border: "rgba(57,255,20,0.3)",  bg: "rgba(57,255,20,0.04)" },
-            cancelled:     { color: "#444",    label: "Annulé",    border: "#222",                 bg: "#0d0d0d" },
-            rescheduled:   { color: "#ff6b00", label: "Décalé",    border: "rgba(255,107,0,0.3)",  bg: "rgba(255,107,0,0.03)" },
-            missed:        { color: "#ff6b00", label: "Manqué",    border: "rgba(255,107,0,0.25)", bg: "rgba(255,107,0,0.03)" },
-            upcoming:      { color: "#555",    label: "À venir",   border: "#1a1a1a",              bg: "#111" },
-            "today-planned":{ color: "#39ff14",label: "Aujourd'hui",border:"rgba(57,255,20,0.5)", bg: "rgba(57,255,20,0.04)" },
-            rest:          { color: "#2a2a2a", label: "Repos",     border: "#1a1a1a",              bg: "#0d0d0d" },
+            done:           { color: "#39ff14", label: "Fait ✓",     border: "rgba(57,255,20,0.3)",  bg: "rgba(57,255,20,0.04)" },
+            cancelled:      { color: "#444",    label: "Annulé",     border: "#222",                  bg: "#0d0d0d" },
+            rescheduled:    { color: "#ff6b00", label: "Décalé",     border: "rgba(255,107,0,0.3)",   bg: "rgba(255,107,0,0.03)" },
+            missed:         { color: "#ff6b00", label: "Manqué",     border: "rgba(255,107,0,0.25)",  bg: "rgba(255,107,0,0.03)" },
+            upcoming:       { color: "#555",    label: "À venir",    border: "#1a1a1a",               bg: "#111" },
+            "today-planned":{ color: "#39ff14", label: "Aujourd'hui",border: "rgba(57,255,20,0.5)",   bg: "rgba(57,255,20,0.04)" },
+            rest:           { color: "#2a2a2a", label: "Repos",      border: "#1a1a1a",               bg: "#0d0d0d" },
           }[status];
 
           const canAct = plan && status !== "done" && status !== "rest";
@@ -97,7 +105,7 @@ export default function PlanPage() {
                 border: `1px solid ${statusConfig.border}`,
                 background: statusConfig.bg,
                 boxShadow: day.isToday ? "0 0 20px rgba(57,255,20,0.06)" : "none",
-                opacity: isCancelled ? 0.5 : 1,
+                opacity: isCancelled ? 0.55 : 1,
               }}
             >
               <div className="p-4">
@@ -124,7 +132,6 @@ export default function PlanPage() {
                     <h3 className="font-bold text-base mb-1">{plan.label}</h3>
                     <p className="text-sm text-muted mb-3">{plan.targetDescription}</p>
 
-                    {/* Run targets */}
                     {plan.type === "run" && (
                       <div className="flex gap-3 flex-wrap mb-3">
                         {plan.targetDistanceKm && (
@@ -147,7 +154,7 @@ export default function PlanPage() {
                       </div>
                     )}
 
-                    {/* Session summary if done */}
+                    {/* Session summary */}
                     {session && status === "done" && (
                       <div className="rounded-xl p-3 mb-3"
                         style={{ background: "rgba(57,255,20,0.05)", border: "1px solid rgba(57,255,20,0.1)" }}>
@@ -162,21 +169,23 @@ export default function PlanPage() {
                                 {Math.floor(session.avgPaceSecPerKm / 60)}:{String(Math.round(session.avgPaceSecPerKm % 60)).padStart(2, "0")}/km
                               </span>
                             )}
-                            {session.comment && (
-                              <p className="text-xs text-muted italic mt-1 col-span-2">"{session.comment}"</p>
-                            )}
                           </div>
                         ) : (
-                          <div>
-                            <span className="text-sm" style={{ color: "#ff6b00" }}>
-                              {session.exercises.length} exercices complétés
-                            </span>
-                            {session.comment && (
-                              <p className="text-xs text-muted italic mt-1">"{session.comment}"</p>
-                            )}
-                          </div>
+                          <span className="text-sm" style={{ color: "#ff6b00" }}>
+                            {session.exercises.length > 0 ? `${session.exercises.length} exercices` : "Activité Strava"}
+                          </span>
+                        )}
+                        {session.comment && (
+                          <p className="text-xs text-muted italic mt-1">"{session.comment}"</p>
                         )}
                       </div>
+                    )}
+
+                    {/* Cancelled reason */}
+                    {isCancelled && cancelledDay?.reason && (
+                      <p className="text-xs italic mb-2" style={{ color: "#555" }}>
+                        Raison : {cancelledDay.reason}
+                      </p>
                     )}
 
                     {/* Rescheduled info */}
@@ -196,52 +205,38 @@ export default function PlanPage() {
 
                     {/* Action buttons */}
                     {canAct && !isCancelled && !reschedule && (
-                      <div className="flex gap-2">
-                        {/* Log today */}
-                        {day.isToday && (
-                          <Link
-                            href={plan.type === "fitness" ? "/log/fitness" : "/log/run"}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold press-effect"
-                            style={{ background: "linear-gradient(135deg, #39ff14, #1a7a09)", color: "#0a0a0a" }}
-                          >
-                            Logger
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                              <path d="M5 12H19M13 6L19 12L13 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                          </Link>
-                        )}
-
+                      <div className="flex gap-2 flex-wrap">
                         {/* Reschedule */}
                         {rescheduleTarget === dateStr ? (
-                          <div className="flex-1 flex gap-2">
+                          <div className="flex-1 flex gap-1.5">
                             <input
                               type="date"
                               value={rescheduleDate}
                               onChange={(e) => setRescheduleDate(e.target.value)}
-                              className="flex-1 text-sm rounded-xl px-3 py-2 focus:outline-none"
-                              style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.4)", color: "white" }}
+                              className="flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none"
+                              style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
                               min={new Date().toISOString().slice(0, 10)}
                             />
                             <button
                               onClick={() => handleReschedule(dateStr)}
                               disabled={!rescheduleDate}
-                              className="px-3 py-2 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold press-effect disabled:opacity-40"
                               style={{ background: "#ff6b00", color: "white" }}>
                               OK
                             </button>
                             <button
                               onClick={() => setRescheduleTarget(null)}
-                              className="px-3 py-2 rounded-xl text-sm press-effect"
-                              style={{ background: "#1a1a1a", color: "#666" }}>
+                              className="px-2 py-1.5 rounded-lg text-xs press-effect"
+                              style={{ background: "#1a1a1a", color: "#555" }}>
                               ✕
                             </button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => { setRescheduleTarget(dateStr); setRescheduleDate(""); }}
-                            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold press-effect"
-                            style={{ background: "#1a1a1a", color: "#888", border: "1px solid #222" }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                            onClick={() => { setRescheduleTarget(dateStr); setRescheduleDate(""); setCancelTarget(null); }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs press-effect"
+                            style={{ background: "transparent", color: "#555", border: "1px solid #222" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                               <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 7h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                             </svg>
                             Décaler
@@ -249,15 +244,42 @@ export default function PlanPage() {
                         )}
 
                         {/* Cancel */}
-                        <button
-                          onClick={() => handleCancel(dateStr)}
-                          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold press-effect"
-                          style={{ background: "#1a1a1a", color: "#666", border: "1px solid #222" }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
-                          Annuler
-                        </button>
+                        {cancelTarget === dateStr ? (
+                          <div className="flex-1 flex gap-1.5">
+                            <input
+                              type="text"
+                              value={cancelReason}
+                              onChange={(e) => setCancelReason(e.target.value)}
+                              placeholder="Raison ?"
+                              className="flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none"
+                              style={{ background: "#1a1a1a", border: "1px solid #333", color: "white" }}
+                              onKeyDown={(e) => { if (e.key === "Enter") handleCancelConfirm(dateStr); }}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleCancelConfirm(dateStr)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold press-effect"
+                              style={{ background: "#333", color: "#aaa" }}>
+                              OK
+                            </button>
+                            <button
+                              onClick={() => setCancelTarget(null)}
+                              className="px-2 py-1.5 rounded-lg text-xs press-effect"
+                              style={{ background: "#1a1a1a", color: "#555" }}>
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setCancelTarget(dateStr); setCancelReason(""); setRescheduleTarget(null); }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs press-effect"
+                            style={{ background: "transparent", color: "#555", border: "1px solid #222" }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            Annuler
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -265,7 +287,7 @@ export default function PlanPage() {
                     {isCancelled && (
                       <button
                         onClick={() => handleUncancel(dateStr)}
-                        className="text-xs px-3 py-1.5 rounded-xl press-effect"
+                        className="text-xs px-2.5 py-1.5 rounded-lg press-effect"
                         style={{ background: "#1a1a1a", color: "#555", border: "1px solid #222" }}>
                         Rétablir
                       </button>
