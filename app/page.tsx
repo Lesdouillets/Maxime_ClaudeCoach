@@ -7,9 +7,9 @@ import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { copyExportToClipboard, downloadExport } from "@/lib/export";
-import { getCoachWorkouts } from "@/lib/coachPlan";
+import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
-import type { CoachWorkout } from "@/lib/coachPlan";
+import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 const DayDetailSheet = dynamic(() => import("@/components/DayDetailSheet"), { ssr: false });
 
@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
+  const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
 
   const handleResync = async () => {
     if (resyncing) return;
@@ -58,6 +59,7 @@ export default function Dashboard() {
   const refreshSessions = useCallback(() => {
     setSessions(getSessions());
     setCoachWorkouts(getCoachWorkouts());
+    setCoachRuns(getCoachRuns());
   }, []);
 
   useEffect(() => {
@@ -126,6 +128,9 @@ export default function Dashboard() {
     : null;
   const selectedCoachWorkout = selectedSession?.type === "fitness" && selectedSession.coachWorkoutId
     ? coachWorkouts.find((w) => w.id === selectedSession.coachWorkoutId) ?? null
+    : null;
+  const selectedCoachRun = selectedDate
+    ? coachRuns.find((r) => r.date === selectedDate) ?? null
     : null;
 
   const completedThisWeek = weekDays.filter((d) =>
@@ -491,6 +496,7 @@ export default function Dashboard() {
           session={selectedSession}
           plan={selectedPlan}
           coachWorkout={selectedCoachWorkout}
+          coachRun={selectedCoachRun}
           onClose={() => setSelectedDate(null)}
         />
       )}

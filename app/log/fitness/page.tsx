@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import { addSession, generateId } from "@/lib/storage";
-import { getTodayCoachWorkout, addCoachWorkout, deleteCoachWorkout, parseCoachWorkoutJSON, EXAMPLE_COACH_JSON } from "@/lib/coachPlan";
-import type { Exercise, FitnessCategory } from "@/lib/types";
+import { getTodayCoachWorkout, addCoachWorkout, addCoachRun, deleteCoachWorkout, parseCoachWorkoutJSON, EXAMPLE_COACH_JSON } from "@/lib/coachPlan";
 import type { CoachWorkout } from "@/lib/coachPlan";
+import type { Exercise, FitnessCategory } from "@/lib/types";
 
 const EXERCISE_LIBRARY: Record<FitnessCategory, string[]> = {
   upper: [
@@ -112,11 +112,21 @@ export default function LogFitness() {
   const handleImportJSON = useCallback(() => {
     setImportError("");
     try {
-      const workout = parseCoachWorkoutJSON(importJson);
-      addCoachWorkout(workout);
-      setCoachWorkout(workout);
-      setCategory(workout.category);
-      setExercises(workout.exercises.map(coachExerciseToExercise));
+      const plans = parseCoachWorkoutJSON(importJson);
+      // Save all plans — fitness to workouts, run to runs
+      plans.forEach((p) => p.type === "run" ? addCoachRun(p) : addCoachWorkout(p));
+      // Load today's fitness workout (or first fitness one) into the form
+      const fitnessPlans = plans.filter((p): p is CoachWorkout => p.type === "fitness");
+      if (fitnessPlans.length === 0) {
+        setShowImportPanel(false);
+        setImportJson("");
+        return; // only runs — nothing to load into fitness form
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const active = fitnessPlans.find((w) => w.date === today) ?? fitnessPlans[0];
+      setCoachWorkout(active);
+      setCategory(active.category);
+      setExercises(active.exercises.map(coachExerciseToExercise));
       setLoadedFromCoach(true);
       setShowImportPanel(false);
       setImportJson("");

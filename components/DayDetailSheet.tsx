@@ -2,13 +2,14 @@
 
 import { useEffect } from "react";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
-import type { CoachWorkout } from "@/lib/coachPlan";
+import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 interface Props {
   date: string; // "YYYY-MM-DD"
   session?: WorkoutSession;
   plan?: PlannedDay | null;
   coachWorkout?: CoachWorkout | null;
+  coachRun?: CoachRun | null;
   onClose: () => void;
 }
 
@@ -31,7 +32,7 @@ const StravaIcon = () => (
   </svg>
 );
 
-export default function DayDetailSheet({ date, session, plan, coachWorkout, onClose }: Props) {
+export default function DayDetailSheet({ date, session, plan, coachWorkout, coachRun, onClose }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
@@ -144,8 +145,51 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
                 )}
               </div>
 
+              {/* Coach run plan */}
+              {coachRun && (
+                <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.1)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#39ff14" }}>
+                    Plan du coach — {coachRun.label}
+                  </p>
+                  {coachRun.coachNote && (
+                    <p className="text-xs italic mb-3" style={{ color: "#888" }}>"{coachRun.coachNote}"</p>
+                  )}
+                  {coachRun.intervals ? (
+                    <div className="space-y-2">
+                      {coachRun.intervals.map((seg, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="font-medium">
+                            {seg.label ?? (seg.reps ? `${seg.reps}×${seg.distanceKm < 1 ? `${seg.distanceKm * 1000}m` : `${seg.distanceKm}km`}` : `${seg.distanceKm}km`)}
+                          </span>
+                          <div className="text-right">
+                            <span className="text-muted">{seg.pace}/km</span>
+                            {seg.targetHR && <span className="text-xs text-muted ml-2">♥ {seg.targetHR}</span>}
+                            {seg.restSeconds && <span className="text-xs text-muted ml-2">récup {seg.restSeconds}s</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex gap-4 text-sm">
+                      <div>
+                        <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{coachRun.distanceKm}</span>
+                        <span className="text-xs text-muted ml-1">km</span>
+                      </div>
+                      <div className="self-end mb-0.5 text-muted">{coachRun.pace}/km</div>
+                      {coachRun.targetHR && <div className="self-end mb-0.5 text-xs text-muted">♥ {coachRun.targetHR}</div>}
+                      {coachRun.targetZone && (
+                        <span className="self-center px-2 py-0.5 rounded-lg text-xs font-bold"
+                          style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14" }}>
+                          {coachRun.targetZone}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Plan targets comparison */}
-              {plan?.type === "run" && (plan.targetDistanceKm || plan.targetPaceSecPerKm) && (
+              {!coachRun && plan?.type === "run" && (plan.targetDistanceKm || plan.targetPaceSecPerKm) && (
                 <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.1)" }}>
                   <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#39ff14" }}>
                     Objectif
@@ -188,12 +232,17 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
                   )}
                   <div className="space-y-2">
                     {coachWorkout.exercises.map((ex, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{ex.name}</span>
-                        <span className="text-muted">
-                          {ex.sets}×{ex.reps}
-                          {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
-                        </span>
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-muted">
+                            {ex.sets}×{ex.reps}
+                            {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
+                          </span>
+                        </div>
+                        {ex.coachNote && (
+                          <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.coachNote}</p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -206,12 +255,17 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
                   <p className="text-xs text-muted uppercase tracking-wide mb-3">Exercices réalisés</p>
                   <div className="space-y-2">
                     {session.exercises.map((ex) => (
-                      <div key={ex.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{ex.name}</span>
-                        <span className="text-muted">
-                          {ex.sets}×{ex.reps}
-                          {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
-                        </span>
+                      <div key={ex.id} className="space-y-0.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-muted">
+                            {ex.sets}×{ex.reps}
+                            {ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
+                          </span>
+                        </div>
+                        {ex.comment && (
+                          <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.comment}</p>
+                        )}
                       </div>
                     ))}
                   </div>
