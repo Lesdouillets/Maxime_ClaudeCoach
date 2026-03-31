@@ -19,6 +19,7 @@ export interface FitnessSession {
   category: FitnessCategory;
   exercises: Exercise[];
   comment: string;
+  coachWorkoutId?: string;
   stravaActivityId?: number;
   importedFromStrava?: boolean;
 }
@@ -80,6 +81,13 @@ export interface StravaActivity {
   average_speed: number; // m/s
   average_heartrate?: number;
   max_heartrate?: number;
+}
+
+// ─── Cancelled Days ───────────────────────────────────────────────────────────
+
+export interface CancelledDay {
+  date: string; // ISO "YYYY-MM-DD"
+  reason: string;
 }
 
 // ─── App State ────────────────────────────────────────────────────────────────
