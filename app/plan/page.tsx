@@ -10,9 +10,9 @@ import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays,
 } from "@/lib/storage";
-import { getCoachWorkouts } from "@/lib/coachPlan";
+import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
-import type { CoachWorkout } from "@/lib/coachPlan";
+import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 const DayDetailSheet = dynamic(() => import("@/components/DayDetailSheet"), { ssr: false });
 
@@ -29,6 +29,7 @@ export default function PlanPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
+  const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
 
   const weekDays = getThisWeekDays();
 
@@ -37,6 +38,7 @@ export default function PlanPage() {
     setCancelledDays(getCancelledDays());
     setRescheduledDays(getRescheduledDays());
     setCoachWorkouts(getCoachWorkouts());
+    setCoachRuns(getCoachRuns());
   };
 
   useEffect(() => {
@@ -346,12 +348,14 @@ export default function PlanPage() {
         const detailCoachWorkout = detailSession?.type === "fitness" && detailSession.coachWorkoutId
           ? coachWorkouts.find((w) => w.id === detailSession.coachWorkoutId) ?? null
           : null;
+        const detailCoachRun = coachRuns.find((r) => r.date === detailDate) ?? null;
         return (
           <DayDetailSheet
             date={detailDate}
             session={detailSession}
             plan={detailPlan}
             coachWorkout={detailCoachWorkout}
+            coachRun={detailCoachRun}
             onClose={() => setDetailDate(null)}
           />
         );
