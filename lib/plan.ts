@@ -62,6 +62,11 @@ export function formatPace(secPerKm: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}/km`;
 }
 
+/** Format a Date to "YYYY-MM-DD" using local time (avoids UTC offset issues) */
+export function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export type WeekDay = {
   date: Date;
   dow: number;
