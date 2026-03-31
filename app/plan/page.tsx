@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import { WEEKLY_PLAN, getThisWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
@@ -8,7 +10,11 @@ import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays,
 } from "@/lib/storage";
+import { getCoachWorkouts } from "@/lib/coachPlan";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
+import type { CoachWorkout } from "@/lib/coachPlan";
+
+const DayDetailSheet = dynamic(() => import("@/components/DayDetailSheet"), { ssr: false });
 
 const DAY_FULL_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 
@@ -19,9 +25,10 @@ export default function PlanPage() {
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
   const [rescheduleTarget, setRescheduleTarget] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
-  // Cancel reason state: dateStr → reason being typed
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
 
   const weekDays = getThisWeekDays();
 
@@ -29,6 +36,7 @@ export default function PlanPage() {
     setSessions(getSessions());
     setCancelledDays(getCancelledDays());
     setRescheduledDays(getRescheduledDays());
+    setCoachWorkouts(getCoachWorkouts());
   };
 
   useEffect(() => {
@@ -154,30 +162,56 @@ export default function PlanPage() {
                       </div>
                     )}
 
-                    {/* Session summary */}
+                    {/* Session summary — clickable to open detail */}
                     {session && status === "done" && (
-                      <div className="rounded-xl p-3 mb-3"
-                        style={{ background: "rgba(57,255,20,0.05)", border: "1px solid rgba(57,255,20,0.1)" }}>
-                        {session.type === "run" ? (
-                          <div className="flex gap-4 text-sm">
-                            <span style={{ color: "#39ff14" }}>
-                              <span className="font-display text-lg">{session.distanceKm.toFixed(1)}</span>
-                              <span className="text-xs text-muted ml-1">km</span>
-                            </span>
-                            {session.avgPaceSecPerKm > 0 && (
-                              <span className="text-muted">
-                                {Math.floor(session.avgPaceSecPerKm / 60)}:{String(Math.round(session.avgPaceSecPerKm % 60)).padStart(2, "0")}/km
+                      <button
+                        className="w-full text-left rounded-xl p-3 mb-3 press-effect"
+                        style={{ background: "rgba(57,255,20,0.05)", border: "1px solid rgba(57,255,20,0.1)" }}
+                        onClick={() => setDetailDate(dateStr)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {session.type === "run" ? (
+                              <div className="flex gap-4 text-sm">
+                                <span style={{ color: "#39ff14" }}>
+                                  <span className="font-display text-lg">{session.distanceKm.toFixed(1)}</span>
+                                  <span className="text-xs text-muted ml-1">km</span>
+                                </span>
+                                {session.avgPaceSecPerKm > 0 && (
+                                  <span className="text-muted self-end text-xs mb-0.5">
+                                    {Math.floor(session.avgPaceSecPerKm / 60)}:{String(Math.round(session.avgPaceSecPerKm % 60)).padStart(2, "0")}/km
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm" style={{ color: "#ff6b00" }}>
+                                {session.exercises.length > 0 ? `${session.exercises.length} exercices` : "Activité Strava"}
                               </span>
                             )}
+                            {session.comment && (
+                              <p className="text-xs text-muted italic mt-1">"{session.comment}"</p>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-sm" style={{ color: "#ff6b00" }}>
-                            {session.exercises.length > 0 ? `${session.exercises.length} exercices` : "Activité Strava"}
-                          </span>
-                        )}
-                        {session.comment && (
-                          <p className="text-xs text-muted italic mt-1">"{session.comment}"</p>
-                        )}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 ml-2">
+                            <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Manual log button for non-done planned days */}
+                    {plan && !session && !isCancelled && !reschedule && (status === "missed" || status === "today-planned" || status === "upcoming") && (
+                      <div className="mb-3">
+                        <Link
+                          href={`/log/${plan.type === "fitness" ? "fitness" : "run"}?date=${dateStr}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs press-effect"
+                          style={{ background: "#1a1a1a", color: "#555", border: "1px solid #222" }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          Valider manuellement
+                        </Link>
                       </div>
                     )}
 
@@ -303,6 +337,25 @@ export default function PlanPage() {
 
         <div className="h-4" />
       </div>
+
+      {/* Day detail sheet */}
+      {detailDate && (() => {
+        const detailSession = sessions.find((s) => s.date.slice(0, 10) === detailDate);
+        const detailDow = new Date(detailDate + "T12:00:00").getDay();
+        const detailPlan = WEEKLY_PLAN.find((p) => p.dayOfWeek === detailDow) ?? null;
+        const detailCoachWorkout = detailSession?.type === "fitness" && detailSession.coachWorkoutId
+          ? coachWorkouts.find((w) => w.id === detailSession.coachWorkoutId) ?? null
+          : null;
+        return (
+          <DayDetailSheet
+            date={detailDate}
+            session={detailSession}
+            plan={detailPlan}
+            coachWorkout={detailCoachWorkout}
+            onClose={() => setDetailDate(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

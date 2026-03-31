@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
-import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl } from "@/lib/strava";
+import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { copyExportToClipboard, downloadExport } from "@/lib/export";
 import { getCoachWorkouts } from "@/lib/coachPlan";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
@@ -21,10 +21,33 @@ export default function Dashboard() {
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
+
+  const handleResync = async () => {
+    if (resyncing) return;
+    setResyncing(true);
+    try {
+      const activities = await forceResyncRecentActivities(14);
+      let count = 0;
+      activities.forEach((activity) => {
+        const session = autoImportActivity(activity);
+        if (session) { addSession(session); count++; }
+      });
+      if (count > 0) {
+        setImportedCount(count);
+        refreshSessions();
+        setTimeout(() => setImportedCount(0), 4000);
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   const handleCopy = async () => {
     await copyExportToClipboard();
@@ -124,11 +147,21 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {/* Strava icon */}
             {isStravaConnected ? (
-              <div className="p-2 rounded-xl" style={{ background: "rgba(255,107,0,0.1)" }} title="Strava connecté">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff6b00">
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
+              <button
+                onClick={handleResync}
+                disabled={resyncing}
+                className="p-2 rounded-xl press-effect disabled:opacity-60"
+                style={{ background: resyncing ? "rgba(255,107,0,0.05)" : "rgba(255,107,0,0.1)" }}
+                title="Resynchroniser Strava (14 derniers jours)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={resyncing ? "#884400" : "#ff6b00"}
+                  className={resyncing ? "animate-spin" : ""}>
+                  {resyncing
+                    ? <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                    : <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
+                  }
                 </svg>
-              </div>
+              </button>
             ) : (
               <a
                 href={getStravaAuthUrl()}

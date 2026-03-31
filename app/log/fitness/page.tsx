@@ -52,6 +52,7 @@ export default function LogFitness() {
   const [showLibrary, setShowLibrary] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sessionDate, setSessionDate] = useState<string | null>(null); // null = today
 
   // Coach plan state
   const [coachWorkout, setCoachWorkout] = useState<CoachWorkout | null>(null);
@@ -62,6 +63,11 @@ export default function LogFitness() {
 
   useEffect(() => {
     setMounted(true);
+    // Read optional ?date= query param for back-dated logging
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("date");
+    if (d) setSessionDate(d);
+
     const plan = getTodayCoachWorkout();
     if (plan) {
       setCoachWorkout(plan);
@@ -133,7 +139,7 @@ export default function LogFitness() {
     addSession({
       id: generateId(),
       type: "fitness",
-      date: new Date().toISOString(),
+      date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
       category,
       comment,
       exercises: validExercises,
@@ -153,7 +159,9 @@ export default function LogFitness() {
     <div className="max-w-md mx-auto animate-fade-in">
       <PageHeader
         title="SÉANCE SALLE"
-        subtitle="Logger"
+        subtitle={sessionDate
+          ? new Date(sessionDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+          : "Logger"}
         accent="orange"
         right={
           <button

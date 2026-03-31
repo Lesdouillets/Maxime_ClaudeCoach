@@ -146,7 +146,35 @@ export async function fetchNewActivitiesSinceLastVisit(): Promise<StravaActivity
   return newActivities;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Force Resync (ignores lastStravaFetch) ───────────────────────────────────
+
+/** Fetch activities from the last N days regardless of lastStravaFetch timestamp */
+export async function forceResyncRecentActivities(daysBack = 14): Promise<StravaActivity[]> {
+  const tokens = getStravaTokens();
+  if (!tokens) return [];
+
+  const { getSessions, setLastStravaFetch } = await import("./storage");
+
+  const since = new Date();
+  since.setDate(since.getDate() - daysBack);
+  const afterTimestamp = Math.floor(since.getTime() / 1000);
+
+  const activities = await fetchRecentActivities(tokens, afterTimestamp);
+  const relevant = activities.filter((a) =>
+    ["Run", "TrailRun", "VirtualRun", "WeightTraining", "Workout", "CrossFit"].includes(a.type)
+  );
+
+  const existing = getSessions();
+  const existingStravaIds = new Set(
+    existing.filter((s) => s.stravaActivityId).map((s) => s.stravaActivityId)
+  );
+
+  setLastStravaFetch(new Date().toISOString());
+
+  return relevant.filter((a) => !existingStravaIds.has(a.id));
+}
+
+
 
 /** Convert m/s to pace string (min:ss /km) */
 export function speedToPace(metersPerSecond: number): string {

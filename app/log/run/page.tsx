@@ -22,9 +22,13 @@ export default function LogRun() {
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sessionDate, setSessionDate] = useState<string | null>(null); // null = today
 
   useEffect(() => {
     setMounted(true);
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("date");
+    if (d) setSessionDate(d);
     const plan = getTodayPlan();
     if (plan?.type === "run") setTodayPlan(plan);
   }, []);
@@ -60,7 +64,7 @@ export default function LogRun() {
     addSession({
       id: generateId(),
       type: "run",
-      date: new Date().toISOString(),
+      date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
       distanceKm: dist,
       durationSeconds,
       avgPaceSecPerKm: pace ?? 0,
@@ -82,7 +86,9 @@ export default function LogRun() {
     <div className="max-w-md mx-auto animate-fade-in">
       <PageHeader
         title="LOG RUN"
-        subtitle="Logger"
+        subtitle={sessionDate
+          ? new Date(sessionDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+          : "Logger"}
         accent="neon"
         right={
           <button
