@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
-import { WEEKLY_PLAN, getThisWeekDays, formatPace } from "@/lib/plan";
+import { WEEKLY_PLAN, getThisWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
 import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays,
@@ -69,7 +69,7 @@ export default function PlanPage() {
 
       <div className="px-5 space-y-3">
         {weekDays.map((day) => {
-          const dateStr = day.date.toISOString().slice(0, 10);
+          const dateStr = toLocalDateStr(day.date);
           const session = sessions.find((s) => s.date.slice(0, 10) === dateStr);
           const plan = day.plan;
           const cancelledDay = cancelledDays.find((d) => d.date === dateStr);
@@ -215,7 +215,7 @@ export default function PlanPage() {
                               onChange={(e) => setRescheduleDate(e.target.value)}
                               className="flex-1 text-xs rounded-lg px-2 py-1.5 focus:outline-none"
                               style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
-                              min={new Date().toISOString().slice(0, 10)}
+                              min={toLocalDateStr(new Date())}
                             />
                             <button
                               onClick={() => handleReschedule(dateStr)}

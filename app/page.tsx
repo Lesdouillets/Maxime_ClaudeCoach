@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import PageHeader from "@/components/PageHeader";
-import { getWeekDays, formatPace, WEEKLY_PLAN } from "@/lib/plan";
+import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl } from "@/lib/strava";
 import { copyExportToClipboard, downloadExport } from "@/lib/export";
@@ -66,7 +66,7 @@ export default function Dashboard() {
   const weekDays = getWeekDays(weekOffset);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(today);
 
   const todayPlan = WEEKLY_PLAN.find((p) => p.dayOfWeek === today.getDay()) ?? null;
   const todaySession = sessions.find((s) => s.date.slice(0, 10) === todayStr);
@@ -106,7 +106,7 @@ export default function Dashboard() {
     : null;
 
   const completedThisWeek = weekDays.filter((d) =>
-    sessions.some((s) => s.date.slice(0, 10) === d.date.toISOString().slice(0, 10))
+    sessions.some((s) => s.date.slice(0, 10) === toLocalDateStr(d.date))
   ).length;
   const plannedThisWeek = weekDays.filter((d) => d.plan).length;
 
@@ -365,7 +365,7 @@ export default function Dashboard() {
           {viewMode === "week" && (
             <div className="grid grid-cols-7 gap-1.5">
               {weekDays.map((day) => {
-                const dateStr = day.date.toISOString().slice(0, 10);
+                const dateStr = toLocalDateStr(day.date);
                 const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
                 const isPlanned = !!day.plan;
                 const isToday = day.isToday && weekOffset === 0;
@@ -415,7 +415,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-7 gap-1">
                 {monthDays.map((date, i) => {
                   if (!date) return <div key={`pad-${i}`} />;
-                  const dateStr = date.toISOString().slice(0, 10);
+                  const dateStr = toLocalDateStr(date);
                   const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
                   const dow = date.getDay();
                   const isPlanned = WEEKLY_PLAN.some((p) => p.dayOfWeek === dow);

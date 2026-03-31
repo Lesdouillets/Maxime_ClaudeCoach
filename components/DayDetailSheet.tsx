@@ -45,7 +45,7 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-[60] flex items-end"
       onClick={onClose}
     >
       {/* Backdrop */}
@@ -89,7 +89,7 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, onCl
           </button>
         </div>
 
-        <div className="px-5 pb-8 space-y-4">
+        <div className="px-5 pb-24 space-y-4">
 
           {/* Run session */}
           {session?.type === "run" && (
