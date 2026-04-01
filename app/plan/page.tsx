@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
-import { getWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
+import { getWeekDays, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getCancelledDays, getRescheduledDays } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
@@ -89,15 +89,13 @@ export default function PlanPage() {
           const coachWorkout = coachWorkouts.find((w) => w.date === dateStr) ?? null;
           const coachRun = coachRuns.find((r) => r.date === dateStr) ?? null;
           const hasCoachPlan = !!(coachWorkout || coachRun);
-          const hasPlan = hasCoachPlan || !!day.plan;
+          const hasPlan = hasCoachPlan;
 
-          const planType = coachRun ? "run" : coachWorkout ? "fitness" : day.plan?.type ?? null;
-          const planLabel = coachRun?.label ?? coachWorkout?.label ?? day.plan?.label ?? "";
-          const planCategory = coachWorkout?.category ?? (day.plan?.type === "fitness" ? day.plan.category : null);
-          const planDistanceKm = coachRun?.distanceKm ?? (day.plan?.type === "run" ? day.plan.targetDistanceKm : null);
+          const planType = coachRun ? "run" : coachWorkout ? "fitness" : null;
+          const planLabel = coachRun?.label ?? coachWorkout?.label ?? "";
+          const planDistanceKm = coachRun?.distanceKm ?? null;
           const planPaceStr = coachRun?.pace ?? null;
-          const planPaceSec = day.plan?.type === "run" ? day.plan.targetPaceSecPerKm : null;
-          const planZone = coachRun?.targetZone ?? (day.plan?.type === "run" ? day.plan.targetZone : null);
+          const planZone = coachRun?.targetZone ?? null;
           const planHR = coachRun?.targetHR ?? null;
 
           let status: "done" | "cancelled" | "rescheduled" | "missed" | "upcoming" | "today-planned" | "rest";
@@ -161,9 +159,6 @@ export default function PlanPage() {
                       )}
                       {planPaceStr && (
                         <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{planPaceStr}/km</span>
-                      )}
-                      {!planPaceStr && planPaceSec && (
-                        <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{formatPace(planPaceSec)}</span>
                       )}
                       {planHR && <span className="text-sm self-end mb-0.5" style={{ color: "#ff6b00" }}>♥ {planHR}</span>}
                       {planZone && <Badge label={planZone} variant="neon" />}

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
-import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
+import { getWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
@@ -101,7 +101,8 @@ export default function Dashboard() {
   today.setHours(0, 0, 0, 0);
   const todayStr = toLocalDateStr(today);
 
-  const todayPlan = WEEKLY_PLAN.find((p) => p.dayOfWeek === today.getDay()) ?? null;
+  const todayCoachWorkout = coachWorkouts.find((w) => w.date === todayStr) ?? null;
+  const todayCoachRun = coachRuns.find((r) => r.date === todayStr) ?? null;
   const todaySession = sessions.find((s) => s.date.slice(0, 10) === todayStr);
 
   // Week range label
@@ -129,7 +130,10 @@ export default function Dashboard() {
   const completedThisWeek = weekDays.filter((d) =>
     sessions.some((s) => s.date.slice(0, 10) === toLocalDateStr(d.date))
   ).length;
-  const plannedThisWeek = weekDays.filter((d) => d.plan).length;
+  const plannedThisWeek = weekDays.filter((d) => {
+    const ds = toLocalDateStr(d.date);
+    return coachWorkouts.some((w) => w.date === ds) || coachRuns.some((r) => r.date === ds);
+  }).length;
 
   const dateLabel = today.toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long",
@@ -210,7 +214,7 @@ export default function Dashboard() {
             background: "linear-gradient(135deg, #111 0%, #1a1a1a 100%)",
             border: todaySession
               ? "1px solid rgba(57,255,20,0.3)"
-              : todayPlan
+              : (todayCoachWorkout || todayCoachRun)
                 ? "1px solid rgba(57,255,20,0.15)"
                 : "1px solid #1a1a1a",
           }}
@@ -257,41 +261,46 @@ export default function Dashboard() {
               )}
               <p className="text-xs mt-2" style={{ color: "#555" }}>Appuyer pour voir le détail →</p>
             </button>
-          ) : todayPlan ? (
+          ) : todayCoachWorkout ? (
             <>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
                   style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>
                   AUJOURD'HUI
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-lg font-medium"
-                  style={{ background: "#1a1a1a", color: "#555" }}>
-                  {todayPlan.type === "fitness"
-                    ? (todayPlan.category === "upper" ? "Haut" : "Bas")
-                    : "Run"}
+              </div>
+              <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachWorkout.label}</h2>
+              {todayCoachWorkout.coachNote && (
+                <p className="text-sm text-gray-400">{todayCoachWorkout.coachNote}</p>
+              )}
+              <p className="text-xs mt-2" style={{ color: "#555" }}>{todayCoachWorkout.exercises.length} exercices</p>
+            </>
+          ) : todayCoachRun ? (
+            <>
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
+                  style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>
+                  AUJOURD'HUI
                 </span>
               </div>
-              <h2 className="font-display text-4xl mb-1 leading-none">{todayPlan.label}</h2>
-              <p className="text-sm text-gray-400">{todayPlan.targetDescription}</p>
-              {todayPlan.type === "run" && todayPlan.targetDistanceKm && (
-                <div className="flex gap-4 mt-3">
+              <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachRun.label}</h2>
+              <div className="flex gap-4 mt-3 items-end">
+                {todayCoachRun.distanceKm && (
                   <div>
-                    <span className="font-display text-2xl text-neon">{todayPlan.targetDistanceKm}</span>
+                    <span className="font-display text-2xl text-neon">{todayCoachRun.distanceKm}</span>
                     <span className="text-xs text-muted ml-1">km</span>
                   </div>
-                  {todayPlan.targetPaceSecPerKm && (
-                    <span className="font-display text-2xl text-neon">
-                      {formatPace(todayPlan.targetPaceSecPerKm)}
-                    </span>
-                  )}
-                  {todayPlan.targetZone && (
-                    <span className="self-center px-2 py-0.5 rounded-lg text-xs font-bold"
-                      style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14" }}>
-                      {todayPlan.targetZone}
-                    </span>
-                  )}
-                </div>
-              )}
+                )}
+                {todayCoachRun.pace && (
+                  <span className="font-display text-2xl text-neon">{todayCoachRun.pace}/km</span>
+                )}
+                {todayCoachRun.targetZone && (
+                  <span className="self-center px-2 py-0.5 rounded-lg text-xs font-bold"
+                    style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14" }}>
+                    {todayCoachRun.targetZone}
+                  </span>
+                )}
+              </div>
             </>
           ) : (
             <div className="flex items-center gap-4">
@@ -370,7 +379,7 @@ export default function Dashboard() {
               {weekDays.map((day) => {
                 const dateStr = toLocalDateStr(day.date);
                 const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
-                const isPlanned = !!day.plan;
+                const isPlanned = coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr);
                 const isToday = day.isToday && weekOffset === 0;
 
                 let bg = "#111", border = "#1a1a1a", dotColor = "transparent";
@@ -420,8 +429,7 @@ export default function Dashboard() {
                   if (!date) return <div key={`pad-${i}`} />;
                   const dateStr = toLocalDateStr(date);
                   const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
-                  const dow = date.getDay();
-                  const isPlanned = WEEKLY_PLAN.some((p) => p.dayOfWeek === dow);
+                  const isPlanned = coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr);
                   const isPast = date < today;
                   const isToday = dateStr === todayStr;
 
