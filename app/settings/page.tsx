@@ -41,7 +41,6 @@ export default function SettingsPage() {
   const [lastSync, setLastSync] = useState("");
 
   // ── Import state ──
-  const [importJson, setImportJson] = useState("");
   const [importError, setImportError] = useState("");
   const [importSuccess, setImportSuccess] = useState("");
 
@@ -96,18 +95,26 @@ export default function SettingsPage() {
   };
 
   // ── Import handler ──
-  const handleImport = () => {
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     setImportError(""); setImportSuccess("");
-    try {
-      const plans = parseCoachWorkoutJSON(importJson);
-      if (plans.length === 0) { setImportError("Aucune séance trouvée dans le JSON."); return; }
-      plans.forEach((p) => { if (p.type === "run") addCoachRun(p); else addCoachWorkout(p); });
-      setImportSuccess(`${plans.length} séance${plans.length > 1 ? "s" : ""} importée${plans.length > 1 ? "s" : ""} ✓`);
-      setImportJson("");
-      setTimeout(() => setImportSuccess(""), 3000);
-    } catch {
-      setImportError("JSON invalide. Vérifiez le format.");
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const plans = parseCoachWorkoutJSON(text);
+        if (plans.length === 0) { setImportError("Aucune séance trouvée dans le JSON."); return; }
+        plans.forEach((p) => { if (p.type === "run") addCoachRun(p); else addCoachWorkout(p); });
+        setImportSuccess(`${plans.length} séance${plans.length > 1 ? "s" : ""} importée${plans.length > 1 ? "s" : ""} ✓`);
+        setTimeout(() => setImportSuccess(""), 4000);
+      } catch {
+        setImportError("JSON invalide. Vérifiez le format.");
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    e.target.value = "";
   };
 
   // ── Export handlers ──
@@ -145,7 +152,7 @@ export default function SettingsPage() {
 
         {/* ── 1. SYNCHRO DONNÉES ── */}
         <Section title="SYNCHRO DONNÉES">
-          <div className="p-4 space-y-4">
+          <div className="px-4 py-3 space-y-3">
 
             {/* Status */}
             <div className="flex items-center gap-3">
@@ -241,34 +248,24 @@ export default function SettingsPage() {
 
         {/* ── 2. IMPORT JSON COACH ── */}
         <Section title="IMPORT JSON — PROGRAMME COACH">
-          <div className="p-4 space-y-3">
-            <p className="text-xs text-muted">
-              Colle le JSON généré par ton coach (séances muscu et/ou runs, une ou plusieurs semaines).
-            </p>
-            <textarea
-              value={importJson}
-              onChange={(e) => setImportJson(e.target.value)}
-              placeholder='[{ "type": "run", "date": "2026-04-09", … }]'
-              rows={7}
-              className="w-full rounded-xl px-3 py-2.5 text-xs font-mono resize-none focus:outline-none"
-              style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
-            />
+          <div className="px-4 py-3 space-y-2">
+            <p className="text-xs text-muted">Fichier JSON généré par ton coach (muscu + runs).</p>
+            <label className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold cursor-pointer press-effect"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15V3M7 8l5-5 5 5M20 21H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Importer un fichier JSON
+              <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile} />
+            </label>
             {importError && <p className="text-xs" style={{ color: "#ff4444" }}>{importError}</p>}
             {importSuccess && <p className="text-xs font-bold" style={{ color: "#39ff14" }}>{importSuccess}</p>}
-            <button
-              onClick={handleImport}
-              disabled={!importJson.trim()}
-              className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
-              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-            >
-              Importer le programme
-            </button>
           </div>
         </Section>
 
         {/* ── 3. EXPORT JSON COACH ── */}
         <Section title="EXPORT JSON — POUR MON COACH">
-          <div className="p-4 space-y-3">
+          <div className="px-4 py-3 space-y-2">
             <p className="text-xs text-muted">
               Export complet : séances, exercices + commentaires, stats, annulations.
               À coller dans une conversation avec ton coach.
