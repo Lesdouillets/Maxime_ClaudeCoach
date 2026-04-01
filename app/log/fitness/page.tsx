@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { addSession, generateId } from "@/lib/storage";
@@ -21,6 +21,25 @@ export default function LogFitness() {
   const [category, setCategory] = useState<FitnessCategory>("upper");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [timerExId, setTimerExId] = useState<string | null>(null);
+  const [timerSec, setTimerSec] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startTimer = (exId: string, seconds: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimerExId(exId);
+    setTimerSec(seconds);
+    timerRef.current = setInterval(() => {
+      setTimerSec((s) => {
+        if (s <= 1) { clearInterval(timerRef.current!); timerRef.current = null; setTimerExId(null); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+  };
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setTimerExId(null);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -37,6 +56,7 @@ export default function LogFitness() {
       setCategory(plan.category);
       setExercises(plan.exercises.map(coachToExercise));
     }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
   const updateExercise = useCallback(
@@ -75,15 +95,7 @@ export default function LogFitness() {
 
       <div className="px-5 space-y-4">
 
-        {/* Coach plan banner */}
-        {coachWorkout ? (
-          <div className="rounded-2xl p-4" style={{ background: "rgba(255,107,0,0.05)", border: "1px solid rgba(255,107,0,0.2)" }}>
-            <p className="font-display text-xl mb-1" style={{ color: "#ff6b00" }}>{coachWorkout.label}</p>
-            {coachWorkout.coachNote && (
-              <p className="text-xs italic" style={{ color: "#888" }}>"{coachWorkout.coachNote}"</p>
-            )}
-          </div>
-        ) : (
+        {!coachWorkout && (
           <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
             <p className="text-sm text-muted">Aucun plan coach pour cette date.</p>
           </div>
@@ -145,6 +157,38 @@ export default function LogFitness() {
                   style={{ color: "#888" }}
                 />
               </div>
+
+              {/* Rest timer */}
+              {coachEx?.restSeconds && (
+                <div className="px-4 py-2.5 flex items-center justify-between"
+                  style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }}>
+                  {timerExId === ex.id ? (
+                    <>
+                      <span className="font-display text-3xl leading-none"
+                        style={{ color: timerSec > 5 ? "#39ff14" : "#ff6b00" }}>
+                        {timerSec}s
+                      </span>
+                      <button onClick={stopTimer}
+                        className="text-xs px-3 py-1 rounded-lg press-effect"
+                        style={{ background: "#1a1a1a", color: "#555" }}>
+                        Stop
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => startTimer(ex.id, coachEx.restSeconds!)}
+                      className="flex items-center gap-1.5 text-xs press-effect w-full"
+                      style={{ color: "#444" }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      Repos {coachEx.restSeconds}s
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

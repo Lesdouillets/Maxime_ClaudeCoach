@@ -85,23 +85,35 @@ export default function PlanPage() {
           const session = sessions.find((s) => s.date.slice(0, 10) === dateStr);
           const cancelledDay = cancelledDays.find((d) => d.date === dateStr);
           const isCancelled = !!cancelledDay;
+
+          // Skip cancelled days entirely in plan view
+          if (isCancelled) return null;
+
           const reschedule = rescheduledDays.find((r) => r.from === dateStr);
           const coachWorkout = coachWorkouts.find((w) => w.date === dateStr) ?? null;
           const coachRun = coachRuns.find((r) => r.date === dateStr) ?? null;
-          const hasCoachPlan = !!(coachWorkout || coachRun);
+
+          // Plan rescheduled TO this date from another date
+          const rescheduledHere = rescheduledDays.find((r) => r.to === dateStr);
+          const reschFromWorkout = rescheduledHere ? coachWorkouts.find((w) => w.date === rescheduledHere.from) ?? null : null;
+          const reschFromRun = rescheduledHere ? coachRuns.find((r) => r.date === rescheduledHere.from) ?? null : null;
+
+          // If plan was moved away from this date, treat as rest; show plans rescheduled here
+          const effectiveWorkout = reschedule ? reschFromWorkout : (coachWorkout ?? reschFromWorkout);
+          const effectiveRun = reschedule ? reschFromRun : (coachRun ?? reschFromRun);
+
+          const hasCoachPlan = !!(effectiveWorkout || effectiveRun);
           const hasPlan = hasCoachPlan;
 
-          const planType = coachRun ? "run" : coachWorkout ? "fitness" : null;
-          const planLabel = coachRun?.label ?? coachWorkout?.label ?? "";
-          const planDistanceKm = coachRun?.distanceKm ?? null;
-          const planPaceStr = coachRun?.pace ?? null;
-          const planZone = coachRun?.targetZone ?? null;
-          const planHR = coachRun?.targetHR ?? null;
+          const planType = effectiveRun ? "run" : effectiveWorkout ? "fitness" : null;
+          const planLabel = effectiveRun?.label ?? effectiveWorkout?.label ?? "";
+          const planDistanceKm = effectiveRun?.distanceKm ?? null;
+          const planPaceStr = effectiveRun?.pace ?? null;
+          const planZone = effectiveRun?.targetZone ?? null;
+          const planHR = effectiveRun?.targetHR ?? null;
 
-          let status: "done" | "cancelled" | "rescheduled" | "missed" | "upcoming" | "today-planned" | "rest";
+          let status: "done" | "missed" | "upcoming" | "today-planned" | "rest";
           if (session) status = "done";
-          else if (isCancelled) status = "cancelled";
-          else if (reschedule) status = "rescheduled";
           else if (!hasPlan) status = "rest";
           else if (day.isToday) status = "today-planned";
           else if (day.isPast) status = "missed";
@@ -109,8 +121,6 @@ export default function PlanPage() {
 
           const statusConfig = {
             done:            { color: "#39ff14", label: "Fait ✓",      border: "rgba(57,255,20,0.3)",  bg: "rgba(57,255,20,0.04)" },
-            cancelled:       { color: "#444",    label: "Annulé",      border: "#222",                  bg: "#0d0d0d" },
-            rescheduled:     { color: "#ff6b00", label: "Décalé",      border: "rgba(255,107,0,0.3)",   bg: "rgba(255,107,0,0.03)" },
             missed:          { color: "#ff6b00", label: "Manqué",      border: "rgba(255,107,0,0.25)",  bg: "rgba(255,107,0,0.03)" },
             upcoming:        { color: "#555",    label: "À venir",     border: "#1a1a1a",               bg: "#111" },
             "today-planned": { color: "#39ff14", label: "Aujourd'hui", border: "rgba(57,255,20,0.5)",   bg: "rgba(57,255,20,0.04)" },
@@ -165,8 +175,8 @@ export default function PlanPage() {
                     </div>
                   )}
 
-                  {planType === "fitness" && coachWorkout && (
-                    <span className="text-xs text-muted">{coachWorkout.exercises.length} exercices</span>
+                  {planType === "fitness" && effectiveWorkout && (
+                    <span className="text-xs text-muted">{effectiveWorkout.exercises.length} exercices</span>
                   )}
 
                   {session && (

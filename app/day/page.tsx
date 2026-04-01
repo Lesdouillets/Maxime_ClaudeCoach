@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
@@ -43,6 +43,11 @@ export default function DayPage() {
   const [notesDirty, setNotesDirty] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
 
+  // Rest timer
+  const [timerExIndex, setTimerExIndex] = useState<number | null>(null);
+  const [timerSec, setTimerSec] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Action states
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDateState] = useState("");
@@ -54,19 +59,32 @@ export default function DayPage() {
     const s = sessions.find((s) => s.date.slice(0, 10) === d) ?? null;
     setSession(s);
     const workouts = getCoachWorkouts();
-    setCoachWorkout(workouts.find((w) => w.date === d) ?? null);
     const runs = getCoachRuns();
-    setCoachRun(runs.find((r) => r.date === d) ?? null);
+    const rescheduled = getRescheduledDays();
+    // Check if a plan was rescheduled TO this date from another date
+    const rescheduledHere = rescheduled.find((r) => r.to === d);
+    const reschFromWorkout = rescheduledHere ? workouts.find((w) => w.date === rescheduledHere.from) ?? null : null;
+    const reschFromRun = rescheduledHere ? runs.find((r) => r.date === rescheduledHere.from) ?? null : null;
+    setCoachWorkout(workouts.find((w) => w.date === d) ?? reschFromWorkout);
+    setCoachRun(runs.find((r) => r.date === d) ?? reschFromRun);
     const cancelled = getCancelledDays();
     setCancelledDay(cancelled.find((c) => c.date === d) ?? null);
-    const rescheduled = getRescheduledDays();
     setReschedule(rescheduled.find((r) => r.from === d) ?? null);
-    // Init notes from session exercises
+    // Init notes: session notes first, then standalone localStorage notes
+    const notesInit: Record<number, string> = {};
     if (s?.type === "fitness") {
-      const init: Record<number, string> = {};
-      s.exercises.forEach((ex, i) => { init[i] = ex.comment ?? ""; });
-      setExerciseNotes(init);
+      s.exercises.forEach((ex, i) => { if (ex.comment) notesInit[i] = ex.comment; });
     }
+    try {
+      const stored = localStorage.getItem(`cc_ex_notes_${d}`);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<number, string>;
+        Object.entries(parsed).forEach(([k, v]) => {
+          if (!notesInit[Number(k)]) notesInit[Number(k)] = v;
+        });
+      }
+    } catch {}
+    setExerciseNotes(notesInit);
   };
 
   useEffect(() => {
@@ -75,6 +93,7 @@ export default function DayPage() {
     const d = params.get("date") ?? toLocalDateStr(new Date());
     setDate(d);
     load(d);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
   const handleNoteChange = (index: number, value: string) => {
@@ -84,34 +103,45 @@ export default function DayPage() {
   };
 
   const handleSaveNotes = () => {
-    if (!session || session.type !== "fitness") return;
-    // If session has exercises, update their comments
-    // If not (Strava with no exercises), build from coachWorkout
-    let updatedExercises = [...session.exercises];
+    // Always persist standalone notes to localStorage
+    try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(exerciseNotes)); } catch {}
 
-    if (updatedExercises.length === 0 && coachWorkout) {
-      // Build exercises from coach plan first
-      updatedExercises = coachWorkout.exercises.map((ce, i) => ({
-        id: `${session.id}-ex-${i}`,
-        name: ce.name,
-        sets: ce.sets,
-        reps: ce.reps,
-        weight: ce.weight,
-        comment: exerciseNotes[i] ?? "",
-      }));
-    } else {
-      updatedExercises = updatedExercises.map((ex, i) => ({
-        ...ex,
-        comment: exerciseNotes[i] ?? ex.comment,
-      }));
+    // If session exists, also update it
+    if (session && session.type === "fitness") {
+      let updatedExercises = [...session.exercises];
+      if (updatedExercises.length === 0 && coachWorkout) {
+        updatedExercises = coachWorkout.exercises.map((ce, i) => ({
+          id: `${session.id}-ex-${i}`,
+          name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
+          comment: exerciseNotes[i] ?? "",
+        }));
+      } else {
+        updatedExercises = updatedExercises.map((ex, i) => ({ ...ex, comment: exerciseNotes[i] ?? ex.comment }));
+      }
+      const updated: FitnessSession = { ...session, exercises: updatedExercises };
+      updateSession(updated);
+      setSession(updated);
     }
-
-    const updated: FitnessSession = { ...session, exercises: updatedExercises };
-    updateSession(updated);
-    setSession(updated);
     setNotesDirty(false);
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 2000);
+  };
+
+  const startTimer = (exIndex: number, seconds: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimerExIndex(exIndex);
+    setTimerSec(seconds);
+    timerRef.current = setInterval(() => {
+      setTimerSec((s) => {
+        if (s <= 1) { clearInterval(timerRef.current!); timerRef.current = null; setTimerExIndex(null); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setTimerExIndex(null);
   };
 
   const handleCancelConfirm = () => {
@@ -167,7 +197,7 @@ export default function DayPage() {
       })
     : [];
 
-  const canEditNotes = isDone && session?.type === "fitness";
+  const canEditNotes = !!coachWorkout; // editable whenever there's a coach plan
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
@@ -202,6 +232,23 @@ export default function DayPage() {
 
       <div className="px-5 space-y-4">
 
+        {/* ── Cancelled: subtle restore banner ── */}
+        {isCancelled && (
+          <div className="flex items-center justify-between rounded-xl px-3 py-2.5"
+            style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
+            <p className="text-xs" style={{ color: "#333" }}>
+              Annulé{cancelledDay?.reason ? ` · ${cancelledDay.reason}` : ""}
+            </p>
+            <button onClick={handleUncancel} className="text-xs press-effect" style={{ color: "#555" }}>
+              Rétablir →
+            </button>
+          </div>
+        )}
+
+        {/* Content — dimmed when cancelled */}
+        <div style={{ opacity: isCancelled ? 0.18 : 1, pointerEvents: isCancelled ? "none" : undefined }}>
+        <div className="space-y-4">
+
         {/* Strava badge */}
         {session?.importedFromStrava && (
           <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
@@ -213,7 +260,6 @@ export default function DayPage() {
         {coachRun && (
           <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
             <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>PLAN COACH</p>
-            {coachRun.coachNote && <p className="text-xs italic mb-4" style={{ color: "#888" }}>"{coachRun.coachNote}"</p>}
             {coachRun.intervals ? (
               <div className="space-y-2.5">
                 {coachRun.intervals.map((seg, i) => (
@@ -252,10 +298,6 @@ export default function DayPage() {
               <p className="text-[10px] font-bold tracking-widest" style={{ color: "#39ff14" }}>PLAN COACH</p>
               <Badge label={coachWorkout.category === "upper" ? "Haut du corps" : "Bas du corps"} variant="orange" />
             </div>
-            {coachWorkout.coachNote && (
-              <p className="text-xs italic" style={{ color: "#888" }}>"{coachWorkout.coachNote}"</p>
-            )}
-
             {mergedExercises.map((ex) => (
               <div
                 key={ex.index}
@@ -282,7 +324,30 @@ export default function DayPage() {
                     </div>
                   </div>
                   {ex.restSeconds && (
-                    <p className="text-xs mt-2" style={{ color: "#444" }}>Repos : {ex.restSeconds}s</p>
+                    <div className="mt-2">
+                      {timerExIndex === ex.index ? (
+                        <div className="flex items-center gap-3">
+                          <span className="font-display text-2xl leading-none" style={{ color: timerSec > 5 ? "#39ff14" : "#ff6b00" }}>
+                            {timerSec}s
+                          </span>
+                          <button onClick={stopTimer} className="text-xs px-2 py-0.5 rounded-lg press-effect" style={{ background: "#1a1a1a", color: "#555" }}>
+                            Stop
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startTimer(ex.index, ex.restSeconds!)}
+                          className="flex items-center gap-1.5 text-xs press-effect"
+                          style={{ color: "#333" }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                            <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          Repos {ex.restSeconds}s
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -294,27 +359,17 @@ export default function DayPage() {
                   </div>
                 )}
 
-                {/* User note (editable if session exists, read-only otherwise) */}
+                {/* User note — always editable */}
                 <div className="px-4 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
                   <p className="text-[10px] font-bold tracking-widest mb-1.5" style={{ color: "#333" }}>RESSENTI</p>
-                  {canEditNotes ? (
-                    <textarea
-                      value={exerciseNotes[ex.index] ?? ""}
-                      onChange={(e) => handleNoteChange(ex.index, e.target.value)}
-                      placeholder="Comment c'était ? Charge, fatigue, forme…"
-                      rows={2}
-                      className="w-full rounded-lg px-2.5 py-2 text-xs resize-none focus:outline-none"
-                      style={{
-                        background: "#0d0d0d",
-                        border: "1px solid #222",
-                        color: "#aaa",
-                      }}
-                    />
-                  ) : (
-                    <p className="text-xs" style={{ color: ex.comment ? "#666" : "#2a2a2a" }}>
-                      {ex.comment || "—"}
-                    </p>
-                  )}
+                  <textarea
+                    value={exerciseNotes[ex.index] ?? ""}
+                    onChange={(e) => handleNoteChange(ex.index, e.target.value)}
+                    placeholder="Charge, fatigue, forme…"
+                    rows={2}
+                    className="w-full rounded-lg px-2.5 py-2 text-xs resize-none focus:outline-none"
+                    style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", color: "#aaa" }}
+                  />
                 </div>
               </div>
             ))}
@@ -432,15 +487,6 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* ── Cancelled info ── */}
-        {isCancelled && cancelledDay?.reason && (
-          <div className="rounded-2xl px-4 py-3" style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
-            <p className="text-xs" style={{ color: "#555" }}>
-              Raison : <span style={{ color: "#777" }}>{cancelledDay.reason}</span>
-            </p>
-          </div>
-        )}
-
         {/* ── Rescheduled info ── */}
         {reschedule && (
           <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
@@ -531,13 +577,8 @@ export default function DayPage() {
           </div>
         )}
 
-        {isCancelled && (
-          <button onClick={handleUncancel}
-            className="w-full py-2.5 rounded-xl text-xs press-effect"
-            style={{ background: "#111", color: "#555", border: "1px solid #222" }}>
-            Rétablir la séance
-          </button>
-        )}
+        </div>
+        </div>{/* end dimming wrapper */}
 
       </div>
     </div>
