@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [importedCount, setImportedCount] = useState(0);
   const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
@@ -114,8 +115,9 @@ export default function Dashboard() {
     : `${weekStart.getDate()} – ${weekEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
 
   // Month view data
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  const displayMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const year = displayMonth.getFullYear();
+  const month = displayMonth.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   // Pad to start on Monday
@@ -322,7 +324,7 @@ export default function Dashboard() {
             {/* Week nav */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setWeekOffset((o) => o - 1)}
+                onClick={() => viewMode === "week" ? setWeekOffset((o) => o - 1) : setMonthOffset((o) => o - 1)}
                 className="w-7 h-7 rounded-lg flex items-center justify-center press-effect"
                 style={{ background: "#1a1a1a", border: "1px solid #222" }}
               >
@@ -331,12 +333,13 @@ export default function Dashboard() {
                 </svg>
               </button>
               <span className="text-xs font-semibold tracking-wide" style={{ color: "#555", minWidth: "120px", textAlign: "center" }}>
-                {viewMode === "week" ? weekLabel.toUpperCase() : today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }).toUpperCase()}
+                {viewMode === "week"
+                  ? weekLabel.toUpperCase()
+                  : displayMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }).toUpperCase()}
               </span>
               <button
-                onClick={() => setWeekOffset((o) => Math.min(0, o + 1))}
-                disabled={weekOffset === 0}
-                className="w-7 h-7 rounded-lg flex items-center justify-center press-effect disabled:opacity-30"
+                onClick={() => viewMode === "week" ? setWeekOffset((o) => o + 1) : setMonthOffset((o) => o + 1)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center press-effect"
                 style={{ background: "#1a1a1a", border: "1px solid #222" }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -362,6 +365,19 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+
+          {/* Aujourd'hui reset */}
+          {(weekOffset !== 0 || monthOffset !== 0) && (
+            <div className="flex justify-center mb-2">
+              <button
+                onClick={() => { setWeekOffset(0); setMonthOffset(0); }}
+                className="text-[10px] press-effect px-3 py-1 rounded-lg"
+                style={{ color: "#39ff14", background: "rgba(57,255,20,0.08)", border: "1px solid rgba(57,255,20,0.2)" }}
+              >
+                Aujourd'hui
+              </button>
+            </div>
+          )}
 
           {/* Completion counter (week mode) */}
           {viewMode === "week" && (
