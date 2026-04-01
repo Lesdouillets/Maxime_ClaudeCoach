@@ -121,14 +121,14 @@ export default function LogFitness() {
                 </div>
               )}
 
-              {/* Sets / Reps / Weight — editable */}
-              <div className="grid grid-cols-3 divide-x divide-[#1a1a1a]" style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
+              {/* Sets / Reps / Weight + Timer — editable */}
+              <div className="flex" style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
                 {([
                   { label: "Séries", field: "sets" as keyof Exercise, unit: "×", step: "1" },
                   { label: "Reps",   field: "reps" as keyof Exercise, unit: "",  step: "1" },
                   { label: "Poids",  field: "weight" as keyof Exercise, unit: "kg", step: "0.5" },
                 ] as const).map(({ label, field, unit, step }) => (
-                  <div key={field} className="p-3 flex flex-col items-center gap-1">
+                  <div key={field} className="flex-1 p-3 flex flex-col items-center gap-1" style={{ borderRight: "1px solid #1a1a1a" }}>
                     <span className="text-[10px] text-muted uppercase tracking-wide">{label}</span>
                     <div className="flex items-end gap-0.5">
                       <input
@@ -144,6 +144,29 @@ export default function LogFitness() {
                     </div>
                   </div>
                 ))}
+                {/* Timer column */}
+                {coachEx?.restSeconds && (
+                  <div className="p-3 flex flex-col items-center justify-center gap-1 min-w-[60px]">
+                    {timerExId === ex.id ? (
+                      <button onClick={stopTimer} className="flex flex-col items-center press-effect">
+                        <span className="font-display text-2xl leading-none"
+                          style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
+                          {timerSec}
+                        </span>
+                        <span className="text-[9px] tracking-widest mt-0.5" style={{ color: "#333" }}>SEC · ✕</span>
+                      </button>
+                    ) : (
+                      <button onClick={() => startTimer(ex.id, coachEx.restSeconds!)} className="flex flex-col items-center press-effect">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="13" r="8" stroke="#2a2a2a" strokeWidth="2"/>
+                          <path d="M12 9v4l2.5 2.5" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
+                          <path d="M9 2h6M12 2v3" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span className="text-[9px]" style={{ color: "#2a2a2a" }}>{coachEx.restSeconds}s</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Per-exercise note */}
@@ -158,37 +181,6 @@ export default function LogFitness() {
                 />
               </div>
 
-              {/* Rest timer */}
-              {coachEx?.restSeconds && (
-                <div className="px-4 py-2.5 flex items-center justify-between"
-                  style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }}>
-                  {timerExId === ex.id ? (
-                    <>
-                      <span className="font-display text-3xl leading-none"
-                        style={{ color: timerSec > 5 ? "#39ff14" : "#ff6b00" }}>
-                        {timerSec}s
-                      </span>
-                      <button onClick={stopTimer}
-                        className="text-xs px-3 py-1 rounded-lg press-effect"
-                        style={{ background: "#1a1a1a", color: "#555" }}>
-                        Stop
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => startTimer(ex.id, coachEx.restSeconds!)}
-                      className="flex items-center gap-1.5 text-xs press-effect w-full"
-                      style={{ color: "#444" }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                        <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                      Repos {coachEx.restSeconds}s
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
-  rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession,
+  rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession, deleteSession,
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
@@ -22,10 +22,9 @@ function fmtDuration(sec: number) {
   return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
 }
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const StravaIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff6b00">
-    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
-  </svg>
+  <img src={`${BASE}/strava.svg`} width={12} height={12} alt="Strava" style={{ filter: "invert(50%) sepia(100%) saturate(500%) hue-rotate(350deg)" }} />
 );
 
 export default function DayPage() {
@@ -304,51 +303,51 @@ export default function DayPage() {
                 className="rounded-2xl overflow-hidden"
                 style={{ background: "#111", border: "1px solid #1a1a1a" }}
               >
-                {/* Exercise header: name + metrics */}
+                {/* Exercise header: name + metrics + timer */}
                 <div className="px-4 pt-4 pb-3">
                   <p className="font-bold text-xs tracking-widest mb-3">{ex.name.toUpperCase()}</p>
-                  <div className="flex items-end gap-5">
-                    {ex.weight > 0 && (
+                  <div className="flex items-end justify-between">
+                    <div className="flex items-end gap-5">
+                      {ex.weight > 0 && (
+                        <div className="flex items-end gap-0.5">
+                          <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.weight}</span>
+                          <span className="text-xs text-muted mb-0.5 ml-0.5">kg</span>
+                        </div>
+                      )}
                       <div className="flex items-end gap-0.5">
-                        <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.weight}</span>
-                        <span className="text-xs text-muted mb-0.5 ml-0.5">kg</span>
+                        <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.sets}</span>
+                        <span className="text-xs text-muted mb-0.5 ml-0.5">séries</span>
                       </div>
-                    )}
-                    <div className="flex items-end gap-0.5">
-                      <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.sets}</span>
-                      <span className="text-xs text-muted mb-0.5 ml-0.5">séries</span>
+                      <div className="flex items-end gap-0.5">
+                        <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.reps}</span>
+                        <span className="text-xs text-muted mb-0.5 ml-0.5">rep</span>
+                      </div>
                     </div>
-                    <div className="flex items-end gap-0.5">
-                      <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.reps}</span>
-                      <span className="text-xs text-muted mb-0.5 ml-0.5">rep</span>
-                    </div>
-                  </div>
-                  {ex.restSeconds && (
-                    <div className="mt-2">
-                      {timerExIndex === ex.index ? (
-                        <div className="flex items-center gap-3">
-                          <span className="font-display text-2xl leading-none" style={{ color: timerSec > 5 ? "#39ff14" : "#ff6b00" }}>
-                            {timerSec}s
+                    {/* Rest timer — aligned right */}
+                    {ex.restSeconds && (
+                      timerExIndex === ex.index ? (
+                        <div className="flex flex-col items-center gap-0.5 press-effect" onClick={stopTimer}>
+                          <span className="font-display text-3xl leading-none"
+                            style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
+                            {timerSec}
                           </span>
-                          <button onClick={stopTimer} className="text-xs px-2 py-0.5 rounded-lg press-effect" style={{ background: "#1a1a1a", color: "#555" }}>
-                            Stop
-                          </button>
+                          <span className="text-[9px] tracking-widest" style={{ color: "#333" }}>SEC · ✕</span>
                         </div>
                       ) : (
                         <button
                           onClick={() => startTimer(ex.index, ex.restSeconds!)}
-                          className="flex items-center gap-1.5 text-xs press-effect"
-                          style={{ color: "#333" }}
+                          className="flex flex-col items-center gap-0.5 press-effect"
                         >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                            <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="13" r="8" stroke="#2a2a2a" strokeWidth="2"/>
+                            <path d="M12 9v4l2.5 2.5" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
+                            <path d="M9 2h6M12 2v3" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          Repos {ex.restSeconds}s
+                          <span className="text-[9px]" style={{ color: "#2a2a2a" }}>{ex.restSeconds}s</span>
                         </button>
-                      )}
-                    </div>
-                  )}
+                      )
+                    )}
+                  </div>
                 </div>
 
                 {/* Coach note */}
@@ -579,6 +578,17 @@ export default function DayPage() {
 
         </div>
         </div>{/* end dimming wrapper */}
+
+        {/* Delete session */}
+        {isDone && (
+          <button
+            onClick={() => { if (session) { deleteSession(session.id); load(date); } }}
+            className="w-full py-2 rounded-xl text-xs press-effect"
+            style={{ background: "transparent", border: "1px solid #111", color: "#2a2a2a" }}
+          >
+            Supprimer la séance
+          </button>
+        )}
 
       </div>
     </div>
