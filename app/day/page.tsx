@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
-import { getSessions, getCancelledDays, cancelDay, uncancelDay, rescheduleDay, unrescheduleDay, getRescheduledDays } from "@/lib/storage";
+import {
+  getSessions, getCancelledDays, cancelDay, uncancelDay,
+  rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession,
+} from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
-import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
+import type { WorkoutSession, FitnessSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 function fmtPaceSec(sec: number) {
@@ -35,6 +38,11 @@ export default function DayPage() {
   const [cancelledDay, setCancelledDay] = useState<CancelledDayType | null>(null);
   const [reschedule, setReschedule] = useState<{ from: string; to: string } | null>(null);
 
+  // Exercise notes: index → comment
+  const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
+  const [notesDirty, setNotesDirty] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+
   // Action states
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDateState] = useState("");
@@ -53,6 +61,12 @@ export default function DayPage() {
     setCancelledDay(cancelled.find((c) => c.date === d) ?? null);
     const rescheduled = getRescheduledDays();
     setReschedule(rescheduled.find((r) => r.from === d) ?? null);
+    // Init notes from session exercises
+    if (s?.type === "fitness") {
+      const init: Record<number, string> = {};
+      s.exercises.forEach((ex, i) => { init[i] = ex.comment ?? ""; });
+      setExerciseNotes(init);
+    }
   };
 
   useEffect(() => {
@@ -63,17 +77,52 @@ export default function DayPage() {
     load(d);
   }, []);
 
+  const handleNoteChange = (index: number, value: string) => {
+    setExerciseNotes((prev) => ({ ...prev, [index]: value }));
+    setNotesDirty(true);
+    setNotesSaved(false);
+  };
+
+  const handleSaveNotes = () => {
+    if (!session || session.type !== "fitness") return;
+    // If session has exercises, update their comments
+    // If not (Strava with no exercises), build from coachWorkout
+    let updatedExercises = [...session.exercises];
+
+    if (updatedExercises.length === 0 && coachWorkout) {
+      // Build exercises from coach plan first
+      updatedExercises = coachWorkout.exercises.map((ce, i) => ({
+        id: `${session.id}-ex-${i}`,
+        name: ce.name,
+        sets: ce.sets,
+        reps: ce.reps,
+        weight: ce.weight,
+        comment: exerciseNotes[i] ?? "",
+      }));
+    } else {
+      updatedExercises = updatedExercises.map((ex, i) => ({
+        ...ex,
+        comment: exerciseNotes[i] ?? ex.comment,
+      }));
+    }
+
+    const updated: FitnessSession = { ...session, exercises: updatedExercises };
+    updateSession(updated);
+    setSession(updated);
+    setNotesDirty(false);
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 2000);
+  };
+
   const handleCancelConfirm = () => {
     cancelDay(date, cancelReason.trim());
-    setShowCancel(false); setCancelReason("");
-    load(date);
+    setShowCancel(false); setCancelReason(""); load(date);
   };
   const handleUncancel = () => { uncancelDay(date); load(date); };
   const handleReschedule = () => {
     if (!rescheduleDate) return;
     rescheduleDay(date, rescheduleDate);
-    setShowReschedule(false); setRescheduleDateState("");
-    load(date);
+    setShowReschedule(false); setRescheduleDateState(""); load(date);
   };
   const handleUnreschedule = () => { unrescheduleDay(date); load(date); };
 
@@ -87,45 +136,52 @@ export default function DayPage() {
   const isPast = date < today;
   const isToday = date === today;
   const isCancelled = !!cancelledDay;
-
-  // Effective plan type
   const planType = coachRun ? "run" : coachWorkout ? "fitness" : genericPlan?.type ?? null;
   const hasPlan = !!(coachRun || coachWorkout || genericPlan);
   const isDone = !!session;
-
   const canAct = hasPlan && !isDone && !isCancelled && !reschedule;
 
-  // Title
   let title = "REPOS";
   if (session) {
     title = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
-  } else if (coachRun) {
-    title = coachRun.label;
-  } else if (coachWorkout) {
-    title = coachWorkout.label;
-  } else if (genericPlan) {
-    title = genericPlan.label;
-  }
+  } else if (coachRun) { title = coachRun.label; }
+  else if (coachWorkout) { title = coachWorkout.label; }
+  else if (genericPlan) { title = genericPlan.label; }
+
+  // Build merged exercise list: coach plan as template, session data fills in actual values + notes
+  const mergedExercises = coachWorkout
+    ? coachWorkout.exercises.map((ce, i) => {
+        const se = session?.type === "fitness"
+          ? (session.exercises.find((e) => e.name === ce.name) ?? session.exercises[i])
+          : null;
+        return {
+          index: i,
+          name: ce.name,
+          sets: se?.sets ?? ce.sets,
+          reps: se?.reps ?? ce.reps,
+          weight: se?.weight ?? ce.weight,
+          restSeconds: ce.restSeconds,
+          coachNote: ce.coachNote,
+          comment: exerciseNotes[i] ?? se?.comment ?? "",
+        };
+      })
+    : [];
+
+  const canEditNotes = isDone && session?.type === "fitness";
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
 
       {/* Header */}
       <div className="px-5 pt-5 pb-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-xs mb-5 press-effect"
-          style={{ color: "#555" }}
-        >
+        <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs mb-5 press-effect" style={{ color: "#555" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           Retour
         </button>
 
-        <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#555" }}>
-          {dateLabel}
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#555" }}>{dateLabel}</p>
         <div className="flex items-center justify-between">
           <h1 className="font-display text-4xl leading-none">{title}</h1>
           <div className="flex flex-col items-end gap-1">
@@ -135,23 +191,10 @@ export default function DayPage() {
                 FAIT ✓
               </span>
             )}
-            {isCancelled && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                style={{ background: "#111", color: "#555", border: "1px solid #222" }}>
-                ANNULÉ
-              </span>
-            )}
-            {reschedule && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                style={{ background: "rgba(255,107,0,0.12)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.3)" }}>
-                DÉCALÉ
-              </span>
-            )}
+            {isCancelled && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "#111", color: "#555", border: "1px solid #222" }}>ANNULÉ</span>}
+            {reschedule && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(255,107,0,0.12)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.3)" }}>DÉCALÉ</span>}
             {!isDone && !isCancelled && !reschedule && hasPlan && isToday && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>
-                AUJOURD'HUI
-              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>AUJOURD'HUI</span>
             )}
           </div>
         </div>
@@ -159,15 +202,18 @@ export default function DayPage() {
 
       <div className="px-5 space-y-4">
 
-        {/* ── Coach run plan ── */}
+        {/* Strava badge */}
+        {session?.importedFromStrava && (
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
+            <StravaIcon /> Importé depuis Strava
+          </div>
+        )}
+
+        {/* ── COACH RUN PLAN ── */}
         {coachRun && (
           <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
-            <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>
-              PLAN COACH
-            </p>
-            {coachRun.coachNote && (
-              <p className="text-xs italic mb-4" style={{ color: "#888" }}>"{coachRun.coachNote}"</p>
-            )}
+            <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>PLAN COACH</p>
+            {coachRun.coachNote && <p className="text-xs italic mb-4" style={{ color: "#888" }}>"{coachRun.coachNote}"</p>}
             {coachRun.intervals ? (
               <div className="space-y-2.5">
                 {coachRun.intervals.map((seg, i) => (
@@ -199,39 +245,93 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* ── Coach workout plan (read-only exercises) ── */}
+        {/* ── COACH WORKOUT — one card per exercise ── */}
         {coachWorkout && (
-          <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
-            <div className="flex items-center justify-between mb-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <p className="text-[10px] font-bold tracking-widest" style={{ color: "#39ff14" }}>PLAN COACH</p>
               <Badge label={coachWorkout.category === "upper" ? "Haut du corps" : "Bas du corps"} variant="orange" />
             </div>
             {coachWorkout.coachNote && (
-              <p className="text-xs italic mb-4" style={{ color: "#888" }}>"{coachWorkout.coachNote}"</p>
+              <p className="text-xs italic" style={{ color: "#888" }}>"{coachWorkout.coachNote}"</p>
             )}
-            <div className="space-y-3">
-              {coachWorkout.exercises.map((ex, i) => (
-                <div key={i} className="space-y-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{ex.name}</span>
-                    <span className="text-sm font-mono" style={{ color: "#39ff14" }}>
-                      {ex.sets}×{ex.reps}
-                      {ex.weight > 0 ? <span className="text-muted text-xs"> · {ex.weight}kg</span> : null}
-                    </span>
+
+            {mergedExercises.map((ex) => (
+              <div
+                key={ex.index}
+                className="rounded-2xl overflow-hidden"
+                style={{ background: "#111", border: "1px solid #1a1a1a" }}
+              >
+                {/* Exercise header: name + metrics */}
+                <div className="px-4 pt-4 pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-semibold text-sm leading-snug">{ex.name}</span>
+                    <div className="text-right flex-shrink-0">
+                      {ex.weight > 0 && (
+                        <p className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>
+                          {ex.weight}<span className="text-sm text-muted ml-0.5">kg</span>
+                        </p>
+                      )}
+                      <p className="text-sm font-mono" style={{ color: ex.weight > 0 ? "#aaa" : "#39ff14" }}>
+                        {ex.sets}×{ex.reps}
+                      </p>
+                    </div>
                   </div>
                   {ex.restSeconds && (
-                    <p className="text-xs" style={{ color: "#444" }}>Repos : {ex.restSeconds}s</p>
-                  )}
-                  {ex.coachNote && (
-                    <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.coachNote}</p>
+                    <p className="text-xs mt-1" style={{ color: "#444" }}>Repos : {ex.restSeconds}s</p>
                   )}
                 </div>
-              ))}
-            </div>
+
+                {/* Coach note */}
+                {ex.coachNote && (
+                  <div className="px-4 py-2.5" style={{ borderTop: "1px solid #1a1a1a", background: "rgba(57,255,20,0.02)" }}>
+                    <p className="text-[10px] font-bold tracking-widest mb-1" style={{ color: "#2a4a1a" }}>COACH</p>
+                    <p className="text-xs italic" style={{ color: "#666" }}>{ex.coachNote}</p>
+                  </div>
+                )}
+
+                {/* User note (editable if session exists, read-only otherwise) */}
+                <div className="px-4 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
+                  <p className="text-[10px] font-bold tracking-widest mb-1.5" style={{ color: "#333" }}>RESSENTI</p>
+                  {canEditNotes ? (
+                    <textarea
+                      value={exerciseNotes[ex.index] ?? ""}
+                      onChange={(e) => handleNoteChange(ex.index, e.target.value)}
+                      placeholder="Comment c'était ? Charge, fatigue, forme…"
+                      rows={2}
+                      className="w-full rounded-lg px-2.5 py-2 text-xs resize-none focus:outline-none"
+                      style={{
+                        background: "#0d0d0d",
+                        border: "1px solid #222",
+                        color: "#aaa",
+                      }}
+                    />
+                  ) : (
+                    <p className="text-xs" style={{ color: ex.comment ? "#666" : "#2a2a2a" }}>
+                      {ex.comment || "—"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Save notes button */}
+            {canEditNotes && notesDirty && (
+              <button
+                onClick={handleSaveNotes}
+                className="w-full py-2.5 rounded-xl text-sm font-bold press-effect"
+                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+              >
+                Sauvegarder les notes
+              </button>
+            )}
+            {notesSaved && (
+              <p className="text-xs text-center" style={{ color: "#39ff14" }}>Notes sauvegardées ✓</p>
+            )}
           </div>
         )}
 
-        {/* ── Generic plan (no coach data) ── */}
+        {/* ── No coach data, show generic plan ── */}
         {!coachRun && !coachWorkout && genericPlan && !session && (
           <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
             <p className="text-xs text-muted mb-2">{genericPlan.targetDescription}</p>
@@ -244,9 +344,7 @@ export default function DayPage() {
                   </div>
                 )}
                 {genericPlan.targetPaceSecPerKm && (
-                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>
-                    {fmtPaceSec(genericPlan.targetPaceSecPerKm)}
-                  </span>
+                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{fmtPaceSec(genericPlan.targetPaceSecPerKm)}</span>
                 )}
                 {genericPlan.targetZone && <Badge label={genericPlan.targetZone} variant="neon" />}
               </div>
@@ -254,14 +352,9 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* ── Session: run results ── */}
+        {/* ── RUN SESSION RESULTS ── */}
         {session?.type === "run" && (
           <div className="space-y-3">
-            {session.importedFromStrava && (
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
-                <StravaIcon /> Importé depuis Strava
-              </div>
-            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
                 <p className="text-xs text-muted mb-1">Distance</p>
@@ -303,46 +396,26 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* ── Session: fitness results ── */}
-        {session?.type === "fitness" && (
-          <div className="space-y-3">
-            {session.importedFromStrava && (
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
-                <StravaIcon /> Importé depuis Strava
-              </div>
-            )}
-            {session.exercises.length > 0 && (
-              <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
-                <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#555" }}>
-                  EXERCICES RÉALISÉS
-                </p>
-                <div className="space-y-2.5">
+        {/* ── FITNESS SESSION: session without coach plan ── */}
+        {session?.type === "fitness" && !coachWorkout && (
+          <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
+            {session.exercises.length > 0 ? (
+              <>
+                <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#555" }}>EXERCICES</p>
+                <div className="space-y-2">
                   {session.exercises.map((ex) => (
-                    <div key={ex.id} className="space-y-0.5">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{ex.name}</span>
-                        <span className="font-mono text-muted">
-                          {ex.sets}×{ex.reps}{ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
-                        </span>
-                      </div>
-                      {ex.comment && (
-                        <p className="text-xs italic" style={{ color: "#666" }}>↳ {ex.comment}</p>
-                      )}
+                    <div key={ex.id} className="flex items-center justify-between text-sm">
+                      <span>{ex.name}</span>
+                      <span className="font-mono text-muted">{ex.sets}×{ex.reps}{ex.weight > 0 ? ` · ${ex.weight}kg` : ""}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-            {session.exercises.length === 0 && (
-              <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
-                <p className="text-sm text-muted">Activité enregistrée via Strava.</p>
-              </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted">Activité enregistrée via Strava.</p>
             )}
             {session.comment && (
-              <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
-                <p className="text-xs text-muted mb-1">Ressenti</p>
-                <p className="text-sm italic" style={{ color: "#aaa" }}>"{session.comment}"</p>
-              </div>
+              <p className="text-xs italic mt-3" style={{ color: "#888" }}>"{session.comment}"</p>
             )}
           </div>
         )}
@@ -359,7 +432,7 @@ export default function DayPage() {
         {isCancelled && cancelledDay?.reason && (
           <div className="rounded-2xl px-4 py-3" style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
             <p className="text-xs" style={{ color: "#555" }}>
-              Raison annulation : <span style={{ color: "#777" }}>{cancelledDay.reason}</span>
+              Raison : <span style={{ color: "#777" }}>{cancelledDay.reason}</span>
             </p>
           </div>
         )}
@@ -369,15 +442,11 @@ export default function DayPage() {
           <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
             style={{ background: "rgba(255,107,0,0.06)", border: "1px solid rgba(255,107,0,0.2)" }}>
             <p className="text-xs" style={{ color: "#ff6b00" }}>
-              Décalé au <strong>
-                {new Date(reschedule.to + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-              </strong>
+              Décalé au <strong>{new Date(reschedule.to + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</strong>
             </p>
-            <button
-              onClick={handleUnreschedule}
-              className="text-xs px-2 py-1 rounded-lg press-effect"
-              style={{ background: "#1a1a1a", color: "#555" }}
-            >Annuler le décalage</button>
+            <button onClick={handleUnreschedule} className="text-xs px-2 py-1 rounded-lg press-effect" style={{ background: "#1a1a1a", color: "#555" }}>
+              Annuler le décalage
+            </button>
           </div>
         )}
 
@@ -395,39 +464,28 @@ export default function DayPage() {
           </Link>
         )}
 
-        {/* ── Actions : Décaler / Annuler ── */}
+        {/* ── Actions: Décaler / Annuler ── */}
         {canAct && (
           <div className="space-y-2">
-
-            {/* Reschedule */}
             {showReschedule ? (
               <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={rescheduleDate}
+                <input type="date" value={rescheduleDate}
                   onChange={(e) => setRescheduleDateState(e.target.value)}
                   min={toLocalDateStr(new Date())}
                   className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
                   style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
                 />
-                <button
-                  onClick={handleReschedule}
-                  disabled={!rescheduleDate}
+                <button onClick={handleReschedule} disabled={!rescheduleDate}
                   className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#ff6b00", color: "white" }}
-                >OK</button>
-                <button
-                  onClick={() => setShowReschedule(false)}
+                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                <button onClick={() => setShowReschedule(false)}
                   className="px-3 py-2.5 rounded-xl text-xs press-effect"
-                  style={{ background: "#1a1a1a", color: "#555" }}
-                >✕</button>
+                  style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
               </div>
             ) : (
-              <button
-                onClick={() => { setShowReschedule(true); setShowCancel(false); }}
+              <button onClick={() => { setShowReschedule(true); setShowCancel(false); }}
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}
-              >
+                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                   <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 7h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                 </svg>
@@ -435,12 +493,9 @@ export default function DayPage() {
               </button>
             )}
 
-            {/* Cancel */}
             {showCancel ? (
               <div className="space-y-2">
-                <input
-                  type="text"
-                  value={cancelReason}
+                <input type="text" value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="Raison de l'annulation…"
                   className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
@@ -449,47 +504,35 @@ export default function DayPage() {
                   autoFocus
                 />
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleCancelConfirm}
+                  <button onClick={handleCancelConfirm}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
-                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}
-                  >Confirmer l'annulation</button>
-                  <button
-                    onClick={() => setShowCancel(false)}
+                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
+                    Confirmer l'annulation
+                  </button>
+                  <button onClick={() => setShowCancel(false)}
                     className="px-4 py-2.5 rounded-xl text-sm press-effect"
-                    style={{ background: "transparent", color: "#555" }}
-                  >✕</button>
+                    style={{ background: "transparent", color: "#555" }}>✕</button>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => { setShowCancel(true); setShowReschedule(false); }}
+              <button onClick={() => { setShowCancel(true); setShowReschedule(false); }}
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-                style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}
-              >
+                style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 Annuler la séance
               </button>
             )}
-
-            {isCancelled && (
-              <button
-                onClick={handleUncancel}
-                className="w-full py-2.5 rounded-xl text-xs press-effect"
-                style={{ background: "#111", color: "#555", border: "1px solid #222" }}
-              >Rétablir la séance</button>
-            )}
           </div>
         )}
 
         {isCancelled && (
-          <button
-            onClick={handleUncancel}
+          <button onClick={handleUncancel}
             className="w-full py-2.5 rounded-xl text-xs press-effect"
-            style={{ background: "#111", color: "#555", border: "1px solid #222" }}
-          >Rétablir la séance</button>
+            style={{ background: "#111", color: "#555", border: "1px solid #222" }}>
+            Rétablir la séance
+          </button>
         )}
 
       </div>
