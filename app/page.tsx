@@ -1,21 +1,21 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { getGitHubToken, getGistId, syncData } from "@/lib/sync";
-import type { WorkoutSession, PlannedDay } from "@/lib/types";
+import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
-
-const DayDetailSheet = dynamic(() => import("@/components/DayDetailSheet"), { ssr: false });
 
 type ViewMode = "week" | "month";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [isStravaConnected, setIsStravaConnected] = useState(false);
@@ -23,7 +23,6 @@ export default function Dashboard() {
   const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
@@ -127,21 +126,6 @@ export default function Dashboard() {
   // Pad to complete last row
   while (monthDays.length % 7 !== 0) monthDays.push(null);
 
-  // Selected day data
-  const selectedSession = selectedDate
-    ? sessions.find((s) => s.date.slice(0, 10) === selectedDate)
-    : undefined;
-  const selectedDow = selectedDate ? new Date(selectedDate + "T12:00:00").getDay() : -1;
-  const selectedPlan = selectedDate
-    ? (WEEKLY_PLAN.find((p) => p.dayOfWeek === selectedDow) ?? null)
-    : null;
-  const selectedCoachWorkout = selectedSession?.type === "fitness" && selectedSession.coachWorkoutId
-    ? coachWorkouts.find((w) => w.id === selectedSession.coachWorkoutId) ?? null
-    : null;
-  const selectedCoachRun = selectedDate
-    ? coachRuns.find((r) => r.date === selectedDate) ?? null
-    : null;
-
   const completedThisWeek = weekDays.filter((d) =>
     sessions.some((s) => s.date.slice(0, 10) === toLocalDateStr(d.date))
   ).length;
@@ -240,7 +224,7 @@ export default function Dashboard() {
           {todaySession ? (
             <button
               className="w-full text-left"
-              onClick={() => setSelectedDate(todayStr)}
+              onClick={() => router.push(`/day?date=${todayStr}`)}
             >
               <div className="flex items-start justify-between mb-2">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
@@ -401,7 +385,7 @@ export default function Dashboard() {
                 return (
                   <button
                     key={dateStr}
-                    onClick={() => setSelectedDate(dateStr)}
+                    onClick={() => router.push(`/day?date=${dateStr}`)}
                     className="rounded-xl p-2 flex flex-col items-center gap-1.5 press-effect"
                     style={{
                       background: isToday ? "rgba(57,255,20,0.05)" : bg,
@@ -449,7 +433,7 @@ export default function Dashboard() {
                   return (
                     <button
                       key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
+                      onClick={() => router.push(`/day?date=${dateStr}`)}
                       className="rounded-lg py-1.5 flex flex-col items-center gap-0.5 press-effect"
                       style={{
                         background: isToday ? "rgba(57,255,20,0.08)" : "transparent",
@@ -470,17 +454,6 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Day detail sheet */}
-      {selectedDate && (
-        <DayDetailSheet
-          date={selectedDate}
-          session={selectedSession}
-          plan={selectedPlan}
-          coachWorkout={selectedCoachWorkout}
-          coachRun={selectedCoachRun}
-          onClose={() => setSelectedDate(null)}
-        />
-      )}
     </div>
   );
 }
