@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
-import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
+import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { getGitHubToken, getGistId, syncData } from "@/lib/sync";
@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
+  const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
 
   const handleResync = async () => {
@@ -54,6 +55,7 @@ export default function Dashboard() {
     setSessions(getSessions());
     setCoachWorkouts(getCoachWorkouts());
     setCoachRuns(getCoachRuns());
+    setRescheduledDays(getRescheduledDays());
   }, []);
 
   useEffect(() => {
@@ -102,8 +104,12 @@ export default function Dashboard() {
   today.setHours(0, 0, 0, 0);
   const todayStr = toLocalDateStr(today);
 
-  const todayCoachWorkout = coachWorkouts.find((w) => w.date === todayStr) ?? null;
-  const todayCoachRun = coachRuns.find((r) => r.date === todayStr) ?? null;
+  const todayReschAway = rescheduledDays.some((r) => r.from === todayStr);
+  const todayReschHere = rescheduledDays.find((r) => r.to === todayStr);
+  const todayCoachWorkout = (!todayReschAway ? coachWorkouts.find((w) => w.date === todayStr) : null)
+    ?? (todayReschHere ? coachWorkouts.find((w) => w.date === todayReschHere.from) ?? null : null);
+  const todayCoachRun = (!todayReschAway ? coachRuns.find((r) => r.date === todayStr) : null)
+    ?? (todayReschHere ? coachRuns.find((r) => r.date === todayReschHere.from) ?? null : null);
   const todaySession = sessions.find((s) => s.date.slice(0, 10) === todayStr);
 
   // Week range label
@@ -166,13 +172,13 @@ export default function Dashboard() {
                 style={{ background: resyncing ? "rgba(255,107,0,0.05)" : "rgba(255,107,0,0.1)" }}
                 title="Resynchroniser Strava (14 derniers jours)"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={resyncing ? "#884400" : "#ff6b00"}
-                  className={resyncing ? "animate-spin" : ""}>
-                  {resyncing
-                    ? <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round" fill="none"/>
-                    : <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
-                  }
-                </svg>
+                {resyncing ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                ) : (
+                  <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" />
+                )}
               </button>
             ) : (
               <a
@@ -181,9 +187,7 @@ export default function Dashboard() {
                 style={{ background: "#1a1a1a", border: "1px solid #222" }}
                 title="Connecter Strava"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#444">
-                  <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
-                </svg>
+                <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" style={{ opacity: 0.3 }} />
               </a>
             )}
 
@@ -395,7 +399,11 @@ export default function Dashboard() {
               {weekDays.map((day) => {
                 const dateStr = toLocalDateStr(day.date);
                 const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
-                const isPlanned = coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr);
+                const reschAway = rescheduledDays.some((r) => r.from === dateStr);
+                const reschHere = rescheduledDays.find((r) => r.to === dateStr);
+                const hasOwnPlan = !reschAway && (coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr));
+                const hasRescheduledPlan = !!reschHere && (coachWorkouts.some((w) => w.date === reschHere.from) || coachRuns.some((r) => r.date === reschHere.from));
+                const isPlanned = hasOwnPlan || hasRescheduledPlan;
                 const isToday = day.isToday && weekOffset === 0;
 
                 let bg = "#111", border = "#1a1a1a", dotColor = "transparent";
@@ -445,7 +453,10 @@ export default function Dashboard() {
                   if (!date) return <div key={`pad-${i}`} />;
                   const dateStr = toLocalDateStr(date);
                   const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
-                  const isPlanned = coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr);
+                  const mReschAway = rescheduledDays.some((r) => r.from === dateStr);
+                  const mReschHere = rescheduledDays.find((r) => r.to === dateStr);
+                  const isPlanned = (!mReschAway && (coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr)))
+                    || (!!mReschHere && (coachWorkouts.some((w) => w.date === mReschHere.from) || coachRuns.some((r) => r.date === mReschHere.from)));
                   const isPast = date < today;
                   const isToday = dateStr === todayStr;
 
