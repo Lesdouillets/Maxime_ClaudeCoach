@@ -264,21 +264,25 @@ export default function DayPage() {
               >
                 {/* Exercise header: name + metrics */}
                 <div className="px-4 pt-4 pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-semibold text-sm leading-snug">{ex.name}</span>
-                    <div className="text-right flex-shrink-0">
-                      {ex.weight > 0 && (
-                        <p className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>
-                          {ex.weight}<span className="text-sm text-muted ml-0.5">kg</span>
-                        </p>
-                      )}
-                      <p className="text-sm font-mono" style={{ color: ex.weight > 0 ? "#aaa" : "#39ff14" }}>
-                        {ex.sets}×{ex.reps}
-                      </p>
+                  <p className="font-bold text-xs tracking-widest mb-3">{ex.name.toUpperCase()}</p>
+                  <div className="flex items-end gap-5">
+                    {ex.weight > 0 && (
+                      <div className="flex items-end gap-0.5">
+                        <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.weight}</span>
+                        <span className="text-xs text-muted mb-0.5 ml-0.5">kg</span>
+                      </div>
+                    )}
+                    <div className="flex items-end gap-0.5">
+                      <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.sets}</span>
+                      <span className="text-xs text-muted mb-0.5 ml-0.5">séries</span>
+                    </div>
+                    <div className="flex items-end gap-0.5">
+                      <span className="font-display text-2xl leading-none" style={{ color: "#39ff14" }}>{ex.reps}</span>
+                      <span className="text-xs text-muted mb-0.5 ml-0.5">rep</span>
                     </div>
                   </div>
                   {ex.restSeconds && (
-                    <p className="text-xs mt-1" style={{ color: "#444" }}>Repos : {ex.restSeconds}s</p>
+                    <p className="text-xs mt-2" style={{ color: "#444" }}>Repos : {ex.restSeconds}s</p>
                   )}
                 </div>
 

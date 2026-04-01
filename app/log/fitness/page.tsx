@@ -99,7 +99,7 @@ export default function LogFitness() {
                 <span className="font-display text-2xl leading-none w-7 text-center flex-shrink-0" style={{ color: "#ff6b00" }}>
                   {idx + 1}
                 </span>
-                <span className="font-semibold text-base">{ex.name}</span>
+                <span className="font-bold text-xs tracking-widest">{ex.name.toUpperCase()}</span>
               </div>
 
               {/* Coach note */}
