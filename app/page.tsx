@@ -6,7 +6,6 @@ import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
-import { copyExportToClipboard, downloadExport } from "@/lib/export";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { getGitHubToken, getGistId, syncData } from "@/lib/sync";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
@@ -21,7 +20,6 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
@@ -50,12 +48,6 @@ export default function Dashboard() {
     } finally {
       setResyncing(false);
     }
-  };
-
-  const handleCopy = async () => {
-    await copyExportToClipboard();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const refreshSessions = useCallback(() => {
@@ -205,42 +197,6 @@ export default function Dashboard() {
               </a>
             )}
 
-            {/* Pour Alex */}
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold tracking-wide press-effect"
-              style={{
-                background: copied ? "rgba(57,255,20,0.15)" : "rgba(57,255,20,0.1)",
-                border: "1px solid rgba(57,255,20,0.3)",
-                color: "#39ff14",
-              }}
-            >
-              {copied ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Copié !
-                </>
-              ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m0 0h2a2 2 0 0 1 2 2v3" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                  Pour Alex
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => downloadExport()}
-              className="p-2 rounded-xl press-effect"
-              style={{ background: "#111", border: "1px solid #222" }}
-              title="Télécharger sessions.json"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M12 15L8 11M12 15L16 11M12 15V3M5 21H19" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
           </div>
         }
       />
