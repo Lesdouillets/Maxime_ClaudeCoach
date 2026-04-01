@@ -254,16 +254,28 @@ export function autoImportActivity(
 
   const dateStr = activity.start_date.slice(0, 10);
   const { getCoachWorkouts } = require("./coachPlan");
-  const coachWorkout = (getCoachWorkouts() as Array<{ id: string; date: string }>).find(
-    (w) => w.date === dateStr
-  );
+  type CWExercise = { name: string; sets: number; reps: number; weight: number };
+  type CW = { id: string; date: string; category?: string; exercises: CWExercise[] };
+  const coachWorkout = (getCoachWorkouts() as CW[]).find((w) => w.date === dateStr);
+
+  // Pre-populate exercises from coach plan so notes can be added later
+  const exercises = coachWorkout
+    ? coachWorkout.exercises.map((ex) => ({
+        id: generateId(),
+        name: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight,
+        comment: "",
+      }))
+    : [];
 
   return {
     id: generateId(),
     type: "fitness",
     date: activity.start_date,
-    category: guessFitnessCategory(activity.name),
-    exercises: [],
+    category: (coachWorkout?.category as import("./types").FitnessCategory | undefined) ?? guessFitnessCategory(activity.name),
+    exercises,
     comment: "",
     coachWorkoutId: coachWorkout?.id,
     stravaActivityId: activity.id,
