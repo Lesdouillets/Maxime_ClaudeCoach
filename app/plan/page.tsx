@@ -121,31 +121,27 @@ export default function PlanPage() {
 
           const isClickable = hasPlan || !!session;
 
-          const inner = (
-            <div className="p-4">
-              {/* Day header */}
-              <div className="flex items-center justify-between mb-2">
+          // Today gets a large card, other days get a compact card
+          const inner = day.isToday ? (
+            /* ── Large card for today ── */
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-display text-xl" style={{ color: statusConfig.color }}>
+                  <span className="font-display text-2xl" style={{ color: statusConfig.color }}>
                     {DAY_FULL_FR[day.dow].toUpperCase()}
                   </span>
-                  <span className="text-xs" style={{ color: "#333" }}>
-                    {day.date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  <span className="text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest"
+                    style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.3)" }}>
+                    TODAY
                   </span>
-                  {day.isToday && (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                      style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.3)" }}>
-                      TODAY
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium" style={{ color: statusConfig.color }}>
+                  <span className="text-sm font-medium" style={{ color: statusConfig.color }}>
                     {statusConfig.label}
                   </span>
                   {isClickable && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 18L15 12L9 6" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   )}
                 </div>
@@ -153,45 +149,37 @@ export default function PlanPage() {
 
               {hasPlan ? (
                 <>
-                  <h3 className="font-bold text-base mb-1">{planLabel}</h3>
+                  <h3 className="font-bold text-xl mb-2">{planLabel}</h3>
 
-                  {/* Run metrics */}
                   {planType === "run" && (
-                    <div className="flex gap-3 flex-wrap items-end mt-2">
+                    <div className="flex gap-4 flex-wrap items-end mt-2">
                       {planDistanceKm && (
                         <div className="flex items-end gap-1">
-                          <span className="font-display text-xl" style={{ color: "#39ff14" }}>{planDistanceKm}</span>
-                          <span className="text-xs text-muted mb-0.5">km</span>
+                          <span className="font-display text-3xl" style={{ color: "#39ff14" }}>{planDistanceKm}</span>
+                          <span className="text-sm text-muted mb-1">km</span>
                         </div>
                       )}
                       {planPaceStr && (
-                        <span className="font-display text-xl" style={{ color: "#39ff14" }}>{planPaceStr}/km</span>
+                        <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{planPaceStr}/km</span>
                       )}
                       {!planPaceStr && planPaceSec && (
-                        <span className="font-display text-xl" style={{ color: "#39ff14" }}>{formatPace(planPaceSec)}</span>
+                        <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{formatPace(planPaceSec)}</span>
                       )}
-                      {planHR && <span className="text-xs self-end mb-0.5" style={{ color: "#ff6b00" }}>♥ {planHR}</span>}
+                      {planHR && <span className="text-sm self-end mb-0.5" style={{ color: "#ff6b00" }}>♥ {planHR}</span>}
                       {planZone && <Badge label={planZone} variant="neon" />}
                     </div>
                   )}
 
-                  {/* Fitness category + exercise count */}
-                  {planType === "fitness" && planCategory && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge label={planCategory === "upper" ? "Haut du corps" : "Bas du corps"} variant="orange" />
-                      {coachWorkout && (
-                        <span className="text-xs text-muted">{coachWorkout.exercises.length} exercices</span>
-                      )}
-                    </div>
+                  {planType === "fitness" && coachWorkout && (
+                    <span className="text-xs text-muted">{coachWorkout.exercises.length} exercices</span>
                   )}
 
-                  {/* Session result snippet */}
                   {session && (
-                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid #1a1a1a" }}>
+                    <div className="mt-4 pt-4" style={{ borderTop: "1px solid #1a1a1a" }}>
                       {session.type === "run" ? (
                         <div className="flex gap-4 text-sm">
                           <span style={{ color: "#39ff14" }}>
-                            <span className="font-display text-lg">{session.distanceKm.toFixed(1)}</span>
+                            <span className="font-display text-xl">{session.distanceKm.toFixed(1)}</span>
                             <span className="text-xs text-muted ml-1">km</span>
                           </span>
                           {session.avgPaceSecPerKm > 0 && (
@@ -205,27 +193,37 @@ export default function PlanPage() {
                           {session.exercises.length > 0 ? `${session.exercises.length} exercices` : "Activité Strava"}
                         </span>
                       )}
-                      {session.comment && (
-                        <p className="text-xs text-muted italic mt-1">"{session.comment}"</p>
-                      )}
                     </div>
-                  )}
-
-                  {/* Rescheduled target */}
-                  {reschedule && (
-                    <p className="text-xs mt-2" style={{ color: "#ff6b00" }}>
-                      → {new Date(reschedule.to + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-                    </p>
-                  )}
-
-                  {/* Cancelled reason */}
-                  {isCancelled && cancelledDay?.reason && (
-                    <p className="text-xs mt-1 italic" style={{ color: "#555" }}>{cancelledDay.reason}</p>
                   )}
                 </>
               ) : (
-                <p className="text-sm" style={{ color: "#2a2a2a" }}>Récupération active</p>
+                <p className="text-base" style={{ color: "#2a2a2a" }}>Récupération active</p>
               )}
+            </div>
+          ) : (
+            /* ── Compact card for other days ── */
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="font-display text-base w-8 flex-shrink-0" style={{ color: statusConfig.color }}>
+                  {DAY_FULL_FR[day.dow].slice(0, 3).toUpperCase()}
+                </span>
+                <span className="text-[11px] flex-shrink-0" style={{ color: "#333" }}>
+                  {day.date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                </span>
+                {hasPlan ? (
+                  <span className="text-sm font-medium truncate">{planLabel}</span>
+                ) : (
+                  <span className="text-xs" style={{ color: "#2a2a2a" }}>Repos</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <span className="text-xs" style={{ color: statusConfig.color }}>{statusConfig.label}</span>
+                {isClickable && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 18L15 12L9 6" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </div>
             </div>
           );
 
