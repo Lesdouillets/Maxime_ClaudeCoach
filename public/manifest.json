@@ -2,19 +2,20 @@
   "name": "Claude Coach",
   "short_name": "Coach",
   "description": "Ton coach sportif personnel",
-  "start_url": "/",
+  "start_url": "/Maxime_ClaudeCoach/",
+  "scope": "/Maxime_ClaudeCoach/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/Maxime_ClaudeCoach/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/Maxime_ClaudeCoach/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

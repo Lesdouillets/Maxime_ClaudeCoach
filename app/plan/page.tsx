@@ -10,7 +10,7 @@ import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays,
 } from "@/lib/storage";
-import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, parseCoachWorkoutJSON } from "@/lib/coachPlan";
+import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
@@ -38,10 +38,6 @@ export default function PlanPage() {
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
-  const [showImport, setShowImport] = useState(false);
-  const [importJson, setImportJson] = useState("");
-  const [importError, setImportError] = useState("");
-  const [importSuccess, setImportSuccess] = useState("");
 
   const weekDays = getWeekDays(weekOffset);
 
@@ -66,20 +62,6 @@ export default function PlanPage() {
     setRescheduleTarget(null); setRescheduleDate(""); refresh();
   };
   const handleUnreschedule = (fromDate: string) => { unrescheduleDay(fromDate); refresh(); };
-
-  const handleImport = () => {
-    setImportError(""); setImportSuccess("");
-    try {
-      const plans = parseCoachWorkoutJSON(importJson);
-      if (plans.length === 0) { setImportError("Aucune séance trouvée dans le JSON."); return; }
-      plans.forEach((p) => { if (p.type === "run") addCoachRun(p); else addCoachWorkout(p); });
-      setImportSuccess(`${plans.length} séance${plans.length > 1 ? "s" : ""} importée${plans.length > 1 ? "s" : ""} ✓`);
-      setImportJson(""); refresh();
-      setTimeout(() => { setShowImport(false); setImportSuccess(""); }, 1500);
-    } catch {
-      setImportError("JSON invalide. Vérifiez le format.");
-    }
-  };
 
   if (!mounted) return null;
 
@@ -118,45 +100,6 @@ export default function PlanPage() {
             <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
-      </div>
-
-      {/* Coach JSON import */}
-      <div className="px-5 mb-4">
-        <button
-          onClick={() => { setShowImport(!showImport); setImportError(""); setImportSuccess(""); }}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs press-effect w-full"
-          style={{ background: "#111", border: "1px solid #222", color: "#555" }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <path d="M12 15V3M7 10l5 5 5-5M20 21H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span>Importer programme coach</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className={`ml-auto transition-transform ${showImport ? "rotate-180" : ""}`}>
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </button>
-        {showImport && (
-          <div className="mt-2 p-3 rounded-xl space-y-2" style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
-            <textarea
-              value={importJson}
-              onChange={(e) => setImportJson(e.target.value)}
-              placeholder="Colle le JSON de ton coach ici…"
-              rows={6}
-              className="w-full rounded-lg px-3 py-2 text-xs font-mono resize-none focus:outline-none"
-              style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
-            />
-            {importError && <p className="text-xs" style={{ color: "#ff4444" }}>{importError}</p>}
-            {importSuccess && <p className="text-xs font-bold" style={{ color: "#39ff14" }}>{importSuccess}</p>}
-            <button
-              onClick={handleImport}
-              disabled={!importJson.trim()}
-              className="w-full py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-              style={{ background: "rgba(57,255,20,0.12)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.3)" }}
-            >
-              Importer
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="px-5 space-y-3">
