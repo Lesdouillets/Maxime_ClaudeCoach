@@ -8,6 +8,7 @@ import { getSessions, getStravaTokens, addSession } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
 import { copyExportToClipboard, downloadExport } from "@/lib/export";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
+import { getGitHubToken, getGistId, syncData } from "@/lib/sync";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
 
   const handleResync = async () => {
     if (resyncing) return;
@@ -64,6 +66,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     setMounted(true);
+
+    // Auto-sync with GitHub Gist if configured
+    const ghToken = getGitHubToken();
+    const gistId = getGistId();
+    if (ghToken && gistId) {
+      setSyncStatus("syncing");
+      syncData(ghToken, gistId)
+        .then((result) => {
+          if (result.ok) { setSyncStatus("done"); refreshSessions(); }
+          else setSyncStatus("error");
+          setTimeout(() => setSyncStatus("idle"), 3000);
+        })
+        .catch(() => { setSyncStatus("error"); setTimeout(() => setSyncStatus("idle"), 3000); });
+    }
+
     refreshSessions();
     const tokens = getStravaTokens();
     setIsStravaConnected(!!tokens);
@@ -150,6 +167,14 @@ export default function Dashboard() {
         accent="neon"
         right={
           <div className="flex items-center gap-2">
+            {/* Sync indicator */}
+            {syncStatus !== "idle" && (
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                background: syncStatus === "syncing" ? "#ff6b00" : syncStatus === "done" ? "#39ff14" : "#ff4444",
+                boxShadow: syncStatus === "done" ? "0 0 6px #39ff14" : syncStatus === "syncing" ? "0 0 6px #ff6b00" : "none",
+                animation: syncStatus === "syncing" ? "pulse 1s infinite" : "none",
+              }} />
+            )}
             {/* Strava icon */}
             {isStravaConnected ? (
               <button
