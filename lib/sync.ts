@@ -196,6 +196,42 @@ export async function syncData(token: string, gistId?: string): Promise<SyncResu
   }
 }
 
+/** Push local data to gist, overwriting remote completely */
+export async function pushData(token: string, gistId: string): Promise<SyncResult> {
+  try {
+    const local = readLocal();
+    await updateGist(token, gistId, local);
+    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+    return { ok: true, gistId };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/** Pull remote gist data, overwriting local completely */
+export async function pullData(token: string, gistId: string): Promise<SyncResult> {
+  try {
+    const remote = await fetchGist(token, gistId);
+    if (!remote) return { ok: false, error: "Gist introuvable." };
+    const countBefore = {
+      sessions: (JSON.parse(localStorage.getItem("cc_sessions") ?? "[]") as unknown[]).length,
+      plans: (JSON.parse(localStorage.getItem("cc_coach_workouts") ?? "[]") as unknown[]).length +
+             (JSON.parse(localStorage.getItem("cc_coach_runs") ?? "[]") as unknown[]).length,
+    };
+    writeLocal(remote);
+    return {
+      ok: true,
+      gistId,
+      added: {
+        sessions: remote.cc_sessions.length - countBefore.sessions,
+        coachPlans: (remote.cc_coach_workouts.length + remote.cc_coach_runs.length) - countBefore.plans,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
 /** Quick check: does the token have gist scope? */
 export function isSyncConfigured(): boolean {
   return !!(getGitHubToken() && getGistId());
