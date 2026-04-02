@@ -171,17 +171,22 @@ export default function DayPage() {
   const isPast = date < today;
   const isToday = date === today;
   const isCancelled = !!cancelledDay;
-  const planType = coachRun ? "run" : coachWorkout ? "fitness" : genericPlan?.type ?? null;
   const hasPlan = !!(coachRun || coachWorkout || genericPlan);
   const isDone = !!session;
   const canAct = hasPlan && !isDone && !isCancelled && !reschedule;
+  const hasDouble = !!(coachRun && coachWorkout); // two plans on same day
 
-  let title = "REPOS";
+  // Title: show both if double, otherwise priority run > workout > generic
+  let titlePrimary = "REPOS";
+  let titleSecondary: string | null = null;
   if (session) {
-    title = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
-  } else if (coachRun) { title = coachRun.label; }
-  else if (coachWorkout) { title = coachWorkout.label; }
-  else if (genericPlan) { title = genericPlan.label; }
+    titlePrimary = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
+  } else if (hasDouble) {
+    titlePrimary = coachRun!.label;
+    titleSecondary = coachWorkout!.label;
+  } else if (coachRun) { titlePrimary = coachRun.label; }
+  else if (coachWorkout) { titlePrimary = coachWorkout.label; }
+  else if (genericPlan) { titlePrimary = genericPlan.label; }
 
   // Build merged exercise list: coach plan as template, session data fills in actual values + notes
   const mergedExercises = coachWorkout
@@ -218,7 +223,12 @@ export default function DayPage() {
 
         <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#555" }}>{dateLabel}</p>
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-4xl leading-none">{title}</h1>
+          <div>
+            <h1 className="font-display text-4xl leading-none">{titlePrimary}</h1>
+            {titleSecondary && (
+              <p className="font-display text-2xl leading-none mt-0.5" style={{ color: "#555" }}>{titleSecondary}</p>
+            )}
+          </div>
           <div className="flex flex-col items-end gap-1">
             {isDone && (
               <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
@@ -499,17 +509,33 @@ export default function DayPage() {
         )}
 
         {/* ── Valider manuellement ── */}
-        {hasPlan && !isDone && !isCancelled && !reschedule && (isPast || isToday) && planType && (
-          <Link
-            href={`/log/${planType === "fitness" ? "fitness" : "run"}?date=${date}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Valider manuellement
-          </Link>
+        {hasPlan && !isDone && !isCancelled && !reschedule && (isPast || isToday) && (
+          <div className={hasDouble ? "grid grid-cols-2 gap-2" : ""}>
+            {(coachRun || (!coachWorkout && genericPlan?.type === "run")) && (
+              <Link
+                href={`/log/run?date=${date}`}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                {hasDouble ? "Run" : "Valider manuellement"}
+              </Link>
+            )}
+            {(coachWorkout || (!coachRun && genericPlan?.type === "fitness")) && (
+              <Link
+                href={`/log/fitness?date=${date}`}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                {hasDouble ? "Muscu" : "Valider manuellement"}
+              </Link>
+            )}
+          </div>
         )}
 
         {/* ── Actions: Décaler / Annuler ── */}
