@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
-import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
+import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -17,37 +17,13 @@ export default function Dashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
-  const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
-  const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
-
-  const handleResync = async () => {
-    if (resyncing) return;
-    setResyncing(true);
-    try {
-      const activities = await forceResyncRecentActivities(14);
-      let count = 0;
-      activities.forEach((activity) => {
-        const session = autoImportActivity(activity);
-        if (session) { addSession(session); count++; }
-      });
-      if (count > 0) {
-        setImportedCount(count);
-        refreshSessions();
-        setTimeout(() => setImportedCount(0), 4000);
-      }
-    } catch {
-      // silent fail
-    } finally {
-      setResyncing(false);
-    }
-  };
 
   const refreshSessions = useCallback(() => {
     setSessions(getSessions());
@@ -61,7 +37,6 @@ export default function Dashboard() {
 
     refreshSessions();
     const tokens = getStravaTokens();
-    setIsStravaConnected(!!tokens);
     if (!tokens) return;
 
     fetchNewActivitiesSinceLastVisit()
@@ -133,43 +108,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-md mx-auto animate-fade-in">
-      <PageHeader
-        title="CLAUDE COACH"
-        subtitle={dateLabel}
-        accent="neon"
-        right={
-          <div className="flex items-center gap-2">
-            {/* Strava icon */}
-            {isStravaConnected ? (
-              <button
-                onClick={handleResync}
-                disabled={resyncing}
-                className="p-2 rounded-xl press-effect disabled:opacity-60"
-                style={{ background: resyncing ? "rgba(255,107,0,0.05)" : "rgba(255,107,0,0.1)" }}
-                title="Resynchroniser Strava (14 derniers jours)"
-              >
-                {resyncing ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="animate-spin">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" />
-                )}
-              </button>
-            ) : (
-              <a
-                href={getStravaAuthUrl()}
-                className="p-2 rounded-xl press-effect"
-                style={{ background: "#1a1a1a", border: "1px solid #222" }}
-                title="Connecter Strava"
-              >
-                <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" style={{ opacity: 0.3 }} />
-              </a>
-            )}
-
-          </div>
-        }
-      />
+      <PageHeader title="CLAUDE COACH" subtitle={dateLabel} accent="neon" />
 
       <div className="px-5 space-y-5">
 
@@ -246,26 +185,32 @@ export default function Dashboard() {
               <p className="text-xs mt-2" style={{ color: "#555" }}>Appuyer pour voir le détail →</p>
             </button>
           ) : todayCoachWorkout ? (
-            <>
+            <button className="w-full text-left" onClick={() => router.push(`/day?date=${todayStr}`)}>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
                   style={{ background: "rgba(255,107,0,0.1)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.2)" }}>
                   AUJOURD'HUI
                 </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
               </div>
               <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachWorkout.label}</h2>
               {todayCoachWorkout.coachNote && (
                 <p className="text-sm text-gray-400">{todayCoachWorkout.coachNote}</p>
               )}
               <p className="text-xs mt-2" style={{ color: "#555" }}>{todayCoachWorkout.exercises.length} exercices</p>
-            </>
+            </button>
           ) : todayCoachRun ? (
-            <>
+            <button className="w-full text-left" onClick={() => router.push(`/day?date=${todayStr}`)}>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
                   style={{ background: "rgba(79,156,249,0.1)", color: "#4f9cf9", border: "1px solid rgba(79,156,249,0.2)" }}>
                   AUJOURD'HUI
                 </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
               </div>
               <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachRun.label}</h2>
               <div className="flex gap-4 mt-3 items-end">
@@ -285,7 +230,7 @@ export default function Dashboard() {
                   </span>
                 )}
               </div>
-            </>
+            </button>
           ) : (
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"

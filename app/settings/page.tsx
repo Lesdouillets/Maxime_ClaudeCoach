@@ -9,7 +9,8 @@ import {
 } from "@/lib/sync";
 import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun } from "@/lib/coachPlan";
 import { buildExportData, downloadExport } from "@/lib/export";
-import { getCancelledDays } from "@/lib/storage";
+import { getCancelledDays, getStravaTokens, addSession } from "@/lib/storage";
+import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } from "@/lib/strava";
 
 // ─── Section wrapper ────────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -38,6 +39,11 @@ export default function SettingsPage() {
   const [syncError, setSyncError] = useState("");
   const [lastSync, setLastSync] = useState("");
 
+  // ── Strava state ──
+  const [isStravaConnected, setIsStravaConnected] = useState(false);
+  const [stravaResyncing, setStravaResyncing] = useState(false);
+  const [stravaMsg, setStravaMsg] = useState("");
+
   // ── Import state ──
   const [importError, setImportError] = useState("");
   const [importSuccess, setImportSuccess] = useState("");
@@ -50,6 +56,7 @@ export default function SettingsPage() {
     setToken(getGitHubToken());
     setLastSync(getLastSync());
     if (getGitHubToken()) setTokenStatus("ok");
+    setIsStravaConnected(!!getStravaTokens());
   }, []);
 
   // ── Sync handlers ──
@@ -84,6 +91,20 @@ export default function SettingsPage() {
   const handleDisconnect = () => {
     setGitHubToken(""); setToken("");
     setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
+  };
+
+  // ── Strava handler ──
+  const handleStravaResync = async () => {
+    if (stravaResyncing) return;
+    setStravaResyncing(true); setStravaMsg("");
+    try {
+      const activities = await forceResyncRecentActivities(14);
+      let count = 0;
+      activities.forEach((a) => { const s = autoImportActivity(a); if (s) { addSession(s); count++; } });
+      setStravaMsg(count > 0 ? `${count} activité${count > 1 ? "s" : ""} importée${count > 1 ? "s" : ""} ✓` : "Aucune nouvelle activité");
+      setTimeout(() => setStravaMsg(""), 4000);
+    } catch { setStravaMsg("Erreur de synchronisation"); }
+    finally { setStravaResyncing(false); }
   };
 
   // ── Import handler ──
@@ -213,7 +234,48 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        {/* ── 2. IMPORT JSON COACH ── */}
+        {/* ── 2. STRAVA ── */}
+      <Section title="STRAVA">
+        <div className="px-4 py-3 space-y-3">
+          <div className="flex items-center gap-3">
+            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava"
+              style={{ opacity: isStravaConnected ? 1 : 0.3 }} />
+            <p className="text-sm font-semibold" style={{ color: isStravaConnected ? "#ff6b00" : "#555" }}>
+              {isStravaConnected ? "Connecté" : "Non connecté"}
+            </p>
+          </div>
+          {isStravaConnected ? (
+            <button
+              onClick={handleStravaResync}
+              disabled={stravaResyncing}
+              className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: "rgba(255,107,0,0.1)", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}
+            >
+              {stravaResyncing ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+              Resynchroniser (14 derniers jours)
+            </button>
+          ) : (
+            <a
+              href={getStravaAuthUrl()}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold press-effect"
+              style={{ background: "rgba(255,107,0,0.1)", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}
+            >
+              Connecter Strava
+            </a>
+          )}
+          {stravaMsg && <p className="text-xs text-center" style={{ color: "#ff6b00" }}>{stravaMsg}</p>}
+        </div>
+      </Section>
+
+      {/* ── 4. IMPORT JSON COACH ── */}
         <Section title="IMPORT JSON — PROGRAMME COACH">
           <div className="px-4 py-3 space-y-2">
             <p className="text-xs text-muted">Fichier JSON généré par ton coach (muscu + runs).</p>
@@ -230,7 +292,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        {/* ── 3. EXPORT JSON COACH ── */}
+        {/* ── 5. EXPORT JSON COACH ── */}
         <Section title="EXPORT JSON — POUR MON COACH">
           <div className="px-4 py-3 space-y-2">
             <p className="text-xs text-muted">

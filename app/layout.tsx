@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import SyncProvider from "@/components/SyncProvider";
+import GlobalUI from "@/components/GlobalUI";
 
 export const metadata: Metadata = {
   title: "Claude Coach",
@@ -42,9 +43,11 @@ export default function RootLayout({
       </head>
       <body className="bg-background text-white font-body antialiased">
         <SyncProvider />
-        <div className="min-h-screen pb-nav">
-          {children}
-        </div>
+        <GlobalUI>
+          <div className="min-h-screen pb-nav">
+            {children}
+          </div>
+        </GlobalUI>
         <BottomNav />
       </body>
     </html>
