@@ -246,26 +246,32 @@ export default function Dashboard() {
               <p className="text-xs mt-2" style={{ color: "#555" }}>Appuyer pour voir le détail →</p>
             </button>
           ) : todayCoachWorkout ? (
-            <>
+            <button className="w-full text-left" onClick={() => router.push(`/day?date=${todayStr}`)}>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
                   style={{ background: "rgba(255,107,0,0.1)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.2)" }}>
                   AUJOURD'HUI
                 </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
               </div>
               <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachWorkout.label}</h2>
               {todayCoachWorkout.coachNote && (
                 <p className="text-sm text-gray-400">{todayCoachWorkout.coachNote}</p>
               )}
               <p className="text-xs mt-2" style={{ color: "#555" }}>{todayCoachWorkout.exercises.length} exercices</p>
-            </>
+            </button>
           ) : todayCoachRun ? (
-            <>
+            <button className="w-full text-left" onClick={() => router.push(`/day?date=${todayStr}`)}>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
                   style={{ background: "rgba(79,156,249,0.1)", color: "#4f9cf9", border: "1px solid rgba(79,156,249,0.2)" }}>
                   AUJOURD'HUI
                 </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
               </div>
               <h2 className="font-display text-4xl mb-1 leading-none">{todayCoachRun.label}</h2>
               <div className="flex gap-4 mt-3 items-end">
@@ -285,7 +291,7 @@ export default function Dashboard() {
                   </span>
                 )}
               </div>
-            </>
+            </button>
           ) : (
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
