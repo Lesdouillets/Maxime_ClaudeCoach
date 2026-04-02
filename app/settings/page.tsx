@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import {
   getGitHubToken, setGitHubToken,
-  getGistId, setGistId,
   getLastSync,
-  verifyToken, syncData, pushData, pullData,
+  verifyToken, manualSync,
 } from "@/lib/sync";
 import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun } from "@/lib/coachPlan";
 import { buildExportData, downloadExport } from "@/lib/export";
@@ -31,7 +30,6 @@ export default function SettingsPage() {
 
   // ── Sync state ──
   const [token, setToken] = useState("");
-  const [gistId, setGistIdState] = useState("");
   const [tokenStatus, setTokenStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
   const [tokenLogin, setTokenLogin] = useState("");
   const [tokenError, setTokenError] = useState("");
@@ -50,7 +48,6 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true);
     setToken(getGitHubToken());
-    setGistIdState(getGistId());
     setLastSync(getLastSync());
     if (getGitHubToken()) setTokenStatus("ok");
   }, []);
@@ -74,48 +71,18 @@ export default function SettingsPage() {
     const t = getGitHubToken();
     if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
     setSyncing(true); setSyncMsg(""); setSyncError("");
-    const result = await syncData(t, gistId.trim() || undefined);
+    const result = await manualSync(t);
     setSyncing(false);
     if (result.ok) {
-      const newId = result.gistId ?? gistId;
-      setGistIdState(newId); setGistId(newId);
       setLastSync(new Date().toISOString());
-      const a = result.added;
-      setSyncMsg(a && (a.sessions > 0 || a.coachPlans > 0)
-        ? `Synchronisé ✓${a.sessions > 0 ? ` +${a.sessions} séance(s)` : ""}${a.coachPlans > 0 ? ` +${a.coachPlans} plan(s)` : ""}`
-        : "Synchronisé ✓ — déjà à jour");
+      setSyncMsg("Synchronisé ✓");
     } else {
       setSyncError(result.error ?? "Erreur de synchronisation");
     }
   };
 
-  const handlePush = async () => {
-    const t = getGitHubToken(); const id = gistId.trim();
-    if (!t || !id) { setSyncError("Token et Gist ID requis."); return; }
-    setSyncing(true); setSyncMsg(""); setSyncError("");
-    const result = await pushData(t, id);
-    setSyncing(false);
-    if (result.ok) { setLastSync(new Date().toISOString()); setSyncMsg("Poussé vers le cloud ✓"); }
-    else setSyncError(result.error ?? "Erreur");
-  };
-
-  const handlePull = async () => {
-    const t = getGitHubToken(); const id = gistId.trim();
-    if (!t || !id) { setSyncError("Token et Gist ID requis."); return; }
-    setSyncing(true); setSyncMsg(""); setSyncError("");
-    const result = await pullData(t, id);
-    setSyncing(false);
-    if (result.ok) {
-      setLastSync(new Date().toISOString());
-      const a = result.added;
-      setSyncMsg(a && (a.sessions > 0 || a.coachPlans > 0)
-        ? `Tiré depuis le cloud ✓${a.sessions > 0 ? ` +${a.sessions} séance(s)` : ""}${a.coachPlans > 0 ? ` +${a.coachPlans} plan(s)` : ""}`
-        : "Tiré depuis le cloud ✓ — déjà à jour");
-    } else setSyncError(result.error ?? "Erreur");
-  };
-
   const handleDisconnect = () => {
-    setGitHubToken(""); setGistId(""); setToken(""); setGistIdState("");
+    setGitHubToken(""); setToken("");
     setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
   };
 
@@ -138,7 +105,6 @@ export default function SettingsPage() {
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be re-imported
     e.target.value = "";
   };
 
@@ -182,12 +148,12 @@ export default function SettingsPage() {
             {/* Status */}
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                background: isConnected && gistId ? "#39ff14" : isConnected ? "#ff6b00" : "#333",
-                boxShadow: isConnected && gistId ? "0 0 6px #39ff14" : "none",
+                background: isConnected ? "#39ff14" : "#333",
+                boxShadow: isConnected ? "0 0 6px #39ff14" : "none",
               }} />
               <div>
-                <p className="text-sm font-semibold" style={{ color: isConnected && gistId ? "#39ff14" : "#555" }}>
-                  {isConnected && gistId ? "Synchronisation active" : isConnected ? "Token OK — Gist manquant" : "Non configuré"}
+                <p className="text-sm font-semibold" style={{ color: isConnected ? "#39ff14" : "#555" }}>
+                  {isConnected ? `Connecté${tokenLogin ? ` · @${tokenLogin}` : ""}` : "Non configuré"}
                 </p>
                 {lastSync && (
                   <p className="text-xs text-muted">
@@ -200,7 +166,7 @@ export default function SettingsPage() {
             {/* Token */}
             <div>
               <p className="text-xs font-semibold mb-1.5" style={{ color: "#444" }}>
-                Personal Access Token (classic) — scope : <span style={{ color: "#aaa" }}>gist</span>
+                Personal Access Token — scope : <span style={{ color: "#aaa" }}>repo</span>
               </p>
               <div className="flex gap-2">
                 <input
@@ -220,62 +186,18 @@ export default function SettingsPage() {
                   {tokenStatus === "checking" ? "…" : "Vérifier"}
                 </button>
               </div>
-              {tokenStatus === "ok" && <p className="text-xs mt-1" style={{ color: "#39ff14" }}>✓ {tokenLogin ? `@${tokenLogin}` : "Connecté"}</p>}
               {tokenStatus === "error" && <p className="text-xs mt-1" style={{ color: "#ff4444" }}>{tokenError}</p>}
             </div>
 
-            {/* Gist ID */}
-            <div>
-              <p className="text-xs font-semibold mb-1.5" style={{ color: "#444" }}>Gist ID</p>
-              <input
-                type="text"
-                value={gistId}
-                onChange={(e) => setGistIdState(e.target.value)}
-                placeholder="Laisse vide → créé automatiquement"
-                className="w-full rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
-                style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
-              />
-              {gistId && (
-                <div className="mt-1.5 flex items-center gap-2">
-                  <p className="text-xs font-mono truncate" style={{ color: "#444" }}>{gistId}</p>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(gistId)}
-                    className="text-xs px-2 py-0.5 rounded-lg press-effect flex-shrink-0"
-                    style={{ background: "#1a1a1a", color: "#555", border: "1px solid #222" }}
-                  >Copier</button>
-                </div>
-              )}
-            </div>
-
-            {/* Sync buttons */}
-            <div className="space-y-2">
-              <button
-                onClick={handleSync}
-                disabled={syncing || !isConnected}
-                className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
-                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-              >
-                {syncing ? "…" : "⇄ Fusionner (bidirectionnel)"}
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={handlePush}
-                  disabled={syncing || !isConnected || !gistId}
-                  className="flex-1 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#111", border: "1px solid #222", color: "#555" }}
-                >
-                  {syncing ? "…" : "↑ Pousser vers cloud"}
-                </button>
-                <button
-                  onClick={handlePull}
-                  disabled={syncing || !isConnected || !gistId}
-                  className="flex-1 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#111", border: "1px solid #222", color: "#555" }}
-                >
-                  {syncing ? "…" : "↓ Tirer depuis cloud"}
-                </button>
-              </div>
-            </div>
+            {/* Sync button */}
+            <button
+              onClick={handleSync}
+              disabled={syncing || !isConnected}
+              className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+            >
+              {syncing ? "Synchronisation…" : "Synchroniser"}
+            </button>
             {syncMsg && <p className="text-xs text-center" style={{ color: "#39ff14" }}>{syncMsg}</p>}
             {syncError && <p className="text-xs text-center" style={{ color: "#ff4444" }}>{syncError}</p>}
 
