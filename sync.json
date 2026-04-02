@@ -1,0 +1,841 @@
+{
+  "exportedAt": "2026-04-02T07:29:12.784Z",
+  "cc_sessions": [
+    {
+      "id": "1774989322380-ox1ycw",
+      "type": "fitness",
+      "date": "2026-03-30T10:00:00.000Z",
+      "category": "upper",
+      "comment": "",
+      "exercises": [
+        {
+          "id": "1774989314753-q9odzu",
+          "name": "Développé couché haltères",
+          "sets": 3,
+          "reps": 8,
+          "weight": 20,
+          "comment": "-1 série. Charge maintenue."
+        },
+        {
+          "id": "1774989314753-mtswga",
+          "name": "Rowing assis machine",
+          "sets": 3,
+          "reps": 10,
+          "weight": 38,
+          "comment": "-1 série. Charge maintenue."
+        },
+        {
+          "id": "1774989314753-aooe5z",
+          "name": "Développé militaire",
+          "sets": 2,
+          "reps": 10,
+          "weight": 9,
+          "comment": "-1 série. Charge maintenue."
+        },
+        {
+          "id": "1774989314753-rhq2h3",
+          "name": "Tirage vertical",
+          "sets": 3,
+          "reps": 10,
+          "weight": 59,
+          "comment": "-1 série. Charge maintenue."
+        },
+        {
+          "id": "1774989314753-w8qcp1",
+          "name": "Rowing unilatéral",
+          "sets": 2,
+          "reps": 12,
+          "weight": 16,
+          "comment": "-1 série. Charge maintenue."
+        },
+        {
+          "id": "1774989314753-o9sqjv",
+          "name": "Curl marteau",
+          "sets": 2,
+          "reps": 12,
+          "weight": 7,
+          "comment": "-1 série."
+        },
+        {
+          "id": "1774989314753-h7bcdv",
+          "name": "Extension triceps",
+          "sets": 2,
+          "reps": 12,
+          "weight": 14,
+          "comment": "-1 série."
+        }
+      ]
+    },
+    {
+      "id": "1774964795587-yq4kxi",
+      "type": "run",
+      "date": "2026-03-29T08:37:12Z",
+      "distanceKm": 11.6669,
+      "durationSeconds": 3847,
+      "avgPaceSecPerKm": 329.73626241760877,
+      "avgHeartRate": 142.3,
+      "elevationGainM": 44,
+      "comment": "",
+      "stravaActivityId": 17897862940,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1774964795587-lxo3oo",
+      "type": "run",
+      "date": "2026-03-25T06:30:40Z",
+      "distanceKm": 10.3435,
+      "durationSeconds": 3305,
+      "avgPaceSecPerKm": 319.52433895683276,
+      "avgHeartRate": 151.4,
+      "elevationGainM": 108,
+      "comment": "",
+      "stravaActivityId": 17850013834,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1774964795587-pya6g4",
+      "type": "run",
+      "date": "2026-03-22T08:17:59Z",
+      "distanceKm": 11.008,
+      "durationSeconds": 3690,
+      "avgPaceSecPerKm": 335.21075581395354,
+      "avgHeartRate": 142.7,
+      "elevationGainM": 36,
+      "comment": "",
+      "stravaActivityId": 17811969872,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1774964795586-5j0n4d",
+      "type": "fitness",
+      "date": "2026-03-19T11:24:57Z",
+      "category": "upper",
+      "exercises": [],
+      "comment": "",
+      "stravaActivityId": 17778329388,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1774964795586-9rmeoy",
+      "type": "run",
+      "date": "2026-03-18T11:13:39Z",
+      "distanceKm": 8.6416,
+      "durationSeconds": 3009,
+      "avgPaceSecPerKm": 348.1994075171264,
+      "avgHeartRate": 147.8,
+      "elevationGainM": 28,
+      "comment": "",
+      "stravaActivityId": 17765786463,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332847-r579or",
+      "type": "run",
+      "date": "2025-09-05T10:17:16Z",
+      "distanceKm": 7.5202,
+      "durationSeconds": 2333,
+      "avgPaceSecPerKm": 310.2311108747108,
+      "avgHeartRate": 160.6,
+      "elevationGainM": 19,
+      "comment": "",
+      "stravaActivityId": 15704214347,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332847-nztwfo",
+      "type": "run",
+      "date": "2025-10-09T10:05:07Z",
+      "distanceKm": 5.462899999999999,
+      "durationSeconds": 1810,
+      "avgPaceSecPerKm": 331.3258525691483,
+      "avgHeartRate": 150.6,
+      "elevationGainM": 58,
+      "comment": "",
+      "stravaActivityId": 16083760465,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-vfrtqg",
+      "type": "run",
+      "date": "2025-11-10T11:20:42Z",
+      "distanceKm": 5.0121,
+      "durationSeconds": 1667,
+      "avgPaceSecPerKm": 332.59511981005966,
+      "avgHeartRate": 150.1,
+      "elevationGainM": 13,
+      "comment": "",
+      "stravaActivityId": 16413057809,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-0tumo5",
+      "type": "run",
+      "date": "2026-01-04T09:23:18Z",
+      "distanceKm": 5.2863,
+      "durationSeconds": 1816,
+      "avgPaceSecPerKm": 343.5295007850482,
+      "elevationGainM": 17.7,
+      "comment": "",
+      "stravaActivityId": 16931627284,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-08pr5r",
+      "type": "run",
+      "date": "2026-01-08T11:37:17Z",
+      "distanceKm": 5.4977,
+      "durationSeconds": 1815,
+      "avgPaceSecPerKm": 330.1380577332339,
+      "avgHeartRate": 162.3,
+      "elevationGainM": 28,
+      "comment": "",
+      "stravaActivityId": 16978354615,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-ge1kzl",
+      "type": "run",
+      "date": "2026-01-12T11:10:48Z",
+      "distanceKm": 6.3662,
+      "durationSeconds": 2108,
+      "avgPaceSecPerKm": 331.1237472903773,
+      "avgHeartRate": 156.8,
+      "elevationGainM": 18,
+      "comment": "",
+      "stravaActivityId": 17021590917,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-jaom0z",
+      "type": "run",
+      "date": "2026-01-18T08:35:55Z",
+      "distanceKm": 7.024100000000001,
+      "durationSeconds": 2404,
+      "avgPaceSecPerKm": 342.2502527014137,
+      "avgHeartRate": 142.2,
+      "elevationGainM": 28,
+      "comment": "",
+      "stravaActivityId": 17089227710,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-0d9ndu",
+      "type": "run",
+      "date": "2026-02-04T11:15:26Z",
+      "distanceKm": 7.4158,
+      "durationSeconds": 2402,
+      "avgPaceSecPerKm": 323.9030178807411,
+      "avgHeartRate": 162.4,
+      "elevationGainM": 23,
+      "comment": "",
+      "stravaActivityId": 17282652648,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-gtabrp",
+      "type": "run",
+      "date": "2026-02-08T08:04:25Z",
+      "distanceKm": 9.0431,
+      "durationSeconds": 3005,
+      "avgPaceSecPerKm": 332.2975528303347,
+      "avgHeartRate": 153.2,
+      "elevationGainM": 8,
+      "comment": "",
+      "stravaActivityId": 17324999584,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-y4za4r",
+      "type": "run",
+      "date": "2026-02-10T07:28:20Z",
+      "distanceKm": 6.3255,
+      "durationSeconds": 2102,
+      "avgPaceSecPerKm": 332.3057465812979,
+      "avgHeartRate": 152.5,
+      "elevationGainM": 43,
+      "comment": "",
+      "stravaActivityId": 17347684868,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332846-rqa9rk",
+      "type": "run",
+      "date": "2026-02-19T11:25:26Z",
+      "distanceKm": 3.6979,
+      "durationSeconds": 1806,
+      "avgPaceSecPerKm": 488.3852997647313,
+      "avgHeartRate": 153.3,
+      "elevationGainM": 0,
+      "comment": "",
+      "stravaActivityId": 17449882279,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-wsqs7f",
+      "type": "run",
+      "date": "2026-02-21T08:38:26Z",
+      "distanceKm": 6.0686,
+      "durationSeconds": 2007,
+      "avgPaceSecPerKm": 330.71878192663877,
+      "avgHeartRate": 147,
+      "elevationGainM": 17,
+      "comment": "",
+      "stravaActivityId": 17468735028,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-d7dg0d",
+      "type": "run",
+      "date": "2026-02-25T11:09:09Z",
+      "distanceKm": 7.3166,
+      "durationSeconds": 2394,
+      "avgPaceSecPerKm": 327.2011590082825,
+      "avgHeartRate": 154.1,
+      "elevationGainM": 21,
+      "comment": "",
+      "stravaActivityId": 17516767064,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-lq9ozp",
+      "type": "run",
+      "date": "2026-02-27T11:18:50Z",
+      "distanceKm": 8.2754,
+      "durationSeconds": 2713,
+      "avgPaceSecPerKm": 327.83913768518744,
+      "avgHeartRate": 155.3,
+      "elevationGainM": 25,
+      "comment": "",
+      "stravaActivityId": 17540337913,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-7y9q94",
+      "type": "run",
+      "date": "2026-03-02T11:05:41Z",
+      "distanceKm": 7.2986,
+      "durationSeconds": 2306,
+      "avgPaceSecPerKm": 315.9510043021949,
+      "avgHeartRate": 155.1,
+      "elevationGainM": 20,
+      "comment": "",
+      "stravaActivityId": 17574568123,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-laz1i1",
+      "type": "run",
+      "date": "2026-03-04T11:09:25Z",
+      "distanceKm": 6.9031,
+      "durationSeconds": 2449,
+      "avgPaceSecPerKm": 354.7681476438122,
+      "avgHeartRate": 143.7,
+      "elevationGainM": 10,
+      "comment": "",
+      "stravaActivityId": 17599384310,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-jnsmra",
+      "type": "run",
+      "date": "2026-03-08T08:22:05Z",
+      "distanceKm": 8.0115,
+      "durationSeconds": 2806,
+      "avgPaceSecPerKm": 350.24652062659925,
+      "avgHeartRate": 143.4,
+      "elevationGainM": 28,
+      "comment": "",
+      "stravaActivityId": 17644431672,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-a6ev5w",
+      "type": "fitness",
+      "date": "2026-03-09T11:46:11Z",
+      "category": "upper",
+      "exercises": [],
+      "comment": "",
+      "stravaActivityId": 17659145487,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-yoj7gl",
+      "type": "run",
+      "date": "2026-03-10T11:07:19Z",
+      "distanceKm": 7.6747,
+      "durationSeconds": 2702,
+      "avgPaceSecPerKm": 352.06587879656536,
+      "avgHeartRate": 144.7,
+      "elevationGainM": 25,
+      "comment": "",
+      "stravaActivityId": 17671211961,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332845-regrja",
+      "type": "run",
+      "date": "2026-03-12T11:11:43Z",
+      "distanceKm": 7.843100000000001,
+      "durationSeconds": 2698,
+      "avgPaceSecPerKm": 343.9966339840114,
+      "avgHeartRate": 142.8,
+      "elevationGainM": 20,
+      "comment": "",
+      "stravaActivityId": 17695850726,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332844-rws1x5",
+      "type": "fitness",
+      "date": "2026-03-13T11:13:00Z",
+      "category": "upper",
+      "exercises": [],
+      "comment": "",
+      "stravaActivityId": 17707224707,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332844-c0htmm",
+      "type": "run",
+      "date": "2026-03-15T08:56:06Z",
+      "distanceKm": 8.0185,
+      "durationSeconds": 2768,
+      "avgPaceSecPerKm": 345.20172102014095,
+      "avgHeartRate": 139.8,
+      "elevationGainM": 26,
+      "comment": "",
+      "stravaActivityId": 17727812349,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332844-0qhw80",
+      "type": "fitness",
+      "date": "2026-03-16T11:12:00Z",
+      "category": "upper",
+      "exercises": [],
+      "comment": "",
+      "stravaActivityId": 17741166298,
+      "importedFromStrava": true
+    },
+    {
+      "id": "1775051332844-h22afs",
+      "type": "run",
+      "date": "2026-04-01T10:08:39Z",
+      "distanceKm": 9.011299999999999,
+      "durationSeconds": 3025,
+      "avgPaceSecPerKm": 335.6896341260418,
+      "avgHeartRate": 145.1,
+      "elevationGainM": 31,
+      "comment": "",
+      "stravaActivityId": 17935974248,
+      "importedFromStrava": true
+    }
+  ],
+  "cc_coach_workouts": [
+    {
+      "id": "coach-1774989225430-9",
+      "type": "fitness",
+      "date": "2026-04-17",
+      "category": "lower",
+      "label": "BAS DU CORPS — Semaine 2",
+      "coachNote": "Semaine 2 de charge. Progressions sur squat et RDL. Fatigue de fin de semaine à surveiller — si RPE > 8 sur le squat, tu ne montes pas.",
+      "exercises": [
+        {
+          "name": "Squat barre",
+          "sets": 4,
+          "reps": 6,
+          "weight": 102.5,
+          "restSeconds": 150,
+          "coachNote": "+2.5 kg. Descente 4s, genou dans l'axe."
+        },
+        {
+          "name": "Romanian deadlift",
+          "sets": 4,
+          "reps": 10,
+          "weight": 75,
+          "restSeconds": 90,
+          "coachNote": "+3 kg. Étirement ischio prioritaire, pas de rondeur du dos."
+        },
+        {
+          "name": "Hip thrust",
+          "sets": 3,
+          "reps": 12,
+          "weight": 85,
+          "restSeconds": 90,
+          "coachNote": "+3 kg. Contraction 1s en haut."
+        },
+        {
+          "name": "Fentes marchées",
+          "sets": 3,
+          "reps": 12,
+          "weight": 22,
+          "restSeconds": 90,
+          "coachNote": "+2 kg."
+        },
+        {
+          "name": "Leg curl",
+          "sets": 3,
+          "reps": 12,
+          "weight": 42,
+          "restSeconds": 60,
+          "coachNote": "+2 kg. Descente lente 3s."
+        },
+        {
+          "name": "Mollets debout",
+          "sets": 4,
+          "reps": 15,
+          "weight": 64,
+          "restSeconds": 45,
+          "coachNote": "+2 kg."
+        }
+      ]
+    },
+    {
+      "id": "coach-1774989225430-7",
+      "type": "fitness",
+      "date": "2026-04-13",
+      "category": "upper",
+      "label": "HAUT DU CORPS — Semaine 2",
+      "coachNote": "Semaine 2 de charge. Progression charge sur développé couché et militaire si S1 bien passé. Volume dos maintenu élevé. Tempo 3-1-1. Finisher abdos obligatoire.",
+      "exercises": [
+        {
+          "name": "Développé couché haltères",
+          "sets": 4,
+          "reps": 8,
+          "weight": 18,
+          "restSeconds": 120,
+          "coachNote": "Consolider 18 kg — 4 séries propres avant de monter."
+        },
+        {
+          "name": "Rowing assis machine",
+          "sets": 4,
+          "reps": 10,
+          "weight": 36,
+          "restSeconds": 90,
+          "coachNote": "+2 kg. Dos fixe, pas de balancier."
+        },
+        {
+          "name": "Développé militaire",
+          "sets": 3,
+          "reps": 10,
+          "weight": 8,
+          "restSeconds": 90,
+          "coachNote": "+2 reps vs S1. Gainage abdo tout le long."
+        },
+        {
+          "name": "Tirage vertical",
+          "sets": 4,
+          "reps": 10,
+          "weight": 57,
+          "restSeconds": 90,
+          "coachNote": "+2 kg. Initier avec les omoplates, barre vers le haut de la poitrine."
+        },
+        {
+          "name": "Rowing unilatéral",
+          "sets": 3,
+          "reps": 12,
+          "weight": 14,
+          "restSeconds": 75,
+          "coachNote": "+2 reps. Focus côté gauche."
+        },
+        {
+          "name": "Curl marteau",
+          "sets": 3,
+          "reps": 12,
+          "weight": 7,
+          "restSeconds": 60,
+          "coachNote": "+1 kg."
+        },
+        {
+          "name": "Extension triceps",
+          "sets": 3,
+          "reps": 12,
+          "weight": 12.5,
+          "restSeconds": 60
+        }
+      ]
+    },
+    {
+      "id": "coach-1774989225430-5",
+      "type": "fitness",
+      "date": "2026-04-10",
+      "category": "lower",
+      "label": "BAS DU CORPS — Semaine 1",
+      "coachNote": "Séance décalée au vendredi — jambes plus fraîches. Progressions légères sur RDL et hip thrust. Excentrique prioritaire.",
+      "exercises": [
+        {
+          "name": "Squat barre",
+          "sets": 4,
+          "reps": 6,
+          "weight": 100,
+          "restSeconds": 150,
+          "coachNote": "Descente 4s, dos droit."
+        },
+        {
+          "name": "Romanian deadlift",
+          "sets": 4,
+          "reps": 10,
+          "weight": 72,
+          "restSeconds": 90,
+          "coachNote": "+2 kg. Étirement ischio à chaque rep."
+        },
+        {
+          "name": "Hip thrust",
+          "sets": 3,
+          "reps": 12,
+          "weight": 82,
+          "restSeconds": 90,
+          "coachNote": "+2 kg. Contraction fessiers 1s en haut."
+        },
+        {
+          "name": "Fentes marchées",
+          "sets": 3,
+          "reps": 12,
+          "weight": 20,
+          "restSeconds": 90
+        },
+        {
+          "name": "Leg curl",
+          "sets": 3,
+          "reps": 12,
+          "weight": 40,
+          "restSeconds": 60,
+          "coachNote": "Descente lente 3s."
+        },
+        {
+          "name": "Mollets debout",
+          "sets": 4,
+          "reps": 15,
+          "weight": 62,
+          "restSeconds": 45,
+          "coachNote": "+2 kg."
+        }
+      ]
+    },
+    {
+      "id": "coach-1774989225430-3",
+      "type": "fitness",
+      "date": "2026-04-07",
+      "category": "upper",
+      "label": "HAUT DU CORPS — Semaine 1",
+      "coachNote": "Séance décalée au mardi après le 19 km Arcachon. Énergie probablement réduite — ne cherche pas à PR. Tempo 3-1-1. Finisher abdos en fin de séance.",
+      "exercises": [
+        {
+          "name": "Développé couché haltères",
+          "sets": 4,
+          "reps": 8,
+          "weight": 18,
+          "restSeconds": 120,
+          "coachNote": "Progression depuis 16 kg. Coudes à 45°, descente 3s."
+        },
+        {
+          "name": "Rowing assis machine",
+          "sets": 4,
+          "reps": 10,
+          "weight": 34,
+          "restSeconds": 90,
+          "coachNote": "Consolider le PR. Dos fixe, tirer vers le nombril."
+        },
+        {
+          "name": "Développé militaire",
+          "sets": 3,
+          "reps": 8,
+          "weight": 8,
+          "restSeconds": 90,
+          "coachNote": "Rebuild. Gainage abdo, menton rentré, barre dans le prolongement des oreilles."
+        },
+        {
+          "name": "Tirage vertical",
+          "sets": 4,
+          "reps": 10,
+          "weight": 55,
+          "restSeconds": 90,
+          "coachNote": "Initier avec les omoplates. Volume dos augmenté vs semaine précédente."
+        },
+        {
+          "name": "Rowing unilatéral",
+          "sets": 3,
+          "reps": 10,
+          "weight": 14,
+          "restSeconds": 75,
+          "coachNote": "Focus côté gauche. Hanche et épaule parallèles au sol."
+        },
+        {
+          "name": "Curl marteau",
+          "sets": 3,
+          "reps": 12,
+          "weight": 6,
+          "restSeconds": 60
+        },
+        {
+          "name": "Extension triceps",
+          "sets": 3,
+          "reps": 12,
+          "weight": 12.5,
+          "restSeconds": 60
+        }
+      ]
+    },
+    {
+      "id": "coach-1774989225430-1",
+      "type": "fitness",
+      "date": "2026-04-03",
+      "category": "lower",
+      "label": "BAS DU CORPS — Semaine 1",
+      "coachNote": "Focus tempo excentrique sur le squat. Descente lente, charge modérée. Règle des 10% : ne jamais charger trop lourd après un run.",
+      "exercises": [
+        {
+          "name": "Squat barre",
+          "sets": 4,
+          "reps": 6,
+          "weight": 100,
+          "restSeconds": 150,
+          "coachNote": "Descente 4s, dos droit, genou dans l'axe du 2e orteil."
+        },
+        {
+          "name": "Romanian deadlift",
+          "sets": 4,
+          "reps": 10,
+          "weight": 70,
+          "restSeconds": 90,
+          "coachNote": "Genoux quasi tendus, étirement ischio ressenti à chaque rep."
+        },
+        {
+          "name": "Hip thrust",
+          "sets": 3,
+          "reps": 12,
+          "weight": 80,
+          "restSeconds": 90,
+          "coachNote": "Contraction fessiers 1s en haut, colonne neutre."
+        },
+        {
+          "name": "Fentes marchées",
+          "sets": 3,
+          "reps": 12,
+          "weight": 20,
+          "restSeconds": 90,
+          "coachNote": "Genou arrière proche du sol."
+        },
+        {
+          "name": "Leg curl",
+          "sets": 3,
+          "reps": 12,
+          "weight": 40,
+          "restSeconds": 60,
+          "coachNote": "Descente lente 3s, bassin collé au banc."
+        },
+        {
+          "name": "Mollets debout",
+          "sets": 4,
+          "reps": 15,
+          "weight": 60,
+          "restSeconds": 45
+        }
+      ]
+    }
+  ],
+  "cc_coach_runs": [
+    {
+      "id": "coach-run-1774989225430-16",
+      "type": "run",
+      "date": "2026-04-29",
+      "label": "RUN Z2 — Mercredi",
+      "coachNote": "Semaine de décharge — 7 km Z2 seulement. Allure très confortable, pas d'effort. C'est une sortie de jambes, pas de perf.",
+      "distanceKm": 7,
+      "pace": "6:00",
+      "targetHR": "125-140",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-14",
+      "type": "run",
+      "date": "2026-04-26",
+      "label": "LONG RUN — Dimanche",
+      "coachNote": "14 km Z2. Dernier long run avant la semaine de décharge. Allure confortable. Si tu te sens bien après le km 10, tu peux légèrement accélérer — mais FC reste sous 148.",
+      "distanceKm": 14,
+      "pace": "5:50",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-12",
+      "type": "run",
+      "date": "2026-04-22",
+      "label": "RUN Z2 — Mercredi",
+      "coachNote": "10 km Z2. Volume en hausse progressive. Allure régulière, FC < 148. Si ça monte, tu marches 30s sans hésiter.",
+      "distanceKm": 10,
+      "pace": "5:50",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-10",
+      "type": "run",
+      "date": "2026-04-19",
+      "label": "LONG RUN — Dimanche",
+      "coachNote": "13 km Z2. Volume en progression (+1 km). Règle des 10% respectée. Allure confortable, pas d'accélération finale.",
+      "distanceKm": 13,
+      "pace": "5:50",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-8",
+      "type": "run",
+      "date": "2026-04-15",
+      "label": "RUN Z2 — Mercredi",
+      "coachNote": "9 km Z2 standard. Allure régulière, ne pas finir plus vite que tu as commencé. FC cible 130-145.",
+      "distanceKm": 9,
+      "pace": "5:50",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-6",
+      "type": "run",
+      "date": "2026-04-12",
+      "label": "LONG RUN — Dimanche",
+      "coachNote": "Retour au plan normal. 12 km Z2. Allure confortable, si tu pars trop vite tu freines. Ne répète pas la sortie Malte.",
+      "distanceKm": 12,
+      "pace": "5:50",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-4",
+      "type": "run",
+      "date": "2026-04-09",
+      "label": "RUN Z2 — Jeudi",
+      "coachNote": "Sortie courte de récupération après le 19 km + séance upper. Allure très confortable. Si FC > 148, tu ralentis sans négocier.",
+      "distanceKm": 7,
+      "pace": "6:10",
+      "targetHR": "125-145",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-2",
+      "type": "run",
+      "date": "2026-04-06",
+      "label": "LONG RUN — Lundi Arcachon",
+      "coachNote": "19 km structuré : km 1-6 à 6:00/km, km 7-14 à 5:45/km, km 15-19 à FC libre Z2. Petit-déj obligatoire 1h30 avant. Gel ou dattes à partir du km 12. Ne transforme pas la fin en tempo.",
+      "distanceKm": 19,
+      "pace": "5:52",
+      "targetHR": "130-148",
+      "targetZone": "Z2"
+    },
+    {
+      "id": "coach-run-1774989225430-0",
+      "type": "run",
+      "date": "2026-04-02",
+      "label": "RUN Z2 — Mercredi",
+      "coachNote": "9 km Z2 comme prévu. Allure tranquille, ne pas partir trop vite. FC cible 130-145, si ça monte au-delà ralentis.",
+      "distanceKm": 9,
+      "pace": "5:55",
+      "targetHR": "130-145",
+      "targetZone": "Z2"
+    }
+  ],
+  "cc_cancelled": [],
+  "cc_rescheduled": [],
+  "cc_ex_notes": {}
+}
