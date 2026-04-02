@@ -5,9 +5,9 @@ import PageHeader from "@/components/PageHeader";
 import {
   getGitHubToken, setGitHubToken,
   getLastSync,
-  verifyToken, manualSync,
+  verifyToken, manualSync, autoSyncPush,
 } from "@/lib/sync";
-import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun } from "@/lib/coachPlan";
+import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun, clearFutureCoachPlans } from "@/lib/coachPlan";
 import { buildExportData, downloadExport } from "@/lib/export";
 import { getCancelledDays, getStravaTokens, addSession } from "@/lib/storage";
 import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } from "@/lib/strava";
@@ -118,7 +118,9 @@ export default function SettingsPage() {
         const text = ev.target?.result as string;
         const plans = parseCoachWorkoutJSON(text);
         if (plans.length === 0) { setImportError("Aucune séance trouvée dans le JSON."); return; }
+        clearFutureCoachPlans();
         plans.forEach((p) => { if (p.type === "run") addCoachRun(p); else addCoachWorkout(p); });
+        autoSyncPush();
         setImportSuccess(`${plans.length} séance${plans.length > 1 ? "s" : ""} importée${plans.length > 1 ? "s" : ""} ✓`);
         setTimeout(() => setImportSuccess(""), 4000);
       } catch {
