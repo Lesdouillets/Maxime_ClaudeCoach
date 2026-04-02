@@ -61,12 +61,14 @@ export default function DayPage() {
     const workouts = getCoachWorkouts();
     const runs = getCoachRuns();
     const rescheduled = getRescheduledDays();
+    // Check if this date was rescheduled AWAY — if so, show nothing here
+    const rescheduledAway = rescheduled.some((r) => r.from === d);
     // Check if a plan was rescheduled TO this date from another date
     const rescheduledHere = rescheduled.find((r) => r.to === d);
     const reschFromWorkout = rescheduledHere ? workouts.find((w) => w.date === rescheduledHere.from) ?? null : null;
     const reschFromRun = rescheduledHere ? runs.find((r) => r.date === rescheduledHere.from) ?? null : null;
-    setCoachWorkout(workouts.find((w) => w.date === d) ?? reschFromWorkout);
-    setCoachRun(runs.find((r) => r.date === d) ?? reschFromRun);
+    setCoachWorkout(rescheduledAway ? null : (workouts.find((w) => w.date === d) ?? reschFromWorkout));
+    setCoachRun(rescheduledAway ? null : (runs.find((r) => r.date === d) ?? reschFromRun));
     const cancelled = getCancelledDays();
     setCancelledDay(cancelled.find((c) => c.date === d) ?? null);
     setReschedule(rescheduled.find((r) => r.from === d) ?? null);
