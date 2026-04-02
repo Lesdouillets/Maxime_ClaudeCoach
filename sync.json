@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-04-02T08:03:27.055Z",
+  "exportedAt": "2026-04-02T08:04:30.369Z",
   "cc_sessions": [
     {
       "id": "1774989322380-ox1ycw",
@@ -836,6 +836,11 @@
     }
   ],
   "cc_cancelled_days": [],
-  "cc_rescheduled_days": [],
+  "cc_rescheduled_days": [
+    {
+      "from": "2026-04-02",
+      "to": "2026-04-01"
+    }
+  ],
   "cc_ex_notes": {}
 }
