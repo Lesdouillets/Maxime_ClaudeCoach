@@ -21,7 +21,10 @@ function formatWeekLabel(days: ReturnType<typeof getWeekDays>): string {
 
 export default function PlanPage() {
   const [mounted, setMounted] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekOffset, setWeekOffset] = useState(() => {
+    try { return parseInt(sessionStorage.getItem("plan_week_offset") ?? "0", 10) || 0; }
+    catch { return 0; }
+  });
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [cancelledDays, setCancelledDays] = useState<CancelledDayType[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
@@ -49,7 +52,7 @@ export default function PlanPage() {
       {/* Week navigation */}
       <div className="px-5 mb-4 flex items-center justify-between">
         <button
-          onClick={() => setWeekOffset(o => o - 1)}
+          onClick={() => setWeekOffset(o => { const n = o - 1; try { sessionStorage.setItem("plan_week_offset", String(n)); } catch {} return n; })}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs press-effect"
           style={{ background: "#111", border: "1px solid #222", color: "#555" }}
         >
@@ -60,7 +63,7 @@ export default function PlanPage() {
         </button>
         {weekOffset !== 0 && (
           <button
-            onClick={() => setWeekOffset(0)}
+            onClick={() => { try { sessionStorage.setItem("plan_week_offset", "0"); } catch {} setWeekOffset(0); }}
             className="text-xs press-effect px-2 py-1 rounded-lg"
             style={{ color: "#39ff14", background: "rgba(57,255,20,0.08)", border: "1px solid rgba(57,255,20,0.2)" }}
           >
@@ -68,7 +71,7 @@ export default function PlanPage() {
           </button>
         )}
         <button
-          onClick={() => setWeekOffset(o => o + 1)}
+          onClick={() => setWeekOffset(o => { const n = o + 1; try { sessionStorage.setItem("plan_week_offset", String(n)); } catch {} return n; })}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs press-effect"
           style={{ background: "#111", border: "1px solid #222", color: "#555" }}
         >
