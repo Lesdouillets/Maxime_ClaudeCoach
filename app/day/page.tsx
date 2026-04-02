@@ -8,7 +8,7 @@ import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession, deleteSession,
 } from "@/lib/storage";
-import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
+import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import type { WorkoutSession, FitnessSession, CancelledDay as CancelledDayType } from "@/lib/types";
@@ -51,6 +51,7 @@ export default function DayPage() {
   // Action states
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDateState] = useState("");
+  const [rescheduleTarget, setRescheduleTarget] = useState<"run" | "workout" | null>(null);
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
@@ -155,8 +156,19 @@ export default function DayPage() {
   const handleUncancel = () => { uncancelDay(date); load(date); autoSyncPush(); };
   const handleReschedule = () => {
     if (!rescheduleDate) return;
-    rescheduleDay(date, rescheduleDate);
-    setShowReschedule(false); setRescheduleDateState(""); load(date);
+    if (rescheduleTarget === "run" && coachRun) {
+      // Move only the run to the new date
+      deleteCoachRun(coachRun.id);
+      addCoachRun({ ...coachRun, date: rescheduleDate });
+    } else if (rescheduleTarget === "workout" && coachWorkout) {
+      // Move only the workout to the new date
+      deleteCoachWorkout(coachWorkout.id);
+      addCoachWorkout({ ...coachWorkout, date: rescheduleDate });
+    } else {
+      // Single plan day: use overlay tracking
+      rescheduleDay(date, rescheduleDate);
+    }
+    setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); load(date);
     autoSyncPush();
   };
   const handleUnreschedule = () => { unrescheduleDay(date); load(date); autoSyncPush(); };
@@ -542,19 +554,43 @@ export default function DayPage() {
         {canAct && (
           <div className="space-y-2">
             {showReschedule ? (
-              <div className="flex gap-2">
-                <input type="date" value={rescheduleDate}
-                  onChange={(e) => setRescheduleDateState(e.target.value)}
-                  min={toLocalDateStr(new Date())}
-                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
-                />
-                <button onClick={handleReschedule} disabled={!rescheduleDate}
-                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
-                <button onClick={() => setShowReschedule(false)}
-                  className="px-3 py-2.5 rounded-xl text-xs press-effect"
-                  style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+              <div className="space-y-2">
+                {/* Double day: pick which plan to reschedule */}
+                {hasDouble && !rescheduleTarget && (
+                  <div className="flex gap-2">
+                    <button onClick={() => setRescheduleTarget("run")}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold press-effect"
+                      style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}>
+                      Décaler le Run
+                    </button>
+                    <button onClick={() => setRescheduleTarget("workout")}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold press-effect"
+                      style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}>
+                      Décaler la Muscu
+                    </button>
+                    <button onClick={() => { setShowReschedule(false); setRescheduleTarget(null); }}
+                      className="px-3 py-2 rounded-xl text-xs press-effect"
+                      style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+                  </div>
+                )}
+                {/* Date picker — shown once target is known (or single plan day) */}
+                {(!hasDouble || rescheduleTarget) && (
+                  <div className="flex gap-2">
+                    <input type="date" value={rescheduleDate}
+                      onChange={(e) => setRescheduleDateState(e.target.value)}
+                      min={toLocalDateStr(new Date())}
+                      className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                      style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                      autoFocus
+                    />
+                    <button onClick={handleReschedule} disabled={!rescheduleDate}
+                      className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                      style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                    <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
+                      className="px-3 py-2.5 rounded-xl text-xs press-effect"
+                      style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+                  </div>
+                )}
               </div>
             ) : (
               <button onClick={() => { setShowReschedule(true); setShowCancel(false); }}
