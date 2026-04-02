@@ -1,15 +1,12 @@
-// GitHub repo-based sync — source of truth is sync.json on the `data` branch
+// GitHub Gist-based sync — no commits, auto-discovery by description
 
 const TOKEN_KEY = "cc_gh_token";
+const GIST_ID_KEY = "cc_gist_id"; // auto-cached, never shown to user
 const LAST_SYNC_KEY = "cc_last_sync";
-const CACHED_SHA_KEY = "cc_sync_sha";
+const GIST_DESCRIPTION = "claude-coach-data";
+const GIST_FILENAME = "claude-coach-data.json";
 
-const REPO_OWNER = "lesdouillets";
-const REPO_NAME = "maxime_claudecoach";
-const DATA_BRANCH = "data";
-const DATA_FILE = "sync.json";
-
-// ─── Token storage ─────────────────────────────────────────────────────────
+// ─── Token / Gist ID storage ───────────────────────────────────────────────
 export function getGitHubToken(): string { return localStorage.getItem(TOKEN_KEY) ?? ""; }
 export function setGitHubToken(t: string) {
   if (t) localStorage.setItem(TOKEN_KEY, t);
@@ -94,63 +91,74 @@ export async function verifyToken(token: string): Promise<{ ok: boolean; login?:
   }
 }
 
-/** Ensure the `data` branch exists, creating it from main HEAD if needed */
-async function ensureDataBranch(token: string): Promise<void> {
-  const branchRes = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/ref/heads/${DATA_BRANCH}`,
-    { headers: ghHeaders(token) }
-  );
-  if (branchRes.ok) return; // Branch already exists
+/**
+ * Find or create the sync gist. Returns the gist ID.
+ * Searches existing gists for one with description = GIST_DESCRIPTION.
+ * Creates a new private gist if none found.
+ */
+async function resolveGistId(token: string): Promise<string> {
+  // Check local cache first
+  const cached = localStorage.getItem(GIST_ID_KEY);
+  if (cached) return cached;
 
-  // Get main HEAD SHA
-  const mainRes = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/ref/heads/main`,
-    { headers: ghHeaders(token) }
-  );
-  if (!mainRes.ok) throw new Error("Impossible de récupérer la branche main.");
-  const main = await mainRes.json() as { object: { sha: string } };
-
-  // Create data branch
-  const createRes = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs`,
-    {
-      method: "POST",
+  // Search user's gists for existing sync gist (paginated, check first 2 pages)
+  for (let page = 1; page <= 2; page++) {
+    const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
       headers: ghHeaders(token),
-      body: JSON.stringify({ ref: `refs/heads/${DATA_BRANCH}`, sha: main.object.sha }),
+    });
+    if (!res.ok) break;
+    const gists = await res.json() as { id: string; description: string }[];
+    if (gists.length === 0) break;
+    const found = gists.find((g) => g.description === GIST_DESCRIPTION);
+    if (found) {
+      localStorage.setItem(GIST_ID_KEY, found.id);
+      return found.id;
     }
-  );
-  if (!createRes.ok) throw new Error("Impossible de créer la branche data.");
+  }
+
+  // Not found → create new private gist
+  const createRes = await fetch("https://api.github.com/gists", {
+    method: "POST",
+    headers: ghHeaders(token),
+    body: JSON.stringify({
+      description: GIST_DESCRIPTION,
+      public: false,
+      files: { [GIST_FILENAME]: { content: JSON.stringify(readLocal(), null, 2) } },
+    }),
+  });
+  if (!createRes.ok) throw new Error(`Impossible de créer le Gist: ${createRes.status}`);
+  const gist = await createRes.json() as { id: string };
+  localStorage.setItem(GIST_ID_KEY, gist.id);
+  return gist.id;
 }
 
-/** Fetch sync.json from the data branch. Returns null if not found yet. */
-async function fetchRepoFile(token: string): Promise<{ data: SyncPayload | null; sha: string | null }> {
-  const res = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}?ref=${DATA_BRANCH}`,
-    { headers: ghHeaders(token) }
-  );
-  if (res.status === 404) return { data: null, sha: null };
-  if (!res.ok) throw new Error(`Erreur lecture fichier: ${res.status}`);
-  const file = await res.json() as { content: string; sha: string };
-  const content = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ""))));
-  return { data: JSON.parse(content) as SyncPayload, sha: file.sha };
+/** Fetch gist content */
+async function fetchGist(token: string, gistId: string): Promise<SyncPayload | null> {
+  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    headers: ghHeaders(token),
+  });
+  if (res.status === 404) {
+    // Gist deleted externally — clear cache so next call recreates it
+    localStorage.removeItem(GIST_ID_KEY);
+    return null;
+  }
+  if (!res.ok) throw new Error(`Erreur lecture Gist: ${res.status}`);
+  const gist = await res.json() as { files: Record<string, { content: string }> };
+  const file = gist.files?.[GIST_FILENAME];
+  if (!file) return null;
+  return JSON.parse(file.content) as SyncPayload;
 }
 
-/** Write data to sync.json on the data branch. Pass sha to update, null to create. Returns new SHA. */
-async function pushRepoFile(token: string, data: SyncPayload, sha: string | null): Promise<string> {
-  const body: Record<string, unknown> = {
-    message: `sync ${data.exportedAt}`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-    branch: DATA_BRANCH,
-  };
-  if (sha) body.sha = sha;
-
-  const res = await fetch(
-    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`,
-    { method: "PUT", headers: ghHeaders(token), body: JSON.stringify(body) }
-  );
-  if (!res.ok) throw new Error(`Erreur écriture fichier: ${res.status}`);
-  const result = await res.json() as { content: { sha: string } };
-  return result.content.sha;
+/** Update gist content */
+async function updateGist(token: string, gistId: string, data: SyncPayload): Promise<void> {
+  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    method: "PATCH",
+    headers: ghHeaders(token),
+    body: JSON.stringify({
+      files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
+    }),
+  });
+  if (!res.ok) throw new Error(`Erreur écriture Gist: ${res.status}`);
 }
 
 // ─── Public sync API ─────────────────────────────────────────────────────────
@@ -168,42 +176,34 @@ export async function autoSyncPull(): Promise<void> {
   const token = getGitHubToken();
   if (!token) return;
   try {
-    const { data, sha } = await fetchRepoFile(token);
-    if (!data) return; // No remote file yet, nothing to pull
-    writeLocal(data);
-    if (sha) localStorage.setItem(CACHED_SHA_KEY, sha);
+    const gistId = await resolveGistId(token);
+    const remote = await fetchGist(token, gistId);
+    if (!remote) return;
+    writeLocal(remote);
   } catch { /* silent */ }
 }
 
 /**
  * Silent auto-push after any mutation.
- * Fetches current SHA to avoid conflicts, then writes local state to repo.
+ * Writes local state to gist immediately.
  */
 export async function autoSyncPush(): Promise<void> {
   const token = getGitHubToken();
   if (!token) return;
   try {
-    await ensureDataBranch(token);
-    // Always fetch latest SHA before pushing to avoid conflicts
-    const { sha } = await fetchRepoFile(token);
-    const local = readLocal();
-    const newSha = await pushRepoFile(token, local, sha);
-    localStorage.setItem(CACHED_SHA_KEY, newSha);
+    const gistId = await resolveGistId(token);
+    await updateGist(token, gistId, readLocal());
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
   } catch { /* silent */ }
 }
 
 /**
- * Manual sync triggered from Settings.
- * Push + update last sync timestamp. Returns result for UI feedback.
+ * Manual sync triggered from Settings. Returns result for UI feedback.
  */
 export async function manualSync(token: string): Promise<SyncResult> {
   try {
-    await ensureDataBranch(token);
-    const { sha } = await fetchRepoFile(token);
-    const local = readLocal();
-    const newSha = await pushRepoFile(token, local, sha);
-    localStorage.setItem(CACHED_SHA_KEY, newSha);
+    const gistId = await resolveGistId(token);
+    await updateGist(token, gistId, readLocal());
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
     return { ok: true };
   } catch (e) {
