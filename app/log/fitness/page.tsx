@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { addSession, generateId } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
+import { autoSyncPush } from "@/lib/sync";
 import type { Exercise, FitnessCategory } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
@@ -78,6 +79,7 @@ export default function LogFitness() {
       ...(coachWorkout ? { coachWorkoutId: coachWorkout.id } : {}),
     });
     if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
+    autoSyncPush();
     setSaving(false);
     setSaved(true);
     setTimeout(() => router.push("/"), 1200);

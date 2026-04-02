@@ -158,15 +158,12 @@ export default function DayPage() {
   const handleReschedule = () => {
     if (!rescheduleDate) return;
     if (rescheduleTarget === "run" && coachRun) {
-      // Move only the run to the new date
       deleteCoachRun(coachRun.id);
       addCoachRun({ ...coachRun, date: rescheduleDate });
     } else if (rescheduleTarget === "workout" && coachWorkout) {
-      // Move only the workout to the new date
       deleteCoachWorkout(coachWorkout.id);
       addCoachWorkout({ ...coachWorkout, date: rescheduleDate });
     } else {
-      // Single plan day: use overlay tracking
       rescheduleDay(date, rescheduleDate);
     }
     setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); load(date);
@@ -218,7 +215,28 @@ export default function DayPage() {
       })
     : [];
 
-  const canEditNotes = !!coachWorkout; // editable whenever there's a coach plan
+  const canEditNotes = !!coachWorkout;
+
+  const renderRescheduleInline = (target: "run" | "workout", label: string) =>
+    showReschedule && rescheduleTarget === target ? (
+      <div className="flex gap-2">
+        <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDateState(e.target.value)}
+          min={toLocalDateStr(new Date())} autoFocus
+          className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+          style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
+        <button onClick={handleReschedule} disabled={!rescheduleDate}
+          className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+          style={{ background: "#ff6b00", color: "white" }}>OK</button>
+        <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
+          className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+      </div>
+    ) : (
+      <button onClick={() => { setRescheduleTarget(target); setShowReschedule(true); setShowCancel(false); }}
+        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+        style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
+        {label}
+      </button>
+    );
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
@@ -338,26 +356,8 @@ export default function DayPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               Valider le Run
             </Link>
-            {showReschedule && rescheduleTarget === "run" ? (
-              <div className="flex gap-2">
-                <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDateState(e.target.value)}
-                  min={toLocalDateStr(new Date())} autoFocus
-                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
-                <button onClick={handleReschedule} disabled={!rescheduleDate}
-                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
-                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
-                  className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
-              </div>
-            ) : (
-              <button onClick={() => { setRescheduleTarget("run"); setShowReschedule(true); setShowCancel(false); }}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
-                Décaler le Run
-              </button>
-            )}
-            <button onClick={() => { if (coachRun) { deleteCoachRun(coachRun.id); load(date); autoSyncPush(); } }}
+            {renderRescheduleInline("run", "Décaler le Run")}
+            <button onClick={() => { if (coachRun) { deleteCoachRun(coachRun.id); setCoachRun(null); autoSyncPush(); } }}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
               style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
               Annuler le Run
@@ -465,26 +465,8 @@ export default function DayPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               Valider la Muscu
             </Link>
-            {showReschedule && rescheduleTarget === "workout" ? (
-              <div className="flex gap-2">
-                <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDateState(e.target.value)}
-                  min={toLocalDateStr(new Date())} autoFocus
-                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
-                <button onClick={handleReschedule} disabled={!rescheduleDate}
-                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
-                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
-                  className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
-              </div>
-            ) : (
-              <button onClick={() => { setRescheduleTarget("workout"); setShowReschedule(true); setShowCancel(false); }}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
-                Décaler la Muscu
-              </button>
-            )}
-            <button onClick={() => { if (coachWorkout) { deleteCoachWorkout(coachWorkout.id); load(date); autoSyncPush(); } }}
+            {renderRescheduleInline("workout", "Décaler la Muscu")}
+            <button onClick={() => { if (coachWorkout) { deleteCoachWorkout(coachWorkout.id); setCoachWorkout(null); autoSyncPush(); } }}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
               style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
               Annuler la Muscu
@@ -631,7 +613,7 @@ export default function DayPage() {
                 <button onClick={handleReschedule} disabled={!rescheduleDate}
                   className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
                   style={{ background: "#ff6b00", color: "white" }}>OK</button>
-                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); }}
+                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
                   className="px-3 py-2.5 rounded-xl text-xs press-effect"
                   style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
               </div>
