@@ -6,7 +6,8 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
-  rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession, deleteSession,
+  rescheduleDay, unrescheduleDay, getRescheduledDays, deleteSession,
+  addSession, generateId,
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
@@ -38,10 +39,7 @@ export default function DayPage() {
   const [cancelledDay, setCancelledDay] = useState<CancelledDayType | null>(null);
   const [reschedule, setReschedule] = useState<{ from: string; to: string } | null>(null);
 
-  // Exercise notes: index → comment
   const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
-  const [notesDirty, setNotesDirty] = useState(false);
-  const [notesSaved, setNotesSaved] = useState(false);
 
   // Rest timer
   const [timerExIndex, setTimerExIndex] = useState<number | null>(null);
@@ -101,34 +99,28 @@ export default function DayPage() {
   }, []);
 
   const handleNoteChange = (index: number, value: string) => {
-    setExerciseNotes((prev) => ({ ...prev, [index]: value }));
-    setNotesDirty(true);
-    setNotesSaved(false);
+    const updated = { ...exerciseNotes, [index]: value };
+    setExerciseNotes(updated);
+    try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(updated)); } catch {}
   };
 
-  const handleSaveNotes = () => {
-    // Always persist standalone notes to localStorage
-    try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(exerciseNotes)); } catch {}
-
-    // If session exists, also update it
-    if (session && session.type === "fitness") {
-      let updatedExercises = [...session.exercises];
-      if (updatedExercises.length === 0 && coachWorkout) {
-        updatedExercises = coachWorkout.exercises.map((ce, i) => ({
-          id: `${session.id}-ex-${i}`,
-          name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
-          comment: exerciseNotes[i] ?? "",
-        }));
-      } else {
-        updatedExercises = updatedExercises.map((ex, i) => ({ ...ex, comment: exerciseNotes[i] ?? ex.comment }));
-      }
-      const updated: FitnessSession = { ...session, exercises: updatedExercises };
-      updateSession(updated);
-      setSession(updated);
-    }
-    setNotesDirty(false);
-    setNotesSaved(true);
-    setTimeout(() => setNotesSaved(false), 2000);
+  const handleValidateFitness = () => {
+    if (!coachWorkout) return;
+    const exercises = coachWorkout.exercises.map((ce, i) => ({
+      id: `${generateId()}-ex-${i}`,
+      name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
+      comment: exerciseNotes[i] ?? "",
+    }));
+    addSession({
+      id: generateId(),
+      type: "fitness",
+      date: new Date(date + "T12:00:00").toISOString(),
+      category: coachWorkout.category,
+      comment: "",
+      exercises,
+      coachWorkoutId: coachWorkout.id,
+    } as FitnessSession);
+    load(date);
     autoSyncPush();
   };
 
@@ -441,30 +433,17 @@ export default function DayPage() {
               </div>
             ))}
 
-            {/* Save notes button */}
-            {canEditNotes && notesDirty && (
-              <button
-                onClick={handleSaveNotes}
-                className="w-full py-2.5 rounded-xl text-sm font-bold press-effect"
-                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-              >
-                Sauvegarder les notes
-              </button>
-            )}
-            {notesSaved && (
-              <p className="text-xs text-center" style={{ color: "#39ff14" }}>Notes sauvegardées ✓</p>
-            )}
           </div>
         )}
         {/* Per-tab actions — Muscu */}
         {hasDouble && activeTab === "workout" && !isDone && !isCancelled && (isPast || isToday) && (
           <div className="space-y-2">
-            <Link href={`/log/fitness?date=${date}`}
+            <button onClick={handleValidateFitness}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
               style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               Valider la Muscu
-            </Link>
+            </button>
             {renderRescheduleInline("workout", "Décaler la Muscu")}
             <button onClick={() => { if (coachWorkout) { deleteCoachWorkout(coachWorkout.id); setCoachWorkout(null); autoSyncPush(); } }}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
@@ -586,16 +565,37 @@ export default function DayPage() {
 
         {/* ── Valider manuellement — single plan days only ── */}
         {!hasDouble && hasPlan && !isDone && !isCancelled && !reschedule && (isPast || isToday) && (
-          <Link
-            href={`/log/${coachRun || genericPlan?.type === "run" ? "run" : "fitness"}?date=${date}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Valider manuellement
-          </Link>
+          (coachRun || genericPlan?.type === "run") ? (
+            <Link
+              href={`/log/run?date=${date}`}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Valider le Run
+            </Link>
+          ) : (
+            <button
+              onClick={handleValidateFitness}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Valider la séance
+            </button>
+          )
+        )}
+
+        {isDone && coachWorkout && (
+          <button onClick={() => { if (session) deleteSession(session.id); load(date); autoSyncPush(); }}
+            className="w-full py-2.5 rounded-xl text-sm press-effect"
+            style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#555" }}>
+            Modifier
+          </button>
         )}
 
         {/* ── Actions: Décaler / Annuler — single plan days only ── */}
