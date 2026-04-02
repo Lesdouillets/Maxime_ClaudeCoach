@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTimer } from "@/contexts/TimerContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
@@ -41,10 +42,7 @@ export default function DayPage() {
 
   const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
 
-  // Rest timer
-  const [timerExIndex, setTimerExIndex] = useState<number | null>(null);
-  const [timerSec, setTimerSec] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
   // Action states
   const [showReschedule, setShowReschedule] = useState(false);
@@ -95,7 +93,7 @@ export default function DayPage() {
     const d = params.get("date") ?? toLocalDateStr(new Date());
     setDate(d);
     load(d);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {};
   }, []);
 
   const handleNoteChange = (index: number, value: string) => {
@@ -103,6 +101,8 @@ export default function DayPage() {
     setExerciseNotes(updated);
     try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(updated)); } catch {}
   };
+
+  const timerExIndex = timerKey !== null ? timerKey : null;
 
   const handleValidateFitness = () => {
     if (!coachWorkout) return;
@@ -122,23 +122,6 @@ export default function DayPage() {
     } as FitnessSession);
     load(date);
     autoSyncPush();
-  };
-
-  const startTimer = (exIndex: number, seconds: number) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimerExIndex(exIndex);
-    setTimerSec(seconds);
-    timerRef.current = setInterval(() => {
-      setTimerSec((s) => {
-        if (s <= 1) { clearInterval(timerRef.current!); timerRef.current = null; setTimerExIndex(null); return 0; }
-        return s - 1;
-      });
-    }, 1000);
-  };
-
-  const stopTimer = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    setTimerExIndex(null);
   };
 
   const handleCancelConfirm = () => {
@@ -391,7 +374,7 @@ export default function DayPage() {
                     </div>
                     {/* Rest timer */}
                     {ex.restSeconds && !isDone && (
-                      timerExIndex === ex.index ? (
+                      timerExIndex === String(ex.index) ? (
                         <button onClick={stopTimer} className="flex items-center gap-2 press-effect">
                           <span className="font-display text-2xl leading-none"
                             style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
@@ -400,7 +383,7 @@ export default function DayPage() {
                           <span className="text-sm" style={{ color: "#555" }}>■</span>
                         </button>
                       ) : (
-                        <button onClick={() => startTimer(ex.index, ex.restSeconds!)} className="flex items-center gap-2 press-effect">
+                        <button onClick={() => startTimer(String(ex.index), ex.restSeconds!)} className="flex items-center gap-2 press-effect">
                           <span className="text-xs font-bold tracking-wide" style={{ color: "#333" }}>RÉCUP {ex.restSeconds}s</span>
                           <span className="text-sm" style={{ color: "#555" }}>▶</span>
                         </button>

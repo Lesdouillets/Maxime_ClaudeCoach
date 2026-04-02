@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useTimer } from "@/contexts/TimerContext";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { addSession, generateId } from "@/lib/storage";
@@ -22,25 +23,7 @@ export default function LogFitness() {
   const [category, setCategory] = useState<FitnessCategory>("upper");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [timerExId, setTimerExId] = useState<string | null>(null);
-  const [timerSec, setTimerSec] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const startTimer = (exId: string, seconds: number) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setTimerExId(exId);
-    setTimerSec(seconds);
-    timerRef.current = setInterval(() => {
-      setTimerSec((s) => {
-        if (s <= 1) { clearInterval(timerRef.current!); timerRef.current = null; setTimerExId(null); return 0; }
-        return s - 1;
-      });
-    }, 1000);
-  };
-  const stopTimer = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    setTimerExId(null);
-  };
+  const { timerKey: timerExId, timerSec, startTimer, stopTimer } = useTimer();
 
   useEffect(() => {
     setMounted(true);
@@ -57,7 +40,7 @@ export default function LogFitness() {
       setCategory(plan.category);
       setExercises(plan.exercises.map(coachToExercise));
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {};
   }, []);
 
   const updateExercise = useCallback(

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { getWeekDays, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
-import { fetchNewActivitiesSinceLastVisit, autoImportActivity, getStravaAuthUrl, forceResyncRecentActivities } from "@/lib/strava";
+import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -17,37 +17,13 @@ export default function Dashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
-  const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
-  const [resyncing, setResyncing] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
-
-  const handleResync = async () => {
-    if (resyncing) return;
-    setResyncing(true);
-    try {
-      const activities = await forceResyncRecentActivities(14);
-      let count = 0;
-      activities.forEach((activity) => {
-        const session = autoImportActivity(activity);
-        if (session) { addSession(session); count++; }
-      });
-      if (count > 0) {
-        setImportedCount(count);
-        refreshSessions();
-        setTimeout(() => setImportedCount(0), 4000);
-      }
-    } catch {
-      // silent fail
-    } finally {
-      setResyncing(false);
-    }
-  };
 
   const refreshSessions = useCallback(() => {
     setSessions(getSessions());
@@ -61,7 +37,6 @@ export default function Dashboard() {
 
     refreshSessions();
     const tokens = getStravaTokens();
-    setIsStravaConnected(!!tokens);
     if (!tokens) return;
 
     fetchNewActivitiesSinceLastVisit()
@@ -133,43 +108,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-md mx-auto animate-fade-in">
-      <PageHeader
-        title="CLAUDE COACH"
-        subtitle={dateLabel}
-        accent="neon"
-        right={
-          <div className="flex items-center gap-2">
-            {/* Strava icon */}
-            {isStravaConnected ? (
-              <button
-                onClick={handleResync}
-                disabled={resyncing}
-                className="p-2 rounded-xl press-effect disabled:opacity-60"
-                style={{ background: resyncing ? "rgba(255,107,0,0.05)" : "rgba(255,107,0,0.1)" }}
-                title="Resynchroniser Strava (14 derniers jours)"
-              >
-                {resyncing ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="animate-spin">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" />
-                )}
-              </button>
-            ) : (
-              <a
-                href={getStravaAuthUrl()}
-                className="p-2 rounded-xl press-effect"
-                style={{ background: "#1a1a1a", border: "1px solid #222" }}
-                title="Connecter Strava"
-              >
-                <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={16} height={16} alt="Strava" style={{ opacity: 0.3 }} />
-              </a>
-            )}
-
-          </div>
-        }
-      />
+      <PageHeader title="CLAUDE COACH" subtitle={dateLabel} accent="neon" />
 
       <div className="px-5 space-y-5">
 
