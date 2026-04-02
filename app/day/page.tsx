@@ -52,6 +52,7 @@ export default function DayPage() {
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDateState] = useState("");
   const [rescheduleTarget, setRescheduleTarget] = useState<"run" | "workout" | null>(null);
+  const [activeTab, setActiveTab] = useState<"run" | "workout">("run");
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
@@ -188,17 +189,15 @@ export default function DayPage() {
   const canAct = hasPlan && !isDone && !isCancelled && !reschedule;
   const hasDouble = !!(coachRun && coachWorkout); // two plans on same day
 
-  // Title: show both if double, otherwise priority run > workout > generic
-  let titlePrimary = "REPOS";
-  let titleSecondary: string | null = null;
+  // Title
+  let titleLine = "REPOS";
   if (session) {
-    titlePrimary = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
+    titleLine = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
   } else if (hasDouble) {
-    titlePrimary = coachRun!.label;
-    titleSecondary = coachWorkout!.label;
-  } else if (coachRun) { titlePrimary = coachRun.label; }
-  else if (coachWorkout) { titlePrimary = coachWorkout.label; }
-  else if (genericPlan) { titlePrimary = genericPlan.label; }
+    titleLine = `${coachRun!.label} · ${coachWorkout!.label}`;
+  } else if (coachRun) { titleLine = coachRun.label; }
+  else if (coachWorkout) { titleLine = coachWorkout.label; }
+  else if (genericPlan) { titleLine = genericPlan.label; }
 
   // Build merged exercise list: coach plan as template, session data fills in actual values + notes
   const mergedExercises = coachWorkout
@@ -236,10 +235,7 @@ export default function DayPage() {
         <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#555" }}>{dateLabel}</p>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-4xl leading-none">{titlePrimary}</h1>
-            {titleSecondary && (
-              <p className="font-display text-2xl leading-none mt-0.5" style={{ color: "#555" }}>{titleSecondary}</p>
-            )}
+            <h1 className="font-display text-4xl leading-none">{titleLine}</h1>
           </div>
           <div className="flex flex-col items-end gap-1">
             {isDone && (
@@ -283,8 +279,24 @@ export default function DayPage() {
           </div>
         )}
 
+        {/* ── Tab bar — double days only ── */}
+        {hasDouble && (
+          <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
+            {(["run", "workout"] as const).map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className="flex-1 py-2 text-xs font-bold tracking-wide uppercase press-effect"
+                style={{
+                  background: activeTab === tab ? "#1a1a1a" : "transparent",
+                  color: activeTab === tab ? "#39ff14" : "#444",
+                }}>
+                {tab === "run" ? "Run" : "Muscu"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ── COACH RUN PLAN ── */}
-        {coachRun && (
+        {coachRun && (!hasDouble || activeTab === "run") && (
           <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
             <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>PLAN COACH</p>
             {coachRun.intervals ? (
@@ -317,9 +329,44 @@ export default function DayPage() {
             )}
           </div>
         )}
+        {/* Per-tab actions — Run */}
+        {hasDouble && activeTab === "run" && !isDone && !isCancelled && (isPast || isToday) && (
+          <div className="space-y-2">
+            <Link href={`/log/run?date=${date}`}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              Valider le Run
+            </Link>
+            {showReschedule && rescheduleTarget === "run" ? (
+              <div className="flex gap-2">
+                <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDateState(e.target.value)}
+                  min={toLocalDateStr(new Date())} autoFocus
+                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
+                <button onClick={handleReschedule} disabled={!rescheduleDate}
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
+                  className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+              </div>
+            ) : (
+              <button onClick={() => { setRescheduleTarget("run"); setShowReschedule(true); setShowCancel(false); }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
+                Décaler le Run
+              </button>
+            )}
+            <button onClick={() => { if (coachRun) { deleteCoachRun(coachRun.id); load(date); autoSyncPush(); } }}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+              style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
+              Annuler le Run
+            </button>
+          </div>
+        )}
 
         {/* ── COACH WORKOUT — one card per exercise ── */}
-        {coachWorkout && (
+        {coachWorkout && (!hasDouble || activeTab === "workout") && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-bold tracking-widest" style={{ color: "#39ff14" }}>PLAN COACH</p>
@@ -407,6 +454,41 @@ export default function DayPage() {
             {notesSaved && (
               <p className="text-xs text-center" style={{ color: "#39ff14" }}>Notes sauvegardées ✓</p>
             )}
+          </div>
+        )}
+        {/* Per-tab actions — Muscu */}
+        {hasDouble && activeTab === "workout" && !isDone && !isCancelled && (isPast || isToday) && (
+          <div className="space-y-2">
+            <Link href={`/log/fitness?date=${date}`}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              Valider la Muscu
+            </Link>
+            {showReschedule && rescheduleTarget === "workout" ? (
+              <div className="flex gap-2">
+                <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDateState(e.target.value)}
+                  min={toLocalDateStr(new Date())} autoFocus
+                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
+                <button onClick={handleReschedule} disabled={!rescheduleDate}
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
+                  className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
+              </div>
+            ) : (
+              <button onClick={() => { setRescheduleTarget("workout"); setShowReschedule(true); setShowCancel(false); }}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+                style={{ background: "transparent", border: "1px solid #222", color: "#555" }}>
+                Décaler la Muscu
+              </button>
+            )}
+            <button onClick={() => { if (coachWorkout) { deleteCoachWorkout(coachWorkout.id); load(date); autoSyncPush(); } }}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+              style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
+              Annuler la Muscu
+            </button>
           </div>
         )}
 
@@ -520,77 +602,38 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* ── Valider manuellement ── */}
-        {hasPlan && !isDone && !isCancelled && !reschedule && (isPast || isToday) && (
-          <div className={hasDouble ? "grid grid-cols-2 gap-2" : ""}>
-            {(coachRun || (!coachWorkout && genericPlan?.type === "run")) && (
-              <Link
-                href={`/log/run?date=${date}`}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                {hasDouble ? "Run" : "Valider manuellement"}
-              </Link>
-            )}
-            {(coachWorkout || (!coachRun && genericPlan?.type === "fitness")) && (
-              <Link
-                href={`/log/fitness?date=${date}`}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                {hasDouble ? "Muscu" : "Valider manuellement"}
-              </Link>
-            )}
-          </div>
+        {/* ── Valider manuellement — single plan days only ── */}
+        {!hasDouble && hasPlan && !isDone && !isCancelled && !reschedule && (isPast || isToday) && (
+          <Link
+            href={`/log/${coachRun || genericPlan?.type === "run" ? "run" : "fitness"}?date=${date}`}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
+            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Valider manuellement
+          </Link>
         )}
 
-        {/* ── Actions: Décaler / Annuler ── */}
-        {canAct && (
+        {/* ── Actions: Décaler / Annuler — single plan days only ── */}
+        {canAct && !hasDouble && (
           <div className="space-y-2">
             {showReschedule ? (
-              <div className="space-y-2">
-                {/* Double day: pick which plan to reschedule */}
-                {hasDouble && !rescheduleTarget && (
-                  <div className="flex gap-2">
-                    <button onClick={() => setRescheduleTarget("run")}
-                      className="flex-1 py-2 rounded-xl text-xs font-bold press-effect"
-                      style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}>
-                      Décaler le Run
-                    </button>
-                    <button onClick={() => setRescheduleTarget("workout")}
-                      className="flex-1 py-2 rounded-xl text-xs font-bold press-effect"
-                      style={{ background: "#1a1a1a", border: "1px solid rgba(255,107,0,0.3)", color: "#ff6b00" }}>
-                      Décaler la Muscu
-                    </button>
-                    <button onClick={() => { setShowReschedule(false); setRescheduleTarget(null); }}
-                      className="px-3 py-2 rounded-xl text-xs press-effect"
-                      style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
-                  </div>
-                )}
-                {/* Date picker — shown once target is known (or single plan day) */}
-                {(!hasDouble || rescheduleTarget) && (
-                  <div className="flex gap-2">
-                    <input type="date" value={rescheduleDate}
-                      onChange={(e) => setRescheduleDateState(e.target.value)}
-                      min={toLocalDateStr(new Date())}
-                      className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                      style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
-                      autoFocus
-                    />
-                    <button onClick={handleReschedule} disabled={!rescheduleDate}
-                      className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                      style={{ background: "#ff6b00", color: "white" }}>OK</button>
-                    <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); setRescheduleTarget(null); }}
-                      className="px-3 py-2.5 rounded-xl text-xs press-effect"
-                      style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
-                  </div>
-                )}
+              <div className="flex gap-2">
+                <input type="date" value={rescheduleDate}
+                  onChange={(e) => setRescheduleDateState(e.target.value)}
+                  min={toLocalDateStr(new Date())}
+                  className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                  style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                  autoFocus
+                />
+                <button onClick={handleReschedule} disabled={!rescheduleDate}
+                  className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                  style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                <button onClick={() => { setShowReschedule(false); setRescheduleDateState(""); }}
+                  className="px-3 py-2.5 rounded-xl text-xs press-effect"
+                  style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
               </div>
             ) : (
               <button onClick={() => { setShowReschedule(true); setShowCancel(false); }}
@@ -637,7 +680,7 @@ export default function DayPage() {
           </div>
         )}
 
-        </div>
+</div>
         </div>{/* end dimming wrapper */}
 
         {/* Delete session */}
