@@ -196,9 +196,11 @@ export default function Dashboard() {
             background: "linear-gradient(135deg, #111 0%, #1a1a1a 100%)",
             border: todaySession
               ? "1px solid rgba(57,255,20,0.3)"
-              : (todayCoachWorkout || todayCoachRun)
-                ? "1px solid rgba(57,255,20,0.15)"
-                : "1px solid #1a1a1a",
+              : todayCoachRun
+                ? "1px solid rgba(79,156,249,0.3)"
+                : todayCoachWorkout
+                  ? "1px solid rgba(255,107,0,0.3)"
+                  : "1px solid #1a1a1a",
           }}
         >
           <div
@@ -247,7 +249,7 @@ export default function Dashboard() {
             <>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                  style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>
+                  style={{ background: "rgba(255,107,0,0.1)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.2)" }}>
                   AUJOURD'HUI
                 </span>
               </div>
@@ -261,7 +263,7 @@ export default function Dashboard() {
             <>
               <div className="flex items-start justify-between mb-3">
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                  style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>
+                  style={{ background: "rgba(79,156,249,0.1)", color: "#4f9cf9", border: "1px solid rgba(79,156,249,0.2)" }}>
                   AUJOURD'HUI
                 </span>
               </div>
@@ -377,18 +379,32 @@ export default function Dashboard() {
                 const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
                 const reschAway = rescheduledDays.some((r) => r.from === dateStr);
                 const reschHere = rescheduledDays.find((r) => r.to === dateStr);
-                const hasOwnPlan = !reschAway && (coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr));
-                const hasRescheduledPlan = !!reschHere && (coachWorkouts.some((w) => w.date === reschHere.from) || coachRuns.some((r) => r.date === reschHere.from));
-                const isPlanned = hasOwnPlan || hasRescheduledPlan;
+                const isRunDay = (!reschAway && coachRuns.some((r) => r.date === dateStr))
+                  || (!!reschHere && coachRuns.some((r) => r.date === reschHere.from));
+                const isMuscuDay = (!reschAway && coachWorkouts.some((w) => w.date === dateStr))
+                  || (!!reschHere && coachWorkouts.some((w) => w.date === reschHere.from));
+                const isPlanned = isRunDay || isMuscuDay;
                 const isToday = day.isToday && weekOffset === 0;
+                const planColor = isRunDay ? "#4f9cf9" : "#ff6b00";
 
-                let bg = "#111", border = "#1a1a1a", dotColor = "transparent";
+                let bg = "#111", border = "#1a1a1a", dotColor = "transparent", shadow = "none", labelColor = "#555";
                 if (hasSession) {
-                  bg = "rgba(57,255,20,0.08)"; border = "rgba(57,255,20,0.4)"; dotColor = "#39ff14";
-                } else if (isPlanned && !day.isPast) {
-                  bg = "#111"; border = "#333"; dotColor = "#333";
-                } else if (isPlanned && day.isPast) {
-                  bg = "rgba(255,107,0,0.05)"; border = "rgba(255,107,0,0.2)"; dotColor = "#ff6b00";
+                  bg = "rgba(57,255,20,0.08)"; border = "rgba(57,255,20,0.4)";
+                  dotColor = "#39ff14"; shadow = "0 0 12px rgba(57,255,20,0.1)";
+                  if (isToday) labelColor = "#39ff14";
+                } else if (isPlanned) {
+                  dotColor = planColor;
+                  if (isToday) {
+                    border = isRunDay ? "rgba(79,156,249,0.5)" : "rgba(255,107,0,0.5)";
+                    bg = isRunDay ? "rgba(79,156,249,0.05)" : "rgba(255,107,0,0.05)";
+                    shadow = isRunDay ? "0 0 12px rgba(79,156,249,0.1)" : "0 0 12px rgba(255,107,0,0.1)";
+                    labelColor = planColor;
+                  }
+                } else if (isToday) {
+                  border = "rgba(57,255,20,0.4)";
+                  bg = "rgba(57,255,20,0.05)";
+                  shadow = "0 0 12px rgba(57,255,20,0.1)";
+                  labelColor = "#39ff14";
                 }
 
                 return (
@@ -396,14 +412,9 @@ export default function Dashboard() {
                     key={dateStr}
                     onClick={() => router.push(`/day?date=${dateStr}`)}
                     className="rounded-xl p-2 flex flex-col items-center gap-1.5 press-effect"
-                    style={{
-                      background: isToday ? "rgba(57,255,20,0.05)" : bg,
-                      border: `1px solid ${isToday ? "rgba(57,255,20,0.4)" : border}`,
-                      boxShadow: isToday ? "0 0 12px rgba(57,255,20,0.1)" : "none",
-                    }}
+                    style={{ background: bg, border: `1px solid ${border}`, boxShadow: shadow }}
                   >
-                    <span className="text-[10px] font-bold tracking-wide"
-                      style={{ color: isToday ? "#39ff14" : "#555" }}>
+                    <span className="text-[10px] font-bold tracking-wide" style={{ color: labelColor }}>
                       {day.label}
                     </span>
                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
@@ -431,27 +442,30 @@ export default function Dashboard() {
                   const hasSession = sessions.some((s) => s.date.slice(0, 10) === dateStr);
                   const mReschAway = rescheduledDays.some((r) => r.from === dateStr);
                   const mReschHere = rescheduledDays.find((r) => r.to === dateStr);
-                  const isPlanned = (!mReschAway && (coachWorkouts.some((w) => w.date === dateStr) || coachRuns.some((r) => r.date === dateStr)))
-                    || (!!mReschHere && (coachWorkouts.some((w) => w.date === mReschHere.from) || coachRuns.some((r) => r.date === mReschHere.from)));
-                  const isPast = date < today;
+                  const mIsRunDay = (!mReschAway && coachRuns.some((r) => r.date === dateStr))
+                    || (!!mReschHere && coachRuns.some((r) => r.date === mReschHere.from));
+                  const mIsMuscuDay = (!mReschAway && coachWorkouts.some((w) => w.date === dateStr))
+                    || (!!mReschHere && coachWorkouts.some((w) => w.date === mReschHere.from));
+                  const isPlanned = mIsRunDay || mIsMuscuDay;
                   const isToday = dateStr === todayStr;
+                  const mPlanColor = mIsRunDay ? "#4f9cf9" : "#ff6b00";
 
                   let dotColor = "transparent";
                   if (hasSession) dotColor = "#39ff14";
-                  else if (isPlanned && isPast) dotColor = "#ff6b00";
-                  else if (isPlanned) dotColor = "#333";
+                  else if (isPlanned) dotColor = mPlanColor;
+
+                  const todayBg = isToday ? (hasSession ? "rgba(57,255,20,0.08)" : mIsRunDay ? "rgba(79,156,249,0.08)" : mIsMuscuDay ? "rgba(255,107,0,0.08)" : "rgba(57,255,20,0.08)") : "transparent";
+                  const todayBorder = isToday ? (hasSession ? "rgba(57,255,20,0.3)" : mIsRunDay ? "rgba(79,156,249,0.4)" : mIsMuscuDay ? "rgba(255,107,0,0.4)" : "rgba(57,255,20,0.3)") : "transparent";
+                  const numberColor = isToday ? (hasSession ? "#39ff14" : isPlanned ? mPlanColor : "#39ff14") : "#666";
 
                   return (
                     <button
                       key={dateStr}
                       onClick={() => router.push(`/day?date=${dateStr}`)}
                       className="rounded-lg py-1.5 flex flex-col items-center gap-0.5 press-effect"
-                      style={{
-                        background: isToday ? "rgba(57,255,20,0.08)" : "transparent",
-                        border: isToday ? "1px solid rgba(57,255,20,0.3)" : "1px solid transparent",
-                      }}
+                      style={{ background: todayBg, border: `1px solid ${todayBorder}` }}
                     >
-                      <span className="text-xs font-medium" style={{ color: isToday ? "#39ff14" : "#666" }}>
+                      <span className="text-xs font-medium" style={{ color: numberColor }}>
                         {date.getDate()}
                       </span>
                       <div className="w-1 h-1 rounded-full" style={{ background: dotColor }} />
