@@ -390,7 +390,7 @@ export default function DayPage() {
                       </div>
                     </div>
                     {/* Rest timer */}
-                    {ex.restSeconds && (
+                    {ex.restSeconds && !isDone && (
                       timerExIndex === ex.index ? (
                         <button onClick={stopTimer} className="flex items-center gap-2 press-effect">
                           <span className="font-display text-2xl leading-none"
@@ -417,18 +417,23 @@ export default function DayPage() {
                   </div>
                 )}
 
-                {/* User note — always editable */}
-                <div className="px-4 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
-                  <p className="text-[10px] font-bold tracking-widest mb-1.5" style={{ color: "#333" }}>RESSENTI</p>
-                  <textarea
-                    value={exerciseNotes[ex.index] ?? ""}
-                    onChange={(e) => handleNoteChange(ex.index, e.target.value)}
-                    placeholder="Charge, fatigue, forme…"
-                    rows={2}
-                    className="w-full rounded-lg px-2.5 py-2 text-xs resize-none focus:outline-none"
-                    style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", color: "#aaa" }}
-                  />
-                </div>
+                {(exerciseNotes[ex.index] || !isDone) && (
+                  <div className="px-4 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
+                    <p className="text-[10px] font-bold tracking-widest mb-1.5" style={{ color: "#333" }}>RESSENTI</p>
+                    {isDone ? (
+                      <p className="text-xs" style={{ color: "#666" }}>{exerciseNotes[ex.index]}</p>
+                    ) : (
+                      <textarea
+                        value={exerciseNotes[ex.index] ?? ""}
+                        onChange={(e) => handleNoteChange(ex.index, e.target.value)}
+                        placeholder="Charge, fatigue, forme…"
+                        rows={2}
+                        className="w-full rounded-lg px-2.5 py-2 text-xs resize-none focus:outline-none"
+                        style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", color: "#aaa" }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 
