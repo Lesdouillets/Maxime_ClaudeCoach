@@ -357,6 +357,11 @@ export default function DayPage() {
                 Décaler le Run
               </button>
             )}
+            <button onClick={() => { if (coachRun) { deleteCoachRun(coachRun.id); load(date); autoSyncPush(); } }}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+              style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
+              Annuler le Run
+            </button>
           </div>
         )}
 
@@ -479,6 +484,11 @@ export default function DayPage() {
                 Décaler la Muscu
               </button>
             )}
+            <button onClick={() => { if (coachWorkout) { deleteCoachWorkout(coachWorkout.id); load(date); autoSyncPush(); } }}
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
+              style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
+              Annuler la Muscu
+            </button>
           </div>
         )}
 
@@ -670,44 +680,7 @@ export default function DayPage() {
           </div>
         )}
 
-        {/* Annuler la séance — double days (Décaler is per-tab) */}
-        {hasDouble && canAct && (
-          <div>
-            {showCancel ? (
-              <div className="space-y-2">
-                <input type="text" value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Raison de l'annulation…"
-                  className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                  style={{ background: "#111", border: "1px solid #333", color: "white" }}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleCancelConfirm(); }}
-                  autoFocus
-                />
-                <div className="flex gap-2">
-                  <button onClick={handleCancelConfirm}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
-                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
-                    Confirmer l'annulation
-                  </button>
-                  <button onClick={() => setShowCancel(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm press-effect"
-                    style={{ background: "transparent", color: "#555" }}>✕</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => { setShowCancel(true); setShowReschedule(false); }}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-                style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Annuler la journée
-              </button>
-            )}
-          </div>
-        )}
-
-        </div>
+</div>
         </div>{/* end dimming wrapper */}
 
         {/* Delete session */}
