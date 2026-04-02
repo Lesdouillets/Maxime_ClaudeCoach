@@ -9,6 +9,7 @@ import {
   rescheduleDay, unrescheduleDay, getRescheduledDays, updateSession, deleteSession,
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
+import { autoSyncPush } from "@/lib/sync";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import type { WorkoutSession, FitnessSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -124,6 +125,7 @@ export default function DayPage() {
     setNotesDirty(false);
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 2000);
+    autoSyncPush();
   };
 
   const startTimer = (exIndex: number, seconds: number) => {
@@ -146,14 +148,16 @@ export default function DayPage() {
   const handleCancelConfirm = () => {
     cancelDay(date, cancelReason.trim());
     setShowCancel(false); setCancelReason(""); load(date);
+    autoSyncPush();
   };
-  const handleUncancel = () => { uncancelDay(date); load(date); };
+  const handleUncancel = () => { uncancelDay(date); load(date); autoSyncPush(); };
   const handleReschedule = () => {
     if (!rescheduleDate) return;
     rescheduleDay(date, rescheduleDate);
     setShowReschedule(false); setRescheduleDateState(""); load(date);
+    autoSyncPush();
   };
-  const handleUnreschedule = () => { unrescheduleDay(date); load(date); };
+  const handleUnreschedule = () => { unrescheduleDay(date); load(date); autoSyncPush(); };
 
   if (!mounted || !date) return null;
 
