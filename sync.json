@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-04-02T07:29:12.784Z",
+  "exportedAt": "2026-04-02T08:03:27.055Z",
   "cc_sessions": [
     {
       "id": "1774989322380-ox1ycw",
@@ -835,7 +835,7 @@
       "targetZone": "Z2"
     }
   ],
-  "cc_cancelled": [],
-  "cc_rescheduled": [],
+  "cc_cancelled_days": [],
+  "cc_rescheduled_days": [],
   "cc_ex_notes": {}
 }
