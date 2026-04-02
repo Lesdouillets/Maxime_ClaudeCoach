@@ -122,12 +122,16 @@ export default function PlanPage() {
           else if (day.isPast) status = "missed";
           else status = "upcoming";
 
+          const planColor  = planType === "run" ? "#4f9cf9" : "#ff6b00";
+          const planBorder = planType === "run" ? "rgba(79,156,249,0.35)" : "rgba(255,107,0,0.35)";
+          const planBg     = planType === "run" ? "rgba(79,156,249,0.03)" : "rgba(255,107,0,0.03)";
+
           const statusConfig = {
             done:            { color: "#39ff14", label: "Fait ✓",      border: "rgba(57,255,20,0.3)",  bg: "rgba(57,255,20,0.04)" },
-            missed:          { color: "#ff6b00", label: "Manqué",      border: "rgba(255,107,0,0.25)",  bg: "rgba(255,107,0,0.03)" },
-            upcoming:        { color: "#555",    label: "À venir",     border: "#1a1a1a",               bg: "#111" },
-            "today-planned": { color: "#39ff14", label: "Aujourd'hui", border: "rgba(57,255,20,0.5)",   bg: "rgba(57,255,20,0.04)" },
-            rest:            { color: "#2a2a2a", label: "Repos",       border: "#1a1a1a",               bg: "#0d0d0d" },
+            missed:          { color: "#ff6b00", label: "Manqué",      border: "rgba(255,107,0,0.25)", bg: "rgba(255,107,0,0.03)" },
+            upcoming:        { color: planColor, label: "À venir",     border: planBorder,             bg: "#111" },
+            "today-planned": { color: planColor, label: "Aujourd'hui", border: planBorder,             bg: planBg },
+            rest:            { color: "#2a2a2a", label: "Repos",       border: "#1a1a1a",              bg: "#0d0d0d" },
           }[status];
 
           const isClickable = hasPlan || !!session;
@@ -142,7 +146,7 @@ export default function PlanPage() {
                     {DAY_FULL_FR[day.dow].toUpperCase()}
                   </span>
                   <span className="text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                    style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.3)" }}>
+                    style={{ background: `${planColor}20`, color: planColor, border: `1px solid ${planColor}50` }}>
                     TODAY
                   </span>
                 </div>
