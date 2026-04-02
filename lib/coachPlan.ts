@@ -104,6 +104,13 @@ export function deleteCoachRun(id: string): void {
   saveCoachRuns(getCoachRuns().filter((r) => r.id !== id));
 }
 
+/** Clear all future coach plans (date >= today). Past sessions in cc_sessions are untouched. */
+export function clearFutureCoachPlans(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  saveCoachWorkouts(getCoachWorkouts().filter((w) => w.date < today));
+  saveCoachRuns(getCoachRuns().filter((r) => r.date < today));
+}
+
 /** Get all coach plans (fitness + run) for a given date */
 export function getCoachPlansForDate(date: string): CoachPlan[] {
   return [
