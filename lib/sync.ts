@@ -1,24 +1,34 @@
-// GitHub Gist-based sync for cross-device data sharing
+// GitHub repo-based sync — source of truth is sync.json on the `data` branch
 
 const TOKEN_KEY = "cc_gh_token";
-const GIST_ID_KEY = "cc_gist_id";
 const LAST_SYNC_KEY = "cc_last_sync";
-const GIST_FILENAME = "claude-coach-data.json";
+const CACHED_SHA_KEY = "cc_sync_sha";
 
-// ─── Token / Gist ID storage ───────────────────────────────────────────────
+const REPO_OWNER = "lesdouillets";
+const REPO_NAME = "maxime_claudecoach";
+const DATA_BRANCH = "data";
+const DATA_FILE = "sync.json";
+
+// ─── Token storage ─────────────────────────────────────────────────────────
 export function getGitHubToken(): string { return localStorage.getItem(TOKEN_KEY) ?? ""; }
 export function setGitHubToken(t: string) {
   if (t) localStorage.setItem(TOKEN_KEY, t);
   else localStorage.removeItem(TOKEN_KEY);
 }
-export function getGistId(): string { return localStorage.getItem(GIST_ID_KEY) ?? ""; }
-export function setGistId(id: string) {
-  if (id) localStorage.setItem(GIST_ID_KEY, id);
-  else localStorage.removeItem(GIST_ID_KEY);
-}
 export function getLastSync(): string { return localStorage.getItem(LAST_SYNC_KEY) ?? ""; }
+export function isSyncConfigured(): boolean { return !!getGitHubToken(); }
 
-// ─── Export / Import helpers ────────────────────────────────────────────────
+// ─── Local data helpers ─────────────────────────────────────────────────────
+type SyncPayload = {
+  exportedAt: string;
+  cc_sessions: unknown[];
+  cc_coach_workouts: unknown[];
+  cc_coach_runs: unknown[];
+  cc_cancelled: unknown[];
+  cc_rescheduled: unknown[];
+  cc_ex_notes: Record<string, unknown>;
+};
+
 const DATA_KEYS = [
   "cc_sessions",
   "cc_coach_workouts",
@@ -27,22 +37,11 @@ const DATA_KEYS = [
   "cc_rescheduled",
 ] as const;
 
-type SyncPayload = {
-  exportedAt: string;
-  cc_sessions: unknown[];
-  cc_coach_workouts: unknown[];
-  cc_coach_runs: unknown[];
-  cc_cancelled: unknown[];
-  cc_rescheduled: unknown[];
-  cc_ex_notes: Record<string, unknown>; // "cc_ex_notes_YYYY-MM-DD" → notes object
-};
-
 function readLocal(): SyncPayload {
   const get = (key: string): unknown[] => {
     try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
     catch { return []; }
   };
-  // Collect all cc_ex_notes_* keys
   const notes: Record<string, unknown> = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
@@ -65,35 +64,12 @@ function writeLocal(data: SyncPayload) {
   DATA_KEYS.forEach((k) => {
     localStorage.setItem(k, JSON.stringify(data[k] ?? []));
   });
-  // Restore exercise notes
   if (data.cc_ex_notes) {
     Object.entries(data.cc_ex_notes).forEach(([k, v]) => {
       localStorage.setItem(k, JSON.stringify(v));
     });
   }
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-}
-
-/** Merge two arrays of objects, deduplicating by a key field. Local overrides remote on conflict. */
-function mergeById<T extends Record<string, unknown>>(
-  remote: T[], local: T[], key: string
-): T[] {
-  const map = new Map<unknown, T>();
-  remote.forEach((item) => map.set(item[key], item));
-  local.forEach((item) => map.set(item[key], item)); // local wins
-  return Array.from(map.values());
-}
-
-function mergeSyncPayloads(remote: SyncPayload, local: SyncPayload): SyncPayload {
-  return {
-    exportedAt: new Date().toISOString(),
-    cc_sessions: mergeById(remote.cc_sessions as Record<string, unknown>[], local.cc_sessions as Record<string, unknown>[], "id"),
-    cc_coach_workouts: mergeById(remote.cc_coach_workouts as Record<string, unknown>[], local.cc_coach_workouts as Record<string, unknown>[], "id"),
-    cc_coach_runs: mergeById(remote.cc_coach_runs as Record<string, unknown>[], local.cc_coach_runs as Record<string, unknown>[], "id"),
-    cc_cancelled: mergeById(remote.cc_cancelled as Record<string, unknown>[], local.cc_cancelled as Record<string, unknown>[], "date"),
-    cc_rescheduled: mergeById(remote.cc_rescheduled as Record<string, unknown>[], local.cc_rescheduled as Record<string, unknown>[], "from"),
-    cc_ex_notes: { ...(remote.cc_ex_notes ?? {}), ...(local.cc_ex_notes ?? {}) }, // local wins
-  };
 }
 
 // ─── GitHub API helpers ─────────────────────────────────────────────────────
@@ -118,165 +94,119 @@ export async function verifyToken(token: string): Promise<{ ok: boolean; login?:
   }
 }
 
-/** Fetch gist content. Returns null if not found. */
-async function fetchGist(token: string, gistId: string): Promise<SyncPayload | null> {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: ghHeaders(token),
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Gist fetch error: ${res.status}`);
-  const gist = await res.json() as { files: Record<string, { content: string }> };
-  const file = gist.files?.[GIST_FILENAME];
-  if (!file) return null;
-  return JSON.parse(file.content) as SyncPayload;
+/** Ensure the `data` branch exists, creating it from main HEAD if needed */
+async function ensureDataBranch(token: string): Promise<void> {
+  const branchRes = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/ref/heads/${DATA_BRANCH}`,
+    { headers: ghHeaders(token) }
+  );
+  if (branchRes.ok) return; // Branch already exists
+
+  // Get main HEAD SHA
+  const mainRes = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/ref/heads/main`,
+    { headers: ghHeaders(token) }
+  );
+  if (!mainRes.ok) throw new Error("Impossible de récupérer la branche main.");
+  const main = await mainRes.json() as { object: { sha: string } };
+
+  // Create data branch
+  const createRes = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs`,
+    {
+      method: "POST",
+      headers: ghHeaders(token),
+      body: JSON.stringify({ ref: `refs/heads/${DATA_BRANCH}`, sha: main.object.sha }),
+    }
+  );
+  if (!createRes.ok) throw new Error("Impossible de créer la branche data.");
 }
 
-/** Create a new private gist and return its ID */
-async function createGist(token: string, data: SyncPayload): Promise<string> {
-  const res = await fetch("https://api.github.com/gists", {
-    method: "POST",
-    headers: ghHeaders(token),
-    body: JSON.stringify({
-      description: "Claude Coach — sync data",
-      public: false,
-      files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gist create error: ${res.status}`);
-  const gist = await res.json() as { id: string };
-  return gist.id;
+/** Fetch sync.json from the data branch. Returns null if not found yet. */
+async function fetchRepoFile(token: string): Promise<{ data: SyncPayload | null; sha: string | null }> {
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}?ref=${DATA_BRANCH}`,
+    { headers: ghHeaders(token) }
+  );
+  if (res.status === 404) return { data: null, sha: null };
+  if (!res.ok) throw new Error(`Erreur lecture fichier: ${res.status}`);
+  const file = await res.json() as { content: string; sha: string };
+  const content = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ""))));
+  return { data: JSON.parse(content) as SyncPayload, sha: file.sha };
 }
 
-/** Update existing gist */
-async function updateGist(token: string, gistId: string, data: SyncPayload): Promise<void> {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    method: "PATCH",
-    headers: ghHeaders(token),
-    body: JSON.stringify({
-      files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gist update error: ${res.status}`);
+/** Write data to sync.json on the data branch. Pass sha to update, null to create. Returns new SHA. */
+async function pushRepoFile(token: string, data: SyncPayload, sha: string | null): Promise<string> {
+  const body: Record<string, unknown> = {
+    message: `sync ${data.exportedAt}`,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    branch: DATA_BRANCH,
+  };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE}`,
+    { method: "PUT", headers: ghHeaders(token), body: JSON.stringify(body) }
+  );
+  if (!res.ok) throw new Error(`Erreur écriture fichier: ${res.status}`);
+  const result = await res.json() as { content: { sha: string } };
+  return result.content.sha;
 }
 
 // ─── Public sync API ─────────────────────────────────────────────────────────
 
 export type SyncResult = {
   ok: boolean;
-  gistId?: string;
   error?: string;
-  added?: { sessions: number; coachPlans: number };
 };
 
 /**
- * Full bidirectional sync:
- * 1. Pull remote gist (if exists)
- * 2. Merge remote + local (union by id, local wins conflicts)
- * 3. Write merged data locally
- * 4. Push merged data to gist (create if no gistId)
+ * Silent auto-pull on app load.
+ * Remote is source of truth → overwrites local completely.
  */
-export async function syncData(token: string, gistId?: string): Promise<SyncResult> {
-  try {
-    const local = readLocal();
-    let merged = local;
-
-    if (gistId) {
-      const remote = await fetchGist(token, gistId);
-      if (remote) {
-        merged = mergeSyncPayloads(remote, local);
-      }
-    }
-
-    const countBefore = {
-      sessions: local.cc_sessions.length,
-      plans: local.cc_coach_workouts.length + local.cc_coach_runs.length,
-    };
-
-    writeLocal(merged);
-
-    const newGistId = gistId
-      ? (await updateGist(token, gistId, merged), gistId)
-      : await createGist(token, merged);
-
-    if (!gistId) setGistId(newGistId);
-
-    return {
-      ok: true,
-      gistId: newGistId,
-      added: {
-        sessions: merged.cc_sessions.length - countBefore.sessions,
-        coachPlans: (merged.cc_coach_workouts.length + merged.cc_coach_runs.length) - countBefore.plans,
-      },
-    };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
-  }
-}
-
-/** Push local data to gist, overwriting remote completely */
-export async function pushData(token: string, gistId: string): Promise<SyncResult> {
-  try {
-    const local = readLocal();
-    await updateGist(token, gistId, local);
-    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-    return { ok: true, gistId };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
-  }
-}
-
-/** Pull remote gist data, overwriting local completely */
-export async function pullData(token: string, gistId: string): Promise<SyncResult> {
-  try {
-    const remote = await fetchGist(token, gistId);
-    if (!remote) return { ok: false, error: "Gist introuvable." };
-    const countBefore = {
-      sessions: (JSON.parse(localStorage.getItem("cc_sessions") ?? "[]") as unknown[]).length,
-      plans: (JSON.parse(localStorage.getItem("cc_coach_workouts") ?? "[]") as unknown[]).length +
-             (JSON.parse(localStorage.getItem("cc_coach_runs") ?? "[]") as unknown[]).length,
-    };
-    writeLocal(remote);
-    return {
-      ok: true,
-      gistId,
-      added: {
-        sessions: remote.cc_sessions.length - countBefore.sessions,
-        coachPlans: (remote.cc_coach_workouts.length + remote.cc_coach_runs.length) - countBefore.plans,
-      },
-    };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
-  }
-}
-
-/** Quick check: does the token have gist scope? */
-export function isSyncConfigured(): boolean {
-  return !!(getGitHubToken() && getGistId());
-}
-
-/** Silent auto-pull: on app load, get latest data from cloud. No-op if not configured. */
 export async function autoSyncPull(): Promise<void> {
   const token = getGitHubToken();
-  const gistId = getGistId();
-  if (!token || !gistId) return;
+  if (!token) return;
   try {
-    const remote = await fetchGist(token, gistId);
-    if (!remote) return;
-    // Merge remote into local so we don't lose anything entered on this device
-    const local = readLocal();
-    const merged = mergeSyncPayloads(remote, local);
-    writeLocal(merged);
+    const { data, sha } = await fetchRepoFile(token);
+    if (!data) return; // No remote file yet, nothing to pull
+    writeLocal(data);
+    if (sha) localStorage.setItem(CACHED_SHA_KEY, sha);
   } catch { /* silent */ }
 }
 
-/** Silent auto-push: after any mutation, save local state to cloud. No-op if not configured. */
+/**
+ * Silent auto-push after any mutation.
+ * Fetches current SHA to avoid conflicts, then writes local state to repo.
+ */
 export async function autoSyncPush(): Promise<void> {
   const token = getGitHubToken();
-  const gistId = getGistId();
-  if (!token || !gistId) return;
+  if (!token) return;
   try {
+    await ensureDataBranch(token);
+    // Always fetch latest SHA before pushing to avoid conflicts
+    const { sha } = await fetchRepoFile(token);
     const local = readLocal();
-    await updateGist(token, gistId, local);
+    const newSha = await pushRepoFile(token, local, sha);
+    localStorage.setItem(CACHED_SHA_KEY, newSha);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
   } catch { /* silent */ }
+}
+
+/**
+ * Manual sync triggered from Settings.
+ * Push + update last sync timestamp. Returns result for UI feedback.
+ */
+export async function manualSync(token: string): Promise<SyncResult> {
+  try {
+    await ensureDataBranch(token);
+    const { sha } = await fetchRepoFile(token);
+    const local = readLocal();
+    const newSha = await pushRepoFile(token, local, sha);
+    localStorage.setItem(CACHED_SHA_KEY, newSha);
+    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
 }
