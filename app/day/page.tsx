@@ -255,8 +255,7 @@ export default function DayPage() {
               </span>
             )}
             {isCancelled && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "#111", color: "#555", border: "1px solid #222" }}>ANNULÉ</span>}
-            {reschedule && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(255,107,0,0.12)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.3)" }}>DÉCALÉ</span>}
-            {!isDone && !isCancelled && !reschedule && hasPlan && isToday && (
+            {!isDone && !isCancelled && hasPlan && isToday && (
               <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.2)" }}>AUJOURD'HUI</span>
             )}
           </div>
@@ -547,19 +546,6 @@ export default function DayPage() {
           <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: "#111" }}>
             <span className="text-2xl">😴</span>
             <p className="text-sm text-muted">Jour de repos — récupération active.</p>
-          </div>
-        )}
-
-        {/* ── Rescheduled info ── */}
-        {reschedule && (
-          <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
-            style={{ background: "rgba(255,107,0,0.06)", border: "1px solid rgba(255,107,0,0.2)" }}>
-            <p className="text-xs" style={{ color: "#ff6b00" }}>
-              Décalé au <strong>{new Date(reschedule.to + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</strong>
-            </p>
-            <button onClick={handleUnreschedule} className="text-xs px-2 py-1 rounded-lg press-effect" style={{ background: "#1a1a1a", color: "#555" }}>
-              Annuler le décalage
-            </button>
           </div>
         )}
 
