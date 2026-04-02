@@ -34,6 +34,7 @@ type SyncPayload = {
   cc_coach_runs: unknown[];
   cc_cancelled: unknown[];
   cc_rescheduled: unknown[];
+  cc_ex_notes: Record<string, unknown>; // "cc_ex_notes_YYYY-MM-DD" → notes object
 };
 
 function readLocal(): SyncPayload {
@@ -41,6 +42,14 @@ function readLocal(): SyncPayload {
     try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
     catch { return []; }
   };
+  // Collect all cc_ex_notes_* keys
+  const notes: Record<string, unknown> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("cc_ex_notes_")) {
+      try { notes[k] = JSON.parse(localStorage.getItem(k) ?? "{}"); } catch {}
+    }
+  }
   return {
     exportedAt: new Date().toISOString(),
     cc_sessions: get("cc_sessions"),
@@ -48,6 +57,7 @@ function readLocal(): SyncPayload {
     cc_coach_runs: get("cc_coach_runs"),
     cc_cancelled: get("cc_cancelled"),
     cc_rescheduled: get("cc_rescheduled"),
+    cc_ex_notes: notes,
   };
 }
 
@@ -55,6 +65,12 @@ function writeLocal(data: SyncPayload) {
   DATA_KEYS.forEach((k) => {
     localStorage.setItem(k, JSON.stringify(data[k] ?? []));
   });
+  // Restore exercise notes
+  if (data.cc_ex_notes) {
+    Object.entries(data.cc_ex_notes).forEach(([k, v]) => {
+      localStorage.setItem(k, JSON.stringify(v));
+    });
+  }
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 }
 
@@ -76,6 +92,7 @@ function mergeSyncPayloads(remote: SyncPayload, local: SyncPayload): SyncPayload
     cc_coach_runs: mergeById(remote.cc_coach_runs as Record<string, unknown>[], local.cc_coach_runs as Record<string, unknown>[], "id"),
     cc_cancelled: mergeById(remote.cc_cancelled as Record<string, unknown>[], local.cc_cancelled as Record<string, unknown>[], "date"),
     cc_rescheduled: mergeById(remote.cc_rescheduled as Record<string, unknown>[], local.cc_rescheduled as Record<string, unknown>[], "from"),
+    cc_ex_notes: { ...(remote.cc_ex_notes ?? {}), ...(local.cc_ex_notes ?? {}) }, // local wins
   };
 }
 
@@ -235,4 +252,31 @@ export async function pullData(token: string, gistId: string): Promise<SyncResul
 /** Quick check: does the token have gist scope? */
 export function isSyncConfigured(): boolean {
   return !!(getGitHubToken() && getGistId());
+}
+
+/** Silent auto-pull: on app load, get latest data from cloud. No-op if not configured. */
+export async function autoSyncPull(): Promise<void> {
+  const token = getGitHubToken();
+  const gistId = getGistId();
+  if (!token || !gistId) return;
+  try {
+    const remote = await fetchGist(token, gistId);
+    if (!remote) return;
+    // Merge remote into local so we don't lose anything entered on this device
+    const local = readLocal();
+    const merged = mergeSyncPayloads(remote, local);
+    writeLocal(merged);
+  } catch { /* silent */ }
+}
+
+/** Silent auto-push: after any mutation, save local state to cloud. No-op if not configured. */
+export async function autoSyncPush(): Promise<void> {
+  const token = getGitHubToken();
+  const gistId = getGistId();
+  if (!token || !gistId) return;
+  try {
+    const local = readLocal();
+    await updateGist(token, gistId, local);
+    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+  } catch { /* silent */ }
 }
