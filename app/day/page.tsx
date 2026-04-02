@@ -329,27 +329,20 @@ export default function DayPage() {
                         <span className="text-xs text-muted mb-0.5 ml-0.5">rep</span>
                       </div>
                     </div>
-                    {/* Rest timer — aligned right */}
+                    {/* Rest timer */}
                     {ex.restSeconds && (
                       timerExIndex === ex.index ? (
-                        <div className="flex flex-col items-center gap-0.5 press-effect" onClick={stopTimer}>
-                          <span className="font-display text-3xl leading-none"
+                        <button onClick={stopTimer} className="flex items-center gap-2 press-effect">
+                          <span className="font-display text-2xl leading-none"
                             style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
-                            {timerSec}
+                            {timerSec}s
                           </span>
-                          <span className="text-[9px] tracking-widest" style={{ color: "#333" }}>SEC · ✕</span>
-                        </div>
+                          <span className="text-sm" style={{ color: "#555" }}>■</span>
+                        </button>
                       ) : (
-                        <button
-                          onClick={() => startTimer(ex.index, ex.restSeconds!)}
-                          className="flex flex-col items-center gap-0.5 press-effect"
-                        >
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="13" r="8" stroke="#2a2a2a" strokeWidth="2"/>
-                            <path d="M12 9v4l2.5 2.5" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
-                            <path d="M9 2h6M12 2v3" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
-                          <span className="text-[9px]" style={{ color: "#2a2a2a" }}>{ex.restSeconds}s</span>
+                        <button onClick={() => startTimer(ex.index, ex.restSeconds!)} className="flex items-center gap-2 press-effect">
+                          <span className="text-xs font-bold tracking-wide" style={{ color: "#333" }}>RÉCUP {ex.restSeconds}s</span>
+                          <span className="text-sm" style={{ color: "#555" }}>▶</span>
                         </button>
                       )
                     )}
