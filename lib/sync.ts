@@ -23,6 +23,7 @@ type SyncPayload = {
   cc_coach_runs: unknown[];
   cc_cancelled_days: unknown[];
   cc_rescheduled_days: unknown[];
+  cc_body_weight: unknown[];
   cc_ex_notes: Record<string, unknown>;
 };
 
@@ -32,6 +33,7 @@ const DATA_KEYS = [
   "cc_coach_runs",
   "cc_cancelled_days",
   "cc_rescheduled_days",
+  "cc_body_weight",
 ] as const;
 
 function readLocal(): SyncPayload {
@@ -53,6 +55,7 @@ function readLocal(): SyncPayload {
     cc_coach_runs: get("cc_coach_runs"),
     cc_cancelled_days: get("cc_cancelled_days"),
     cc_rescheduled_days: get("cc_rescheduled_days"),
+    cc_body_weight: get("cc_body_weight"),
     cc_ex_notes: notes,
   };
 }

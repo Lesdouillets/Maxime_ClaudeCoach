@@ -116,8 +116,9 @@ export default function SettingsPage() {
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result as string;
-        const plans = parseCoachWorkoutJSON(text);
-        if (plans.length === 0) { setImportError("Aucune séance trouvée dans le JSON."); return; }
+        const today = new Date().toISOString().slice(0, 10);
+        const plans = parseCoachWorkoutJSON(text).filter((p) => p.date >= today);
+        if (plans.length === 0) { setImportError("Aucune séance future trouvée dans le JSON."); return; }
         clearFutureCoachPlans();
         plans.forEach((p) => { if (p.type === "run") addCoachRun(p); else addCoachWorkout(p); });
         autoSyncPush();

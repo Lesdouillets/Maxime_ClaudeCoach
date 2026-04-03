@@ -9,7 +9,7 @@ function FloatingTimer() {
   return (
     <button
       onClick={stopTimer}
-      className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full flex items-center justify-center press-effect"
+      className="fixed top-12 right-5 z-50 w-12 h-12 rounded-full flex items-center justify-center press-effect"
       style={{
         background: "#111",
         border: `2px solid ${color}`,
