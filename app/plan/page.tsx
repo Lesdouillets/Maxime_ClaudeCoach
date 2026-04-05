@@ -94,9 +94,6 @@ export default function PlanPage() {
           const cancelledDay = cancelledDays.find((d) => d.date === dateStr);
           const isCancelled = !!cancelledDay;
 
-          // Skip cancelled days entirely in plan view
-          if (isCancelled) return null;
-
           const reschedule = rescheduledDays.find((r) => r.from === dateStr);
           const coachWorkout = coachWorkouts.find((w) => w.date === dateStr) ?? null;
           const coachRun = coachRuns.find((r) => r.date === dateStr) ?? null;
