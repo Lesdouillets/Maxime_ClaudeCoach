@@ -22,8 +22,13 @@ function formatWeekLabel(days: ReturnType<typeof getWeekDays>): string {
 export default function PlanPage() {
   const [mounted, setMounted] = useState(false);
   const [weekOffset, setWeekOffset] = useState(() => {
-    try { return parseInt(sessionStorage.getItem("plan_week_offset") ?? "0", 10) || 0; }
-    catch { return 0; }
+    try {
+      const stored = parseInt(sessionStorage.getItem("plan_week_offset") ?? "0", 10) || 0;
+      if (stored === 0) return 0;
+      const todayStr = toLocalDateStr(new Date());
+      const inWeek = getWeekDays(stored).some((d) => toLocalDateStr(d.date) === todayStr);
+      return inWeek ? stored : 0;
+    } catch { return 0; }
   });
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [cancelledDays, setCancelledDays] = useState<CancelledDayType[]>([]);
