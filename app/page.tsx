@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
@@ -113,12 +112,11 @@ export default function HomePage() {
   return (
     <div className="fixed inset-0" style={{ zIndex: 0, background: BG_FALLBACK[bgType] }}>
       {/* Full-screen background */}
-      <Image
-        src={BG_IMAGES[bgType]}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${BG_IMAGES[bgType]}`}
         alt=""
-        fill
-        className="object-cover object-center"
-        priority
+        className="absolute inset-0 w-full h-full object-cover object-center"
       />
 
       {/* Gradient overlay — transparent top, dark bottom */}
