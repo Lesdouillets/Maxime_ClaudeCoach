@@ -1,10 +1,13 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { TimerProvider, useTimer } from "@/contexts/TimerContext";
 
 function FloatingTimer() {
   const { timerKey, timerSec, stopTimer } = useTimer();
-  if (!timerKey || timerSec <= 0) return null;
+  const pathname = usePathname();
+  const isTimerPage = pathname === "/day" || pathname === "/log/fitness";
+  if (!timerKey || timerSec <= 0 || isTimerPage) return null;
   const color = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
   return (
     <button
