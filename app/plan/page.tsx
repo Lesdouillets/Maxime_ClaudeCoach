@@ -120,10 +120,10 @@ export default function PlanPage() {
           const planZone = effectiveRun?.targetZone ?? null;
           const planHR = effectiveRun?.targetHR ?? null;
 
-          let status: "done" | "missed" | "upcoming" | "today-planned" | "rest";
+          let status: "done" | "missed" | "upcoming" | "today-planned" | "today-rest" | "rest";
           if (session) status = "done";
+          else if (day.isToday) status = hasPlan ? "today-planned" : "today-rest";
           else if (!hasPlan) status = "rest";
-          else if (day.isToday) status = "today-planned";
           else if (day.isPast) status = "missed";
           else status = "upcoming";
 
@@ -136,6 +136,7 @@ export default function PlanPage() {
             missed:          { color: "#ff6b00", label: "Manqué",      border: "rgba(255,107,0,0.25)", bg: "rgba(255,107,0,0.03)" },
             upcoming:        { color: planColor, label: "À venir",     border: planBorder,             bg: "#111" },
             "today-planned": { color: planColor, label: "Aujourd'hui", border: planBorder,             bg: planBg },
+            "today-rest":    { color: "#555",    label: "Repos",       border: "#333",                 bg: "#111" },
             rest:            { color: "#2a2a2a", label: "Repos",       border: "#1a1a1a",              bg: "#0d0d0d" },
           }[status];
 
@@ -151,7 +152,10 @@ export default function PlanPage() {
                     {DAY_FULL_FR[day.dow].toUpperCase()}
                   </span>
                   <span className="text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest"
-                    style={{ background: `${planColor}20`, color: planColor, border: `1px solid ${planColor}50` }}>
+                    style={hasPlan
+                      ? { background: `${planColor}20`, color: planColor, border: `1px solid ${planColor}50` }
+                      : { background: "rgba(85,85,85,0.15)", color: "#555", border: "1px solid rgba(85,85,85,0.3)" }
+                    }>
                     TODAY
                   </span>
                 </div>
@@ -214,7 +218,7 @@ export default function PlanPage() {
                   )}
                 </>
               ) : (
-                <p className="text-base" style={{ color: "#2a2a2a" }}>Récupération active</p>
+                <p className="text-base text-muted">Récupération active</p>
               )}
             </div>
           ) : (
