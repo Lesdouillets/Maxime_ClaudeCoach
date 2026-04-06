@@ -23,8 +23,8 @@ export default function SwipeNavWrapper({ children }: { children: React.ReactNod
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     const elapsed = Date.now() - touchStartTime.current;
 
-    // Require: fast (<400ms), horizontal (>60px), more horizontal than vertical
-    if (elapsed > 400 || Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+    // Require: fast (<400ms), horizontal (>70px), vertical movement must be small (<25px)
+    if (elapsed > 400 || Math.abs(deltaX) < 70 || Math.abs(deltaY) > 25) return;
 
     const idx = MAIN_PAGES.indexOf(pathname);
     if (idx === -1) return;

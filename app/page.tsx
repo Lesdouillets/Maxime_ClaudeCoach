@@ -132,7 +132,7 @@ export default function HomePage() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.85) 80%, rgba(0,0,0,0.97) 100%)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.6) 75%, rgba(0,0,0,0.75) 100%)",
         }}
       />
 
@@ -172,9 +172,9 @@ export default function HomePage() {
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => router.push(`/day?date=${todayStr}`)}
             style={{
-              background: "rgba(8,8,8,0.45)",
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
+              background: "rgba(15,15,15,0.3)",
+              backdropFilter: "blur(40px) saturate(1.5)",
+              WebkitBackdropFilter: "blur(40px) saturate(1.5)",
               border: isDone
                 ? "1px solid rgba(57,255,20,0.35)"
                 : `1px solid ${accent}40`,
@@ -255,9 +255,9 @@ export default function HomePage() {
           <div
             className="w-full p-5 rounded-2xl"
             style={{
-              background: "rgba(8,8,8,0.45)",
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
+              background: "rgba(15,15,15,0.3)",
+              backdropFilter: "blur(40px) saturate(1.5)",
+              WebkitBackdropFilter: "blur(40px) saturate(1.5)",
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           >

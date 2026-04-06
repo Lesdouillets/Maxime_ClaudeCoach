@@ -217,7 +217,7 @@ export default function DayPage() {
     <div className="max-w-md mx-auto animate-fade-in pb-24">
 
       {/* Header */}
-      <div className="px-5 pt-5 pb-4">
+      <div className="px-5 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
         <button onClick={() => router.back()} className="flex items-center gap-1.5 text-xs mb-5 press-effect" style={{ color: "#555" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>

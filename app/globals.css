@@ -22,18 +22,16 @@ body {
   color: #ffffff;
   font-family: var(--font-outfit);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
+/* Hide scrollbars everywhere */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-::-webkit-scrollbar-track {
-  background: #111111;
-}
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 2px;
+*::-webkit-scrollbar {
+  display: none;
 }
 
 /* Selection */
