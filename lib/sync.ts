@@ -15,6 +15,11 @@ export function setGitHubToken(t: string) {
 }
 export function getLastSync(): string { return localStorage.getItem(LAST_SYNC_KEY) ?? ""; }
 export function isSyncConfigured(): boolean { return !!getGitHubToken(); }
+export function getStoredGistId(): string { return localStorage.getItem(GIST_ID_KEY) ?? ""; }
+export function setStoredGistId(id: string) {
+  if (id) localStorage.setItem(GIST_ID_KEY, id);
+  else localStorage.removeItem(GIST_ID_KEY);
+}
 
 // ─── Local data helpers ─────────────────────────────────────────────────────
 type SyncPayload = {
@@ -250,6 +255,24 @@ export async function manualSync(token: string): Promise<SyncResult> {
     const gistId = await resolveGistId(token);
     await updateGist(token, gistId, readLocal());
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
+
+/**
+ * Force pull from Gist — bypasses all timestamp guards.
+ * Use for recovery (e.g. app pointed to wrong Gist after data loss).
+ */
+export async function forcePull(token: string): Promise<SyncResult> {
+  try {
+    const gistId = await resolveGistId(token);
+    const remote = await fetchGist(token, gistId);
+    if (!remote) return { ok: false, error: "Gist vide ou introuvable." };
+    writeLocal(mergeWithLocal(remote));
+    localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
+    localStorage.setItem(LAST_SYNC_KEY, remote.exportedAt);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };

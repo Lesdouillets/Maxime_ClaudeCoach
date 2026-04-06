@@ -5,7 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import {
   getGitHubToken, setGitHubToken,
   getLastSync,
-  verifyToken, manualSync, autoSyncPush,
+  getStoredGistId, setStoredGistId,
+  verifyToken, manualSync, forcePull, autoSyncPush,
 } from "@/lib/sync";
 import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun, clearFutureCoachPlans } from "@/lib/coachPlan";
 import { buildExportData, downloadExport } from "@/lib/export";
@@ -38,6 +39,8 @@ export default function SettingsPage() {
   const [syncMsg, setSyncMsg] = useState("");
   const [syncError, setSyncError] = useState("");
   const [lastSync, setLastSync] = useState("");
+  const [gistId, setGistId] = useState("");
+  const [forcePulling, setForcePulling] = useState(false);
 
   // ── Strava state ──
   const [isStravaConnected, setIsStravaConnected] = useState(false);
@@ -55,6 +58,7 @@ export default function SettingsPage() {
     setMounted(true);
     setToken(getGitHubToken());
     setLastSync(getLastSync());
+    setGistId(getStoredGistId());
     if (getGitHubToken()) setTokenStatus("ok");
     setIsStravaConnected(!!getStravaTokens());
   }, []);
@@ -91,6 +95,26 @@ export default function SettingsPage() {
   const handleDisconnect = () => {
     setGitHubToken(""); setToken("");
     setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
+  };
+
+  const handleSaveGistId = () => {
+    setStoredGistId(gistId.trim());
+    setSyncMsg("Gist ID mis à jour ✓");
+    setTimeout(() => setSyncMsg(""), 3000);
+  };
+
+  const handleForcePull = async () => {
+    const t = getGitHubToken();
+    if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
+    setForcePulling(true); setSyncMsg(""); setSyncError("");
+    const result = await forcePull(t);
+    setForcePulling(false);
+    if (result.ok) {
+      setLastSync(new Date().toISOString());
+      setSyncMsg("Données récupérées depuis le Gist ✓");
+    } else {
+      setSyncError(result.error ?? "Erreur");
+    }
   };
 
   // ── Strava handler ──
@@ -224,6 +248,45 @@ export default function SettingsPage() {
             </button>
             {syncMsg && <p className="text-xs text-center" style={{ color: "#39ff14" }}>{syncMsg}</p>}
             {syncError && <p className="text-xs text-center" style={{ color: "#ff4444" }}>{syncError}</p>}
+
+            {/* Force pull */}
+            {isConnected && (
+              <button
+                onClick={handleForcePull}
+                disabled={forcePulling || !isConnected}
+                className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
+                style={{ background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.25)", color: "#ffb400" }}
+              >
+                {forcePulling ? "Récupération…" : "Forcer la récupération depuis le Gist"}
+              </button>
+            )}
+
+            {/* Gist ID override */}
+            {isConnected && (
+              <div>
+                <p className="text-xs font-semibold mb-1.5" style={{ color: "#444" }}>
+                  Gist ID (avancé)
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={gistId}
+                    onChange={(e) => setGistId(e.target.value)}
+                    placeholder="ID du Gist (visible dans l'URL)"
+                    className="flex-1 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
+                    style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
+                  />
+                  <button
+                    onClick={handleSaveGistId}
+                    disabled={!gistId.trim()}
+                    className="px-3 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                    style={{ background: "#1a1a1a", border: "1px solid #333", color: "#aaa" }}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            )}
 
             {isConnected && (
               <button
