@@ -175,6 +175,8 @@ async function updateGist(token: string, gistId: string, data: SyncPayload): Pro
 export type SyncResult = {
   ok: boolean;
   error?: string;
+  sessionCount?: number;
+  exportedAt?: string;
 };
 
 /** Merge two arrays deduplicating by a string key. Remote wins for duplicates. */
@@ -269,11 +271,15 @@ export async function forcePull(token: string): Promise<SyncResult> {
   try {
     const gistId = await resolveGistId(token);
     const remote = await fetchGist(token, gistId);
-    if (!remote) return { ok: false, error: "Gist vide ou introuvable." };
+    if (!remote) return { ok: false, error: `Gist introuvable (ID: ${gistId.slice(0, 8)}…)` };
+    const sessionCount = Array.isArray(remote.cc_sessions) ? (remote.cc_sessions as unknown[]).length : 0;
+    if (sessionCount === 0) {
+      return { ok: false, error: `Gist trouvé mais 0 séances dedans (ID: ${gistId.slice(0, 8)}…). Vérifie que tu as copié le bon ID.`, sessionCount: 0 };
+    }
     writeLocal(mergeWithLocal(remote));
     localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
     localStorage.setItem(LAST_SYNC_KEY, remote.exportedAt);
-    return { ok: true };
+    return { ok: true, sessionCount, exportedAt: remote.exportedAt };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }

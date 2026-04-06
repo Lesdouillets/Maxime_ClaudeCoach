@@ -97,37 +97,23 @@ export default function SettingsPage() {
     setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
   };
 
-  const handleForcePull = async () => {
-    const t = getGitHubToken();
-    if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
-    setForcePulling(true); setSyncMsg(""); setSyncError("");
-    const result = await forcePull(t);
-    setForcePulling(false);
-    if (result.ok) {
-      setSyncMsg("Données récupérées ✓ Rechargement…");
-      setTimeout(() => window.location.reload(), 1200);
-    } else {
-      setSyncError(result.error ?? "Erreur");
-    }
-  };
-
   const handleSaveGistIdAndPull = async () => {
     const t = getGitHubToken();
     if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
     const id = gistId.trim();
     if (!id) return;
     setStoredGistId(id);
-    // Reset sync guards so the pull isn't blocked
     localStorage.removeItem("cc_last_gist_at");
     localStorage.removeItem("cc_last_sync");
     setForcePulling(true); setSyncMsg(""); setSyncError("");
     const result = await forcePull(t);
     setForcePulling(false);
     if (result.ok) {
-      setSyncMsg("Données récupérées ✓ Rechargement…");
-      setTimeout(() => window.location.reload(), 1200);
+      const date = result.exportedAt ? new Date(result.exportedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+      setSyncMsg(`${result.sessionCount} séances récupérées (${date}) — rechargement…`);
+      setTimeout(() => { window.location.href = window.location.href; }, 1500);
     } else {
-      setSyncError(result.error ?? "Erreur — vérifie l'ID du Gist");
+      setSyncError(result.error ?? "Erreur");
     }
   };
 
@@ -262,18 +248,6 @@ export default function SettingsPage() {
             </button>
             {syncMsg && <p className="text-xs text-center" style={{ color: "#39ff14" }}>{syncMsg}</p>}
             {syncError && <p className="text-xs text-center" style={{ color: "#ff4444" }}>{syncError}</p>}
-
-            {/* Force pull */}
-            {isConnected && (
-              <button
-                onClick={handleForcePull}
-                disabled={forcePulling || !isConnected}
-                className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
-                style={{ background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.25)", color: "#ffb400" }}
-              >
-                {forcePulling ? "Récupération…" : "Forcer la récupération depuis le Gist"}
-              </button>
-            )}
 
             {/* Gist ID override */}
             {isConnected && (
