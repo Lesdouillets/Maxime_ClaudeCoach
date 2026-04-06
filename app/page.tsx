@@ -240,7 +240,9 @@ export default function HomePage() {
                   {todaySession.distanceKm.toFixed(1)} <span className="text-sm font-body font-normal text-muted">km</span>
                 </span>
                 {todaySession.avgPaceSecPerKm > 0 && (
-                  <span className="text-sm text-muted self-end">{formatPace(todaySession.avgPaceSecPerKm)}</span>
+                  <span className="font-display text-xl" style={{ color: "#39ff14" }}>
+                    {formatPace(todaySession.avgPaceSecPerKm).replace("/km", "")} <span className="text-sm font-body font-normal text-muted">/km</span>
+                  </span>
                 )}
               </div>
             )}
