@@ -97,12 +97,6 @@ export default function SettingsPage() {
     setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
   };
 
-  const handleSaveGistId = () => {
-    setStoredGistId(gistId.trim());
-    setSyncMsg("Gist ID mis à jour ✓");
-    setTimeout(() => setSyncMsg(""), 3000);
-  };
-
   const handleForcePull = async () => {
     const t = getGitHubToken();
     if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
@@ -110,10 +104,30 @@ export default function SettingsPage() {
     const result = await forcePull(t);
     setForcePulling(false);
     if (result.ok) {
-      setLastSync(new Date().toISOString());
-      setSyncMsg("Données récupérées depuis le Gist ✓");
+      setSyncMsg("Données récupérées ✓ Rechargement…");
+      setTimeout(() => window.location.reload(), 1200);
     } else {
       setSyncError(result.error ?? "Erreur");
+    }
+  };
+
+  const handleSaveGistIdAndPull = async () => {
+    const t = getGitHubToken();
+    if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
+    const id = gistId.trim();
+    if (!id) return;
+    setStoredGistId(id);
+    // Reset sync guards so the pull isn't blocked
+    localStorage.removeItem("cc_last_gist_at");
+    localStorage.removeItem("cc_last_sync");
+    setForcePulling(true); setSyncMsg(""); setSyncError("");
+    const result = await forcePull(t);
+    setForcePulling(false);
+    if (result.ok) {
+      setSyncMsg("Données récupérées ✓ Rechargement…");
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      setSyncError(result.error ?? "Erreur — vérifie l'ID du Gist");
     }
   };
 
@@ -265,24 +279,24 @@ export default function SettingsPage() {
             {isConnected && (
               <div>
                 <p className="text-xs font-semibold mb-1.5" style={{ color: "#444" }}>
-                  Gist ID (avancé)
+                  Récupérer depuis un Gist spécifique
                 </p>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={gistId}
                     onChange={(e) => setGistId(e.target.value)}
-                    placeholder="ID du Gist (visible dans l'URL)"
+                    placeholder="ID du Gist (dans l'URL gist.github.com)"
                     className="flex-1 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
                     style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
                   />
                   <button
-                    onClick={handleSaveGistId}
-                    disabled={!gistId.trim()}
+                    onClick={handleSaveGistIdAndPull}
+                    disabled={!gistId.trim() || forcePulling}
                     className="px-3 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                    style={{ background: "#1a1a1a", border: "1px solid #333", color: "#aaa" }}
+                    style={{ background: "rgba(255,180,0,0.12)", border: "1px solid rgba(255,180,0,0.3)", color: "#ffb400" }}
                   >
-                    OK
+                    {forcePulling ? "…" : "Récup."}
                   </button>
                 </div>
               </div>
