@@ -172,12 +172,36 @@ export type SyncResult = {
   error?: string;
 };
 
+/** Merge two arrays deduplicating by a string key. Remote wins for duplicates. */
+function mergeByKey<T>(remote: T[], local: T[], key: keyof T): T[] {
+  const seen = new Set(remote.map((x) => String(x[key])));
+  const localOnly = local.filter((x) => !seen.has(String(x[key])));
+  return localOnly.length > 0 ? [...remote, ...localOnly] : remote;
+}
+
+/** Merge remote payload with current local storage — never erase local-only entries. */
+function mergeWithLocal(remote: SyncPayload): SyncPayload {
+  const get = (key: string): unknown[] => {
+    try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
+    catch { return []; }
+  };
+  return {
+    ...remote,
+    cc_sessions:        mergeByKey(remote.cc_sessions        as { id: string }[],   get("cc_sessions")        as { id: string }[],   "id"),
+    cc_coach_workouts:  mergeByKey(remote.cc_coach_workouts  as { id: string }[],   get("cc_coach_workouts")  as { id: string }[],   "id"),
+    cc_coach_runs:      mergeByKey(remote.cc_coach_runs      as { id: string }[],   get("cc_coach_runs")      as { id: string }[],   "id"),
+    cc_cancelled_days:  mergeByKey(remote.cc_cancelled_days  as { date: string }[], get("cc_cancelled_days")  as { date: string }[], "date"),
+    cc_rescheduled_days:mergeByKey(remote.cc_rescheduled_days as { from: string }[], get("cc_rescheduled_days") as { from: string }[], "from"),
+    cc_body_weight:     mergeByKey(remote.cc_body_weight     as { date: string }[], get("cc_body_weight")     as { date: string }[], "date"),
+  };
+}
+
 /**
  * Silent auto-pull on app load.
  * Guards against overwriting fresh local data with a stale Gist:
- *   1. Skip if the Gist hasn't changed since our last pull.
- *   2. Merge sessions: local sessions not present in remote are preserved
- *      (a validated session that failed to push is never silently erased).
+ *   1. Skip if Gist hasn't changed since our last pull.
+ *   2. Skip if we pushed more recently than the remote (local is authoritative).
+ *   3. Merge ALL arrays by unique key — local-only entries are never erased.
  */
 export async function autoSyncPull(): Promise<void> {
   const token = getGitHubToken();
@@ -187,20 +211,16 @@ export async function autoSyncPull(): Promise<void> {
     const remote = await fetchGist(token, gistId);
     if (!remote) return;
 
-    // Skip if remote hasn't changed since our last pull
+    // 1. Skip if remote hasn't changed since our last pull
     const lastGistAt = localStorage.getItem(LAST_GIST_AT_KEY) ?? "";
     if (lastGistAt && remote.exportedAt <= lastGistAt) return;
 
-    // Merge sessions: keep local sessions not present in remote
-    // This prevents erasing sessions validated locally but not yet pushed
-    const localSessions = JSON.parse(localStorage.getItem("cc_sessions") ?? "[]") as { id: string }[];
-    const remoteIds = new Set((remote.cc_sessions as { id: string }[]).map((s) => s.id));
-    const localOnly = localSessions.filter((s) => !remoteIds.has(s.id));
-    const merged: SyncPayload = localOnly.length > 0
-      ? { ...remote, cc_sessions: [...(remote.cc_sessions), ...localOnly] }
-      : remote;
+    // 2. Skip if local was pushed more recently than remote (our data is newer)
+    const lastSync = localStorage.getItem(LAST_SYNC_KEY) ?? "";
+    if (lastSync && lastSync >= remote.exportedAt) return;
 
-    writeLocal(merged);
+    // 3. Merge: keep local-only entries across all data types
+    writeLocal(mergeWithLocal(remote));
     localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
   } catch { /* silent */ }
 }
