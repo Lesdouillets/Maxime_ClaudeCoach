@@ -9,15 +9,10 @@ export default function SwipeNavWrapper({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Keep pathname ref fresh without re-running the touch effect
   useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
     let startX = 0, startY = 0, startTime = 0;
     let curX = 0, curY = 0;
     let isTracking = false;
@@ -37,21 +32,21 @@ export default function SwipeNavWrapper({ children }: { children: React.ReactNod
       const dx = curX - startX;
       const dy = curY - startY;
       if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 2) {
-        // Clearly horizontal — prevent scroll so the swipe can complete
-        e.preventDefault();
+        // Horizontal intent confirmed — block scroll only on main pages
+        if (MAIN_PAGES.includes(pathnameRef.current)) e.preventDefault();
       } else if (Math.abs(dy) > 15 && Math.abs(dy) > Math.abs(dx)) {
-        // Clearly vertical — user is scrolling, abort swipe tracking
-        isTracking = false;
+        isTracking = false; // vertical intent → abort
       }
     };
 
-    const onEnd = () => {
+    const onEnd = (e: TouchEvent) => {
       if (!isTracking) return;
       isTracking = false;
-      const dx = curX - startX;
-      const dy = curY - startY;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const dx = endX - startX;
+      const dy = endY - startY;
       const elapsed = Date.now() - startTime;
-      // Navigate if: fast enough, enough horizontal distance, more horizontal than vertical
       if (elapsed > 600 || Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 0.8) return;
       const idx = MAIN_PAGES.indexOf(pathnameRef.current);
       if (idx === -1) return;
@@ -59,20 +54,17 @@ export default function SwipeNavWrapper({ children }: { children: React.ReactNod
       else if (dx > 0 && idx > 0) router.push(MAIN_PAGES[idx - 1]);
     };
 
-    // touchmove must be non-passive to allow e.preventDefault()
-    el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", onEnd, { passive: true });
+    // Attach to document: fires regardless of which element the touch started on.
+    // touchmove must be non-passive to allow e.preventDefault() (blocks scroll during horizontal swipe).
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onEnd, { passive: true });
     return () => {
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
     };
   }, [router]);
 
-  return (
-    <div ref={containerRef} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }
