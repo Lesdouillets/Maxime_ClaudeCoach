@@ -1,9 +1,8 @@
-// GitHub Gist-based sync — no commits, auto-discovery by description
+// GitHub Gist-based sync — single file, auto-discovery by description
 
 const TOKEN_KEY = "cc_gh_token";
 const GIST_ID_KEY = "cc_gist_id"; // auto-cached, never shown to user
-const LAST_SYNC_KEY = "cc_last_sync";
-const LAST_GIST_AT_KEY = "cc_last_gist_at"; // exportedAt of the last Gist we wrote locally
+const LAST_SYNC_KEY = "cc_last_sync"; // ISO timestamp, displayed in Settings
 const GIST_DESCRIPTION = "claude-coach-data";
 const GIST_FILENAME = "claude-coach-data.json";
 
@@ -15,11 +14,6 @@ export function setGitHubToken(t: string) {
 }
 export function getLastSync(): string { return localStorage.getItem(LAST_SYNC_KEY) ?? ""; }
 export function isSyncConfigured(): boolean { return !!getGitHubToken(); }
-export function getStoredGistId(): string { return localStorage.getItem(GIST_ID_KEY) ?? ""; }
-export function setStoredGistId(id: string) {
-  if (id) localStorage.setItem(GIST_ID_KEY, id);
-  else localStorage.removeItem(GIST_ID_KEY);
-}
 
 // ─── Local data helpers ─────────────────────────────────────────────────────
 type SyncPayload = {
@@ -75,7 +69,6 @@ function writeLocal(data: SyncPayload) {
       localStorage.setItem(k, JSON.stringify(v));
     });
   }
-  localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 }
 
 // ─── GitHub API helpers ─────────────────────────────────────────────────────
@@ -101,31 +94,34 @@ export async function verifyToken(token: string): Promise<{ ok: boolean; login?:
 }
 
 /**
- * Find or create the sync gist. Returns the gist ID.
- * Searches existing gists for one with description = GIST_DESCRIPTION.
- * Creates a new private gist if none found.
+ * Find or create the sync Gist. Returns the Gist ID.
+ * If multiple Gists with the same description exist, picks the OLDEST one
+ * (most likely the original with all data, not an accidentally-created empty one).
  */
 async function resolveGistId(token: string): Promise<string> {
-  // Check local cache first
   const cached = localStorage.getItem(GIST_ID_KEY);
   if (cached) return cached;
 
-  // Search user's gists for existing sync gist (paginated, check first 2 pages)
-  for (let page = 1; page <= 2; page++) {
+  // Collect ALL matching gists across pages (GitHub returns newest first)
+  const matching: { id: string; created_at: string }[] = [];
+  for (let page = 1; page <= 3; page++) {
     const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
       headers: ghHeaders(token),
     });
     if (!res.ok) break;
-    const gists = await res.json() as { id: string; description: string }[];
+    const gists = await res.json() as { id: string; description: string; created_at: string }[];
     if (gists.length === 0) break;
-    const found = gists.find((g) => g.description === GIST_DESCRIPTION);
-    if (found) {
-      localStorage.setItem(GIST_ID_KEY, found.id);
-      return found.id;
-    }
+    matching.push(...gists.filter((g) => g.description === GIST_DESCRIPTION));
   }
 
-  // Not found → create new private gist
+  if (matching.length > 0) {
+    // Pick the oldest — it's the original Gist with all accumulated data
+    const oldest = matching.sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+    localStorage.setItem(GIST_ID_KEY, oldest.id);
+    return oldest.id;
+  }
+
+  // Not found → create new private Gist with current local data
   const createRes = await fetch("https://api.github.com/gists", {
     method: "POST",
     headers: ghHeaders(token),
@@ -141,14 +137,13 @@ async function resolveGistId(token: string): Promise<string> {
   return gist.id;
 }
 
-/** Fetch gist content */
+/** Fetch Gist content */
 async function fetchGist(token: string, gistId: string): Promise<SyncPayload | null> {
   const res = await fetch(`https://api.github.com/gists/${gistId}`, {
     headers: ghHeaders(token),
   });
   if (res.status === 404) {
-    // Gist deleted externally — clear cache so next call recreates it
-    localStorage.removeItem(GIST_ID_KEY);
+    localStorage.removeItem(GIST_ID_KEY); // stale cache — will re-discover next call
     return null;
   }
   if (!res.ok) throw new Error(`Erreur lecture Gist: ${res.status}`);
@@ -158,7 +153,7 @@ async function fetchGist(token: string, gistId: string): Promise<SyncPayload | n
   return JSON.parse(file.content) as SyncPayload;
 }
 
-/** Update gist content */
+/** Update Gist content */
 async function updateGist(token: string, gistId: string, data: SyncPayload): Promise<void> {
   const res = await fetch(`https://api.github.com/gists/${gistId}`, {
     method: "PATCH",
@@ -170,23 +165,16 @@ async function updateGist(token: string, gistId: string, data: SyncPayload): Pro
   if (!res.ok) throw new Error(`Erreur écriture Gist: ${res.status}`);
 }
 
-// ─── Public sync API ─────────────────────────────────────────────────────────
+// ─── Merge helpers ───────────────────────────────────────────────────────────
 
-export type SyncResult = {
-  ok: boolean;
-  error?: string;
-  sessionCount?: number;
-  exportedAt?: string;
-};
-
-/** Merge two arrays deduplicating by a string key. Remote wins for duplicates. */
+/** Union two arrays by a unique string key. Remote wins for duplicates. */
 function mergeByKey<T>(remote: T[], local: T[], key: keyof T): T[] {
   const seen = new Set(remote.map((x) => String(x[key])));
   const localOnly = local.filter((x) => !seen.has(String(x[key])));
   return localOnly.length > 0 ? [...remote, ...localOnly] : remote;
 }
 
-/** Merge remote payload with current local storage — never erase local-only entries. */
+/** Merge remote payload into current local state. Local-only entries are never erased. */
 function mergeWithLocal(remote: SyncPayload): SyncPayload {
   const get = (key: string): unknown[] => {
     try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
@@ -194,93 +182,61 @@ function mergeWithLocal(remote: SyncPayload): SyncPayload {
   };
   return {
     ...remote,
-    cc_sessions:        mergeByKey(remote.cc_sessions        as { id: string }[],   get("cc_sessions")        as { id: string }[],   "id"),
-    cc_coach_workouts:  mergeByKey(remote.cc_coach_workouts  as { id: string }[],   get("cc_coach_workouts")  as { id: string }[],   "id"),
-    cc_coach_runs:      mergeByKey(remote.cc_coach_runs      as { id: string }[],   get("cc_coach_runs")      as { id: string }[],   "id"),
-    cc_cancelled_days:  mergeByKey(remote.cc_cancelled_days  as { date: string }[], get("cc_cancelled_days")  as { date: string }[], "date"),
-    cc_rescheduled_days:mergeByKey(remote.cc_rescheduled_days as { from: string }[], get("cc_rescheduled_days") as { from: string }[], "from"),
-    cc_body_weight:     mergeByKey(remote.cc_body_weight     as { date: string }[], get("cc_body_weight")     as { date: string }[], "date"),
+    cc_sessions:         mergeByKey(remote.cc_sessions         as { id: string }[],   get("cc_sessions")         as { id: string }[],   "id"),
+    cc_coach_workouts:   mergeByKey(remote.cc_coach_workouts   as { id: string }[],   get("cc_coach_workouts")   as { id: string }[],   "id"),
+    cc_coach_runs:       mergeByKey(remote.cc_coach_runs       as { id: string }[],   get("cc_coach_runs")       as { id: string }[],   "id"),
+    cc_cancelled_days:   mergeByKey(remote.cc_cancelled_days   as { date: string }[], get("cc_cancelled_days")   as { date: string }[], "date"),
+    cc_rescheduled_days: mergeByKey(remote.cc_rescheduled_days as { from: string }[], get("cc_rescheduled_days") as { from: string }[], "from"),
+    cc_body_weight:      mergeByKey(remote.cc_body_weight      as { date: string }[], get("cc_body_weight")      as { date: string }[], "date"),
   };
 }
 
+// ─── Public sync API ─────────────────────────────────────────────────────────
+
+export type SyncResult = { ok: boolean; error?: string };
+
+// Mutex — prevents concurrent sync calls
+let isSyncing = false;
+
 /**
- * Silent auto-pull on app load.
- * Guards against overwriting fresh local data with a stale Gist:
- *   1. Skip if Gist hasn't changed since our last pull.
- *   2. Skip if we pushed more recently than the remote (local is authoritative).
- *   3. Merge ALL arrays by unique key — local-only entries are never erased.
+ * Full bidirectional sync: pull → merge → push.
+ * - Fetches remote Gist, merges into local (union, never erases local data)
+ * - Pushes the merged result back so the Gist is always up to date
+ * - Protected by a mutex to prevent concurrent calls
+ * Call on: app open, visibilitychange, manual button in Settings
  */
-export async function autoSyncPull(): Promise<void> {
+export async function syncFull(): Promise<SyncResult> {
+  if (isSyncing) return { ok: false };
   const token = getGitHubToken();
-  if (!token) return;
+  if (!token) return { ok: false };
+  isSyncing = true;
   try {
     const gistId = await resolveGistId(token);
     const remote = await fetchGist(token, gistId);
-    if (!remote) return;
-
-    // 1. Skip if remote hasn't changed since our last pull
-    const lastGistAt = localStorage.getItem(LAST_GIST_AT_KEY) ?? "";
-    if (lastGistAt && remote.exportedAt <= lastGistAt) return;
-
-    // 2. Skip if local was pushed more recently than remote (our data is newer)
-    const lastSync = localStorage.getItem(LAST_SYNC_KEY) ?? "";
-    if (lastSync && lastSync >= remote.exportedAt) return;
-
-    // 3. Merge: keep local-only entries across all data types
-    writeLocal(mergeWithLocal(remote));
-    localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
-  } catch { /* silent */ }
+    const merged = remote ? mergeWithLocal(remote) : readLocal();
+    writeLocal(merged);
+    const payload = readLocal(); // re-read with fresh exportedAt
+    await updateGist(token, gistId, payload);
+    localStorage.setItem(LAST_SYNC_KEY, payload.exportedAt);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  } finally {
+    isSyncing = false;
+  }
 }
 
 /**
- * Silent auto-push after any mutation.
- * Writes local state to gist immediately.
+ * Silent push after any local mutation (session log, cancel, reschedule…).
+ * Does not pull — just pushes current local state immediately.
  */
 export async function autoSyncPush(): Promise<void> {
   const token = getGitHubToken();
   if (!token) return;
   try {
-    const payload = readLocal(); // exportedAt = now
+    const payload = readLocal();
     const gistId = await resolveGistId(token);
     await updateGist(token, gistId, payload);
-    const now = payload.exportedAt;
-    localStorage.setItem(LAST_SYNC_KEY, now);
-    localStorage.setItem(LAST_GIST_AT_KEY, now); // Gist is now at this timestamp
+    localStorage.setItem(LAST_SYNC_KEY, payload.exportedAt);
   } catch { /* silent */ }
-}
-
-/**
- * Manual sync triggered from Settings. Returns result for UI feedback.
- */
-export async function manualSync(token: string): Promise<SyncResult> {
-  try {
-    const gistId = await resolveGistId(token);
-    await updateGist(token, gistId, readLocal());
-    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
-  }
-}
-
-/**
- * Force pull from Gist — bypasses all timestamp guards.
- * Use for recovery (e.g. app pointed to wrong Gist after data loss).
- */
-export async function forcePull(token: string): Promise<SyncResult> {
-  try {
-    const gistId = await resolveGistId(token);
-    const remote = await fetchGist(token, gistId);
-    if (!remote) return { ok: false, error: `Gist introuvable (ID: ${gistId.slice(0, 8)}…)` };
-    const sessionCount = Array.isArray(remote.cc_sessions) ? (remote.cc_sessions as unknown[]).length : 0;
-    if (sessionCount === 0) {
-      return { ok: false, error: `Gist trouvé mais 0 séances dedans (ID: ${gistId.slice(0, 8)}…). Vérifie que tu as copié le bon ID.`, sessionCount: 0 };
-    }
-    writeLocal(mergeWithLocal(remote));
-    localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
-    localStorage.setItem(LAST_SYNC_KEY, remote.exportedAt);
-    return { ok: true, sessionCount, exportedAt: remote.exportedAt };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
-  }
 }
