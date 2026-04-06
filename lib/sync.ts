@@ -3,6 +3,7 @@
 const TOKEN_KEY = "cc_gh_token";
 const GIST_ID_KEY = "cc_gist_id"; // auto-cached, never shown to user
 const LAST_SYNC_KEY = "cc_last_sync";
+const LAST_GIST_AT_KEY = "cc_last_gist_at"; // exportedAt of the last Gist we wrote locally
 const GIST_DESCRIPTION = "claude-coach-data";
 const GIST_FILENAME = "claude-coach-data.json";
 
@@ -173,7 +174,10 @@ export type SyncResult = {
 
 /**
  * Silent auto-pull on app load.
- * Remote is source of truth → overwrites local completely.
+ * Guards against overwriting fresh local data with a stale Gist:
+ *   1. Skip if the Gist hasn't changed since our last pull.
+ *   2. Merge sessions: local sessions not present in remote are preserved
+ *      (a validated session that failed to push is never silently erased).
  */
 export async function autoSyncPull(): Promise<void> {
   const token = getGitHubToken();
@@ -182,7 +186,22 @@ export async function autoSyncPull(): Promise<void> {
     const gistId = await resolveGistId(token);
     const remote = await fetchGist(token, gistId);
     if (!remote) return;
-    writeLocal(remote);
+
+    // Skip if remote hasn't changed since our last pull
+    const lastGistAt = localStorage.getItem(LAST_GIST_AT_KEY) ?? "";
+    if (lastGistAt && remote.exportedAt <= lastGistAt) return;
+
+    // Merge sessions: keep local sessions not present in remote
+    // This prevents erasing sessions validated locally but not yet pushed
+    const localSessions = JSON.parse(localStorage.getItem("cc_sessions") ?? "[]") as { id: string }[];
+    const remoteIds = new Set((remote.cc_sessions as { id: string }[]).map((s) => s.id));
+    const localOnly = localSessions.filter((s) => !remoteIds.has(s.id));
+    const merged: SyncPayload = localOnly.length > 0
+      ? { ...remote, cc_sessions: [...(remote.cc_sessions), ...localOnly] }
+      : remote;
+
+    writeLocal(merged);
+    localStorage.setItem(LAST_GIST_AT_KEY, remote.exportedAt);
   } catch { /* silent */ }
 }
 
@@ -194,9 +213,12 @@ export async function autoSyncPush(): Promise<void> {
   const token = getGitHubToken();
   if (!token) return;
   try {
+    const payload = readLocal(); // exportedAt = now
     const gistId = await resolveGistId(token);
-    await updateGist(token, gistId, readLocal());
-    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+    await updateGist(token, gistId, payload);
+    const now = payload.exportedAt;
+    localStorage.setItem(LAST_SYNC_KEY, now);
+    localStorage.setItem(LAST_GIST_AT_KEY, now); // Gist is now at this timestamp
   } catch { /* silent */ }
 }
 
