@@ -61,16 +61,23 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50"
-      style={{
-        background: "rgba(10,10,10,0.95)",
-        backdropFilter: "blur(20px)",
-        borderTop: "1px solid #1a1a1a",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
+    <div
+      className="fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
     >
-      <div className="flex items-center justify-around h-16 px-4">
+      <nav
+        className="flex items-center pointer-events-auto"
+        style={{
+          background: "rgba(10,10,10,0.92)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: "9999px",
+          padding: "8px 12px",
+          gap: "4px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
+        }}
+      >
         {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -79,17 +86,25 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-0.5 pt-2 press-effect"
+              className="flex flex-col items-center press-effect"
+              style={{
+                padding: "8px 18px",
+                borderRadius: "9999px",
+                background: isActive ? "rgba(57,255,20,0.08)" : "transparent",
+                minWidth: "64px",
+              }}
             >
               {item.icon(isActive)}
-              <span className="text-[10px] font-medium tracking-wide"
-                style={{ color: isActive ? "#39ff14" : "#555" }}>
+              <span
+                className="text-[10px] font-medium tracking-wide mt-0.5"
+                style={{ color: isActive ? "#39ff14" : "#555" }}
+              >
                 {item.label}
               </span>
             </Link>
           );
         })}
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }

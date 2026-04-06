@@ -104,7 +104,7 @@ textarea::placeholder {
 
 /* Bottom nav safe area */
 .pb-nav {
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
 }
 
 /* Progress bar animation */

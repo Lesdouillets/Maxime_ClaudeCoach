@@ -75,6 +75,7 @@ export default function HomePage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = toLocalDateStr(today);
+  const dateLabel = today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
   const reschAway = rescheduledDays.some((r) => r.from === todayStr);
   const reschHere = rescheduledDays.find((r) => r.to === todayStr);
@@ -110,29 +111,45 @@ export default function HomePage() {
       : todaySession?.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS");
 
   return (
-    <div className="fixed inset-0" style={{ zIndex: 0, background: BG_FALLBACK[bgType] }}>
-      {/* Full-screen background */}
+    <div
+      className="fixed inset-0"
+      style={{ zIndex: 0, background: BG_FALLBACK[bgType] }}
+    >
+      {/* Full-screen background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${BG_IMAGES[bgType]}`}
         alt=""
-        className="absolute inset-0 w-full h-full object-cover object-center"
+        style={{
+          position: "absolute", inset: 0,
+          width: "100%", height: "100%",
+          objectFit: "cover", objectPosition: "center",
+        }}
       />
 
-      {/* Gradient overlay — transparent top, dark bottom */}
+      {/* Gradient overlay */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.92) 80%, rgba(0,0,0,1) 100%)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.85) 80%, rgba(0,0,0,0.97) 100%)",
         }}
       />
+
+      {/* Top header — app name + date */}
+      <div
+        className="absolute left-0 right-0 px-5 z-10"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
+      >
+        <p className="font-display text-3xl leading-none" style={{ color: "#39ff14" }}>CLAUDE COACH</p>
+        <p className="text-xs mt-1 capitalize" style={{ color: "rgba(255,255,255,0.45)" }}>{dateLabel}</p>
+      </div>
 
       {/* Strava import toast */}
       {importedCount > 0 && (
         <div
-          className="absolute top-safe left-4 right-4 rounded-2xl p-3 flex items-center gap-3"
-          style={{ top: "env(safe-area-inset-top, 16px)", background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)", backdropFilter: "blur(16px)" }}
+          className="absolute left-4 right-4 rounded-2xl p-3 flex items-center gap-3 z-10"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 80px)", background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)", backdropFilter: "blur(16px)" }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -143,21 +160,22 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Bottom card — just above nav bar (h-16 = 4rem) */}
+      {/* Bottom card — above floating nav */}
       <div
         className="absolute left-0 right-0 px-4 pb-2"
-        style={{ bottom: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
       >
         {hasActivity ? (
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => router.push(`/day?date=${todayStr}`)}
             style={{
-              background: "rgba(8,8,8,0.88)",
-              backdropFilter: "blur(24px)",
+              background: "rgba(8,8,8,0.55)",
+              backdropFilter: "blur(32px)",
+              WebkitBackdropFilter: "blur(32px)",
               border: isDone
-                ? "1px solid rgba(57,255,20,0.45)"
-                : `1px solid ${accent}55`,
+                ? "1px solid rgba(57,255,20,0.35)"
+                : `1px solid ${accent}40`,
               boxShadow: isDone
                 ? "0 -4px 32px rgba(57,255,20,0.06)"
                 : `0 -4px 32px ${accent}12`,
@@ -235,9 +253,10 @@ export default function HomePage() {
           <div
             className="w-full p-5 rounded-2xl"
             style={{
-              background: "rgba(8,8,8,0.85)",
-              backdropFilter: "blur(24px)",
-              border: "1px solid #222",
+              background: "rgba(8,8,8,0.55)",
+              backdropFilter: "blur(32px)",
+              WebkitBackdropFilter: "blur(32px)",
+              border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <p className="font-display text-4xl leading-none mb-1" style={{ color: "#444" }}>REPOS</p>
