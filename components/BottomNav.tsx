@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
   {
@@ -59,6 +60,13 @@ const NAV_ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [activating, setActivating] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActivating(pathname);
+    const t = setTimeout(() => setActivating(null), 400);
+    return () => clearTimeout(t);
+  }, [pathname]);
 
   return (
     <div
@@ -68,39 +76,34 @@ export default function BottomNav() {
       <nav
         className="flex items-center pointer-events-auto"
         style={{
-          background: "rgba(10,10,10,0.92)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.07)",
+          background: "rgba(10,10,10,0.7)",
+          backdropFilter: "blur(40px)",
+          WebkitBackdropFilter: "blur(40px)",
+          border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: "9999px",
-          padding: "8px 12px",
+          padding: "10px 14px",
           gap: "4px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
         }}
       >
         {NAV_ITEMS.map((item) => {
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActivating = activating === item.href;
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center press-effect"
+              className="flex items-center justify-center press-effect"
               style={{
-                padding: "8px 18px",
+                padding: "10px 20px",
                 borderRadius: "9999px",
-                background: isActive ? "rgba(57,255,20,0.08)" : "transparent",
-                minWidth: "64px",
+                background: isActive ? "rgba(57,255,20,0.1)" : "transparent",
+                animation: isActivating ? "nav-activate 0.35s ease-out" : undefined,
               }}
             >
               {item.icon(isActive)}
-              <span
-                className="text-[10px] font-medium tracking-wide mt-0.5"
-                style={{ color: isActive ? "#39ff14" : "#555" }}
-              >
-                {item.label}
-              </span>
             </Link>
           );
         })}

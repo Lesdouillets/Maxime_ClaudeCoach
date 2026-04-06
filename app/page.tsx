@@ -136,13 +136,15 @@ export default function HomePage() {
         }}
       />
 
-      {/* Top header — app name + date */}
+      {/* Top header — matches PageHeader style */}
       <div
         className="absolute left-0 right-0 px-5 z-10"
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
       >
-        <p className="font-display text-3xl leading-none" style={{ color: "#39ff14" }}>CLAUDE COACH</p>
-        <p className="text-xs mt-1 capitalize" style={{ color: "rgba(255,255,255,0.45)" }}>{dateLabel}</p>
+        <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1" style={{ color: "#39ff14" }}>
+          {dateLabel}
+        </p>
+        <h1 className="font-display text-5xl leading-none">CLAUDE COACH</h1>
       </div>
 
       {/* Strava import toast */}
@@ -170,9 +172,9 @@ export default function HomePage() {
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => router.push(`/day?date=${todayStr}`)}
             style={{
-              background: "rgba(8,8,8,0.55)",
-              backdropFilter: "blur(32px)",
-              WebkitBackdropFilter: "blur(32px)",
+              background: "rgba(8,8,8,0.45)",
+              backdropFilter: "blur(40px)",
+              WebkitBackdropFilter: "blur(40px)",
               border: isDone
                 ? "1px solid rgba(57,255,20,0.35)"
                 : `1px solid ${accent}40`,
@@ -253,9 +255,9 @@ export default function HomePage() {
           <div
             className="w-full p-5 rounded-2xl"
             style={{
-              background: "rgba(8,8,8,0.55)",
-              backdropFilter: "blur(32px)",
-              WebkitBackdropFilter: "blur(32px)",
+              background: "rgba(8,8,8,0.45)",
+              backdropFilter: "blur(40px)",
+              WebkitBackdropFilter: "blur(40px)",
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
