@@ -3,7 +3,6 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import SyncProvider from "@/components/SyncProvider";
 import GlobalUI from "@/components/GlobalUI";
-import SwipeNavWrapper from "@/components/SwipeNavWrapper";
 
 export const metadata: Metadata = {
   title: "Claude Coach",
@@ -46,11 +45,9 @@ export default function RootLayout({
       <body className="bg-background text-white font-body antialiased">
         <SyncProvider />
         <GlobalUI>
-          <SwipeNavWrapper>
-            <div className="min-h-screen pb-nav">
-              {children}
-            </div>
-          </SwipeNavWrapper>
+          <div className="min-h-screen pb-nav">
+            {children}
+          </div>
         </GlobalUI>
         <BottomNav />
       </body>
