@@ -58,7 +58,7 @@ export function getDayName(dow: number, full = false): string {
 
 export function formatPace(secPerKm: number): string {
   const min = Math.floor(secPerKm / 60);
-  const sec = secPerKm % 60;
+  const sec = Math.round(secPerKm % 60);
   return `${min}:${sec.toString().padStart(2, "0")}/km`;
 }
 

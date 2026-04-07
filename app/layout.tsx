@@ -21,6 +21,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -42,6 +43,15 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-background text-white font-body antialiased">
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/sw.js', {
+                scope: '${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/''
+              });
+            });
+          }
+        `}} />
         <SyncProvider />
         <GlobalUI>
           <div className="min-h-screen pb-nav">

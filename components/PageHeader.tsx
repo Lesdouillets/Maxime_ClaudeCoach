@@ -12,7 +12,7 @@ export default function PageHeader({
   right,
 }: PageHeaderProps) {
   return (
-    <header className="px-5 pt-12 pb-4 flex items-end justify-between">
+    <header className="px-5 pb-4 flex items-end justify-between" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
       <div>
         {subtitle && (
           <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1"

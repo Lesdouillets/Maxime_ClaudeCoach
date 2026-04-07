@@ -1,41 +1,51 @@
-// GitHub Gist-based sync — no commits, auto-discovery by description
+// Supabase-based sync — replaces GitHub Gist
+import { supabase } from "./supabase";
+import type { User } from "@supabase/supabase-js";
 
-const TOKEN_KEY = "cc_gh_token";
-const GIST_ID_KEY = "cc_gist_id"; // auto-cached, never shown to user
 const LAST_SYNC_KEY = "cc_last_sync";
-const GIST_DESCRIPTION = "claude-coach-data";
-const GIST_FILENAME = "claude-coach-data.json";
 
-// ─── Token / Gist ID storage ───────────────────────────────────────────────
-export function getGitHubToken(): string { return localStorage.getItem(TOKEN_KEY) ?? ""; }
-export function setGitHubToken(t: string) {
-  if (t) localStorage.setItem(TOKEN_KEY, t);
-  else localStorage.removeItem(TOKEN_KEY);
-}
-export function getLastSync(): string { return localStorage.getItem(LAST_SYNC_KEY) ?? ""; }
-export function isSyncConfigured(): boolean { return !!getGitHubToken(); }
-
-// ─── Local data helpers ─────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 type SyncPayload = {
-  exportedAt: string;
-  cc_sessions: unknown[];
-  cc_coach_workouts: unknown[];
-  cc_coach_runs: unknown[];
-  cc_cancelled_days: unknown[];
-  cc_rescheduled_days: unknown[];
-  cc_body_weight: unknown[];
-  cc_ex_notes: Record<string, unknown>;
+  sessions: unknown[];
+  coach_workouts: unknown[];
+  coach_runs: unknown[];
+  cancelled_days: unknown[];
+  rescheduled_days: unknown[];
+  body_weight: unknown[];
+  ex_notes: Record<string, unknown>;
 };
 
-const DATA_KEYS = [
-  "cc_sessions",
-  "cc_coach_workouts",
-  "cc_coach_runs",
-  "cc_cancelled_days",
-  "cc_rescheduled_days",
-  "cc_body_weight",
-] as const;
+// ─── Cached auth state (allows isSyncConfigured to stay synchronous) ────────
+let _user: User | null = null;
 
+if (typeof window !== "undefined") {
+  supabase.auth.getSession().then(({ data }) => {
+    _user = data.session?.user ?? null;
+  });
+  supabase.auth.onAuthStateChange((_e, session) => {
+    _user = session?.user ?? null;
+  });
+}
+
+export function getLastSync(): string { return localStorage.getItem(LAST_SYNC_KEY) ?? ""; }
+export function isSyncConfigured(): boolean { return !!_user; }
+export function getCurrentUser(): User | null { return _user; }
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+export async function signInWithEmail(email: string): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut();
+  _user = null;
+}
+
+// ─── Local data helpers ──────────────────────────────────────────────────────
 function readLocal(): SyncPayload {
   const get = (key: string): unknown[] => {
     try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
@@ -49,167 +59,111 @@ function readLocal(): SyncPayload {
     }
   }
   return {
-    exportedAt: new Date().toISOString(),
-    cc_sessions: get("cc_sessions"),
-    cc_coach_workouts: get("cc_coach_workouts"),
-    cc_coach_runs: get("cc_coach_runs"),
-    cc_cancelled_days: get("cc_cancelled_days"),
-    cc_rescheduled_days: get("cc_rescheduled_days"),
-    cc_body_weight: get("cc_body_weight"),
-    cc_ex_notes: notes,
+    sessions:         get("cc_sessions"),
+    coach_workouts:   get("cc_coach_workouts"),
+    coach_runs:       get("cc_coach_runs"),
+    cancelled_days:   get("cc_cancelled_days"),
+    rescheduled_days: get("cc_rescheduled_days"),
+    body_weight:      get("cc_body_weight"),
+    ex_notes:         notes,
   };
 }
 
 function writeLocal(data: SyncPayload) {
-  DATA_KEYS.forEach((k) => {
-    localStorage.setItem(k, JSON.stringify(data[k] ?? []));
-  });
-  if (data.cc_ex_notes) {
-    Object.entries(data.cc_ex_notes).forEach(([k, v]) => {
-      localStorage.setItem(k, JSON.stringify(v));
-    });
+  const map: Record<string, unknown> = {
+    cc_sessions:         data.sessions,
+    cc_coach_workouts:   data.coach_workouts,
+    cc_coach_runs:       data.coach_runs,
+    cc_cancelled_days:   data.cancelled_days,
+    cc_rescheduled_days: data.rescheduled_days,
+    cc_body_weight:      data.body_weight,
+  };
+  Object.entries(map).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v ?? [])));
+  if (data.ex_notes) {
+    Object.entries(data.ex_notes).forEach(([k, v]) => localStorage.setItem(k, JSON.stringify(v)));
   }
-  localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 }
 
-// ─── GitHub API helpers ─────────────────────────────────────────────────────
-function ghHeaders(token: string): HeadersInit {
+// ─── Merge helpers ───────────────────────────────────────────────────────────
+function mergeByKey<T>(remote: T[], local: T[], key: keyof T): T[] {
+  const seen = new Set(remote.map((x) => String(x[key])));
+  const localOnly = local.filter((x) => !seen.has(String(x[key])));
+  return localOnly.length > 0 ? [...remote, ...localOnly] : remote;
+}
+
+function mergeWithLocal(remote: SyncPayload): SyncPayload {
+  const get = (key: string): unknown[] => {
+    try { return JSON.parse(localStorage.getItem(key) ?? "[]") as unknown[]; }
+    catch { return []; }
+  };
   return {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json",
-    "Content-Type": "application/json",
+    ...remote,
+    sessions:         mergeByKey(remote.sessions         as { id: string }[],   get("cc_sessions")         as { id: string }[],   "id"),
+    coach_workouts:   mergeByKey(remote.coach_workouts   as { id: string }[],   get("cc_coach_workouts")   as { id: string }[],   "id"),
+    coach_runs:       mergeByKey(remote.coach_runs       as { id: string }[],   get("cc_coach_runs")       as { id: string }[],   "id"),
+    cancelled_days:   mergeByKey(remote.cancelled_days   as { date: string }[], get("cc_cancelled_days")   as { date: string }[], "date"),
+    rescheduled_days: mergeByKey(remote.rescheduled_days as { from: string }[], get("cc_rescheduled_days") as { from: string }[], "from"),
+    body_weight:      mergeByKey(remote.body_weight      as { date: string }[], get("cc_body_weight")      as { date: string }[], "date"),
   };
 }
 
-/** Verify PAT and return GitHub username */
-export async function verifyToken(token: string): Promise<{ ok: boolean; login?: string; error?: string }> {
-  try {
-    const res = await fetch("https://api.github.com/user", { headers: ghHeaders(token) });
-    if (res.status === 401) return { ok: false, error: "Token invalide ou expiré." };
-    if (!res.ok) return { ok: false, error: `Erreur GitHub ${res.status}` };
-    const user = await res.json() as { login: string };
-    return { ok: true, login: user.login };
-  } catch {
-    return { ok: false, error: "Impossible de contacter GitHub (réseau ?)" };
-  }
+// ─── Supabase helpers ────────────────────────────────────────────────────────
+async function fetchRemote(userId: string): Promise<SyncPayload | null> {
+  const { data, error } = await supabase
+    .from("user_data")
+    .select("sessions, coach_workouts, coach_runs, cancelled_days, rescheduled_days, body_weight, ex_notes")
+    .eq("user_id", userId)
+    .single();
+  if (error || !data) return null;
+  return data as SyncPayload;
 }
 
-/**
- * Find or create the sync gist. Returns the gist ID.
- * Searches existing gists for one with description = GIST_DESCRIPTION.
- * Creates a new private gist if none found.
- */
-async function resolveGistId(token: string): Promise<string> {
-  // Check local cache first
-  const cached = localStorage.getItem(GIST_ID_KEY);
-  if (cached) return cached;
-
-  // Search user's gists for existing sync gist (paginated, check first 2 pages)
-  for (let page = 1; page <= 2; page++) {
-    const res = await fetch(`https://api.github.com/gists?per_page=100&page=${page}`, {
-      headers: ghHeaders(token),
-    });
-    if (!res.ok) break;
-    const gists = await res.json() as { id: string; description: string }[];
-    if (gists.length === 0) break;
-    const found = gists.find((g) => g.description === GIST_DESCRIPTION);
-    if (found) {
-      localStorage.setItem(GIST_ID_KEY, found.id);
-      return found.id;
-    }
-  }
-
-  // Not found → create new private gist
-  const createRes = await fetch("https://api.github.com/gists", {
-    method: "POST",
-    headers: ghHeaders(token),
-    body: JSON.stringify({
-      description: GIST_DESCRIPTION,
-      public: false,
-      files: { [GIST_FILENAME]: { content: JSON.stringify(readLocal(), null, 2) } },
-    }),
-  });
-  if (!createRes.ok) throw new Error(`Impossible de créer le Gist: ${createRes.status}`);
-  const gist = await createRes.json() as { id: string };
-  localStorage.setItem(GIST_ID_KEY, gist.id);
-  return gist.id;
-}
-
-/** Fetch gist content */
-async function fetchGist(token: string, gistId: string): Promise<SyncPayload | null> {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: ghHeaders(token),
-  });
-  if (res.status === 404) {
-    // Gist deleted externally — clear cache so next call recreates it
-    localStorage.removeItem(GIST_ID_KEY);
-    return null;
-  }
-  if (!res.ok) throw new Error(`Erreur lecture Gist: ${res.status}`);
-  const gist = await res.json() as { files: Record<string, { content: string }> };
-  const file = gist.files?.[GIST_FILENAME];
-  if (!file) return null;
-  return JSON.parse(file.content) as SyncPayload;
-}
-
-/** Update gist content */
-async function updateGist(token: string, gistId: string, data: SyncPayload): Promise<void> {
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    method: "PATCH",
-    headers: ghHeaders(token),
-    body: JSON.stringify({
-      files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
-    }),
-  });
-  if (!res.ok) throw new Error(`Erreur écriture Gist: ${res.status}`);
+async function upsertRemote(userId: string, payload: SyncPayload): Promise<void> {
+  const { error } = await supabase
+    .from("user_data")
+    .upsert({ user_id: userId, ...payload, updated_at: new Date().toISOString() });
+  if (error) throw new Error(`Erreur Supabase : ${error.message}`);
 }
 
 // ─── Public sync API ─────────────────────────────────────────────────────────
+export type SyncResult = { ok: boolean; error?: string };
 
-export type SyncResult = {
-  ok: boolean;
-  error?: string;
-};
+let isSyncing = false;
 
 /**
- * Silent auto-pull on app load.
- * Remote is source of truth → overwrites local completely.
+ * Full bidirectional sync: pull → merge → push.
+ * Pulls remote data, merges with local (union, never erases local),
+ * then pushes the merged result back to Supabase.
  */
-export async function autoSyncPull(): Promise<void> {
-  const token = getGitHubToken();
-  if (!token) return;
+export async function syncFull(): Promise<SyncResult> {
+  if (isSyncing) return { ok: false };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+  isSyncing = true;
   try {
-    const gistId = await resolveGistId(token);
-    const remote = await fetchGist(token, gistId);
-    if (!remote) return;
-    writeLocal(remote);
-  } catch { /* silent */ }
-}
-
-/**
- * Silent auto-push after any mutation.
- * Writes local state to gist immediately.
- */
-export async function autoSyncPush(): Promise<void> {
-  const token = getGitHubToken();
-  if (!token) return;
-  try {
-    const gistId = await resolveGistId(token);
-    await updateGist(token, gistId, readLocal());
-    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-  } catch { /* silent */ }
-}
-
-/**
- * Manual sync triggered from Settings. Returns result for UI feedback.
- */
-export async function manualSync(token: string): Promise<SyncResult> {
-  try {
-    const gistId = await resolveGistId(token);
-    await updateGist(token, gistId, readLocal());
+    const remote = await fetchRemote(user.id);
+    const merged = remote ? mergeWithLocal(remote) : readLocal();
+    writeLocal(merged);
+    const payload = readLocal();
+    await upsertRemote(user.id, payload);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
+  } finally {
+    isSyncing = false;
   }
+}
+
+/**
+ * Silent push after any local mutation (log session, cancel, reschedule…).
+ * Does not pull — just pushes current local state.
+ */
+export async function autoSyncPush(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  try {
+    await upsertRemote(user.id, readLocal());
+    localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+  } catch { /* silent */ }
 }

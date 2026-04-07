@@ -22,18 +22,16 @@ body {
   color: #ffffff;
   font-family: var(--font-outfit);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
+/* Hide scrollbars everywhere */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-::-webkit-scrollbar-track {
-  background: #111111;
-}
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 2px;
+*::-webkit-scrollbar {
+  display: none;
 }
 
 /* Selection */
@@ -73,6 +71,13 @@ body {
   transform: scale(0.97);
 }
 
+/* Nav icon activation animation */
+@keyframes nav-activate {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  50%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
 /* Input base */
 input[type="text"],
 input[type="number"],
@@ -104,7 +109,7 @@ textarea::placeholder {
 
 /* Bottom nav safe area */
 .pb-nav {
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
 }
 
 /* Progress bar animation */

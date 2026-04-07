@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import PageHeader from "@/components/PageHeader";
+import { supabase } from "@/lib/supabase";
 import {
-  getGitHubToken, setGitHubToken,
   getLastSync,
-  verifyToken, manualSync, autoSyncPush,
+  syncFull, autoSyncPush,
+  signInWithEmail, signOut,
 } from "@/lib/sync";
 import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun, clearFutureCoachPlans } from "@/lib/coachPlan";
 import { buildExportData, downloadExport } from "@/lib/export";
@@ -29,11 +31,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
 
-  // ── Sync state ──
-  const [token, setToken] = useState("");
-  const [tokenStatus, setTokenStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
-  const [tokenLogin, setTokenLogin] = useState("");
-  const [tokenError, setTokenError] = useState("");
+  // ── Auth / sync state ──
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
   const [syncError, setSyncError] = useState("");
@@ -53,44 +56,41 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true);
-    setToken(getGitHubToken());
     setLastSync(getLastSync());
-    if (getGitHubToken()) setTokenStatus("ok");
     setIsStravaConnected(!!getStravaTokens());
+
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  // ── Sync handlers ──
-  const handleVerifyToken = async () => {
-    if (!token.trim()) return;
-    setTokenStatus("checking"); setTokenError("");
-    const result = await verifyToken(token.trim());
-    if (result.ok) {
-      setGitHubToken(token.trim());
-      setTokenStatus("ok");
-      setTokenLogin(result.login ?? "");
-    } else {
-      setTokenStatus("error");
-      setTokenError(result.error ?? "Erreur");
-    }
+  // ── Auth handlers ──
+  const handleSendMagicLink = async () => {
+    if (!email.trim()) return;
+    setEmailSending(true); setEmailError(""); setEmailSent(false);
+    const result = await signInWithEmail(email.trim());
+    setEmailSending(false);
+    if (result.ok) { setEmailSent(true); }
+    else { setEmailError(result.error ?? "Erreur d'envoi"); }
   };
 
   const handleSync = async () => {
-    const t = getGitHubToken();
-    if (!t) { setSyncError("Configure d'abord ton token GitHub."); return; }
     setSyncing(true); setSyncMsg(""); setSyncError("");
-    const result = await manualSync(t);
+    const result = await syncFull();
     setSyncing(false);
     if (result.ok) {
-      setLastSync(new Date().toISOString());
+      setLastSync(getLastSync());
       setSyncMsg("Synchronisé ✓");
     } else {
       setSyncError(result.error ?? "Erreur de synchronisation");
     }
   };
 
-  const handleDisconnect = () => {
-    setGitHubToken(""); setToken("");
-    setTokenStatus("idle"); setTokenLogin(""); setSyncMsg("Déconnecté.");
+  const handleDisconnect = async () => {
+    await signOut();
+    setSyncMsg("Déconnecté.");
   };
 
   // ── Strava handler ──
@@ -157,8 +157,6 @@ export default function SettingsPage() {
 
   if (!mounted) return null;
 
-  const isConnected = tokenStatus === "ok" && !!getGitHubToken();
-
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
       <PageHeader title="PARAMÈTRES" subtitle="Données & synchronisation" accent="neon" />
@@ -172,12 +170,12 @@ export default function SettingsPage() {
             {/* Status */}
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                background: isConnected ? "#39ff14" : "#333",
-                boxShadow: isConnected ? "0 0 6px #39ff14" : "none",
+                background: user ? "#39ff14" : "#333",
+                boxShadow: user ? "0 0 6px #39ff14" : "none",
               }} />
               <div>
-                <p className="text-sm font-semibold" style={{ color: isConnected ? "#39ff14" : "#555" }}>
-                  {isConnected ? `Connecté${tokenLogin ? ` · @${tokenLogin}` : ""}` : "Non configuré"}
+                <p className="text-sm font-semibold" style={{ color: user ? "#39ff14" : "#555" }}>
+                  {user ? `Connecté · ${user.email}` : "Non connecté"}
                 </p>
                 {lastSync && (
                   <p className="text-xs text-muted">
@@ -187,52 +185,59 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Token */}
-            <div>
-              <p className="text-xs font-semibold mb-1.5" style={{ color: "#444" }}>
-                Personal Access Token — scope : <span style={{ color: "#aaa" }}>repo</span>
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={token}
-                  onChange={(e) => { setToken(e.target.value); setTokenStatus("idle"); }}
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  className="flex-1 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none"
-                  style={{ background: "#151515", border: `1px solid ${tokenStatus === "ok" ? "rgba(57,255,20,0.3)" : tokenStatus === "error" ? "rgba(255,68,68,0.4)" : "#222"}`, color: "#aaa" }}
-                />
-                <button
-                  onClick={handleVerifyToken}
-                  disabled={!token.trim() || tokenStatus === "checking"}
-                  className="px-3 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                  style={{ background: "#1a1a1a", border: "1px solid #333", color: "#aaa" }}
-                >
-                  {tokenStatus === "checking" ? "…" : "Vérifier"}
-                </button>
+            {!user ? (
+              /* ── Magic link login ── */
+              <div className="space-y-2">
+                <p className="text-xs font-semibold" style={{ color: "#444" }}>
+                  Adresse e-mail
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setEmailSent(false); setEmailError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMagicLink()}
+                    placeholder="maxime@exemple.com"
+                    className="flex-1 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                    style={{ background: "#151515", border: "1px solid #222", color: "#aaa" }}
+                  />
+                  <button
+                    onClick={handleSendMagicLink}
+                    disabled={!email.trim() || emailSending}
+                    className="px-3 py-2 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                    style={{ background: "#1a1a1a", border: "1px solid #333", color: "#aaa" }}
+                  >
+                    {emailSending ? "…" : "Envoyer"}
+                  </button>
+                </div>
+                {emailSent && (
+                  <p className="text-xs font-semibold" style={{ color: "#39ff14" }}>
+                    Lien envoyé ✓ — Vérifie ta boîte mail et clique sur le lien.
+                  </p>
+                )}
+                {emailError && <p className="text-xs" style={{ color: "#ff4444" }}>{emailError}</p>}
               </div>
-              {tokenStatus === "error" && <p className="text-xs mt-1" style={{ color: "#ff4444" }}>{tokenError}</p>}
-            </div>
-
-            {/* Sync button */}
-            <button
-              onClick={handleSync}
-              disabled={syncing || !isConnected}
-              className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
-              style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
-            >
-              {syncing ? "Synchronisation…" : "Synchroniser"}
-            </button>
-            {syncMsg && <p className="text-xs text-center" style={{ color: "#39ff14" }}>{syncMsg}</p>}
-            {syncError && <p className="text-xs text-center" style={{ color: "#ff4444" }}>{syncError}</p>}
-
-            {isConnected && (
-              <button
-                onClick={handleDisconnect}
-                className="w-full py-2 rounded-xl text-xs press-effect"
-                style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}
-              >
-                Déconnecter
-              </button>
+            ) : (
+              /* ── Sync controls ── */
+              <>
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
+                  style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}
+                >
+                  {syncing ? "Synchronisation…" : "Synchroniser"}
+                </button>
+                {syncMsg && <p className="text-xs text-center" style={{ color: "#39ff14" }}>{syncMsg}</p>}
+                {syncError && <p className="text-xs text-center" style={{ color: "#ff4444" }}>{syncError}</p>}
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full py-2 rounded-xl text-xs press-effect"
+                  style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#333" }}
+                >
+                  Déconnecter
+                </button>
+              </>
             )}
           </div>
         </Section>
