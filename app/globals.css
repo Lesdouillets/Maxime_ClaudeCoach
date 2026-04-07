@@ -22,7 +22,8 @@ body {
   color: #ffffff;
   font-family: var(--font-outfit);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Hide scrollbars everywhere */
