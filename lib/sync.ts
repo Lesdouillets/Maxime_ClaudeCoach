@@ -31,12 +31,15 @@ export function isSyncConfigured(): boolean { return !!_user; }
 export function getCurrentUser(): User | null { return _user; }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-export async function signInWithEmail(email: string): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true },
+export async function signInWithGitHub(): Promise<void> {
+  await supabase.auth.signInWithOAuth({
+    provider: "github",
+    options: {
+      redirectTo: typeof window !== "undefined"
+        ? window.location.href
+        : undefined,
+    },
   });
-  return error ? { ok: false, error: error.message } : { ok: true };
 }
 
 export async function signOut(): Promise<void> {
