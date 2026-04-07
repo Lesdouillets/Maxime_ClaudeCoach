@@ -37,6 +37,8 @@ jobs:
           NEXT_PUBLIC_STRAVA_REDIRECT_URI: ${{ secrets.STRAVA_REDIRECT_URI }}
           NEXT_PUBLIC_STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
           NEXT_PUBLIC_BASE_PATH: /Maxime_ClaudeCoach
+          NEXT_PUBLIC_SUPABASE_URL: https://mwjnryfudxfcwqbwlafe.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13am5yeWZ1ZHhmY3dxYndsYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjA1NDEsImV4cCI6MjA5MTEzNjU0MX0.Aua1rixPDAivkty5XaUy3WbwHdtFvbgfQaE4sqt5R90
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
