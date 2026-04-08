@@ -18,7 +18,7 @@ function TimerHalo() {
         borderRadius:  "inherit",
         opacity:       visible ? 1 : 0,
         transition:    "opacity 0.4s ease",
-        animation:     visible ? "timer-halo-pulse 0.9s ease-in-out infinite" : "none",
+        animation:     visible ? "timer-halo-pulse 2.4s ease-in-out infinite" : "none",
       }}
     />
   );
