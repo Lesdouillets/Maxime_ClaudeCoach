@@ -111,10 +111,10 @@ export default function SettingsPage() {
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in pb-28">
+    <div className="max-w-md mx-auto animate-fade-in pb-28 min-h-screen flex flex-col justify-center">
 
       {/* ── Profil ── */}
-      <div className="flex flex-col items-center pt-12 pb-8 px-5">
+      <div className="flex flex-col items-center pt-4 pb-10 px-5">
         {/* Avatar */}
         <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4"
           style={{ background: "#141414", border: "1.5px solid #222" }}>
