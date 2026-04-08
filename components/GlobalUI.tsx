@@ -17,7 +17,7 @@ function TimerHalo() {
         pointerEvents: "none",
         borderRadius:  "inherit",
         opacity:       visible ? 1 : 0,
-        transition:    "opacity 0.4s ease",
+        transition:    "opacity 1.8s ease-out",
         animation:     visible ? "timer-halo-pulse 2.4s ease-in-out infinite" : "none",
       }}
     />
