@@ -5,32 +5,20 @@ import { TimerProvider, useTimer } from "@/contexts/TimerContext";
 
 function TimerHalo() {
   const { timerKey, timerSec } = useTimer();
-
-  // Halo visible uniquement en fin de timer (≤ 10s)
-  const THRESHOLD = 10;
-  const visible = !!timerKey && timerSec > 0 && timerSec <= THRESHOLD;
-  // Intensité : 0 à 10s → 1 à 0s
-  const intensity = visible ? Math.min(1, (THRESHOLD - timerSec) / (THRESHOLD - 1)) : 0;
-  // Pulse rapide quand ≤ 3s
-  const pulse = timerSec <= 3 && timerSec > 0;
+  const visible = !!timerKey && timerSec > 0 && timerSec <= 10;
 
   return (
     <div
       aria-hidden
-      className={pulse ? "animate-pulse" : ""}
       style={{
-        position:       "fixed",
-        inset:          0,
-        zIndex:         40,
-        pointerEvents:  "none",
-        opacity:        intensity,
-        transition:     "opacity 0.8s ease",
-        background: `
-          radial-gradient(ellipse 80% 50% at 0% 0%,   rgba(255,107,0,0.35) 0%, transparent 65%),
-          radial-gradient(ellipse 80% 50% at 100% 0%,  rgba(220,40,40,0.30) 0%, transparent 65%),
-          radial-gradient(ellipse 80% 50% at 0% 100%,  rgba(220,40,40,0.30) 0%, transparent 65%),
-          radial-gradient(ellipse 80% 50% at 100% 100%,rgba(255,107,0,0.35) 0%, transparent 65%)
-        `,
+        position:      "fixed",
+        inset:         0,
+        zIndex:        40,
+        pointerEvents: "none",
+        borderRadius:  "inherit",
+        opacity:       visible ? 1 : 0,
+        transition:    "opacity 0.4s ease",
+        animation:     visible ? "timer-halo-pulse 0.9s ease-in-out infinite" : "none",
       }}
     />
   );
