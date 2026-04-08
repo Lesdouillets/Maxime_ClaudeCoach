@@ -46,13 +46,14 @@ const NAV_ITEMS = [
   },
   {
     href: "/settings",
-    label: "Sync",
+    label: "Profil",
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M4 12v-1a8 8 0 0 1 14.93-3M20 12v1a8 8 0 0 1-14.93 3"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round"/>
-        <path d="M20 4v4h-4M4 20v-4h4"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="8" r="4"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8"
+          fill={active ? "rgba(57,255,20,0.1)" : "none"} />
+        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },
