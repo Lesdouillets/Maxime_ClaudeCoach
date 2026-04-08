@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import {
@@ -12,6 +12,11 @@ import { buildExportData } from "@/lib/export";
 import { getCancelledDays, getStravaTokens } from "@/lib/storage";
 import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } from "@/lib/strava";
 import { addSession } from "@/lib/storage";
+import {
+  getProfiles, getActiveProfile, switchProfile,
+  createProfile, renameProfile,
+  type ProfileMeta,
+} from "@/lib/profiles";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -29,15 +34,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
 
-  const [user,             setUser]             = useState<User | null>(null);
-  const [lastSync,         setLastSync]         = useState("");
+  const [user,              setUser]              = useState<User | null>(null);
+  const [lastSync,          setLastSync]          = useState("");
   const [isStravaConnected, setIsStravaConnected] = useState(false);
-  const [stravaResyncing,  setStravaResyncing]  = useState(false);
-  const [stravaMsg,        setStravaMsg]        = useState("");
-  const [importError,      setImportError]      = useState("");
-  const [importSuccess,    setImportSuccess]    = useState("");
-  const [showExport,       setShowExport]       = useState(false);
-  const [copied,           setCopied]           = useState(false);
+  const [stravaResyncing,   setStravaResyncing]   = useState(false);
+  const [stravaMsg,         setStravaMsg]         = useState("");
+  const [importError,       setImportError]       = useState("");
+  const [importSuccess,     setImportSuccess]     = useState("");
+  const [showExport,        setShowExport]        = useState(false);
+  const [copied,            setCopied]            = useState(false);
+
+  // Profiles
+  const [profiles,    setProfiles]    = useState<[ProfileMeta | null, ProfileMeta | null]>([null, null]);
+  const [activeSlot,  setActiveSlot]  = useState<1 | 2 | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<1 | 2 | null>(null);
+  const [editName,    setEditName]    = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -47,8 +60,18 @@ export default function SettingsPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
     });
+    // Load profiles
+    const ps = getProfiles();
+    setProfiles(ps);
+    const active = getActiveProfile();
+    setActiveSlot(active?.slot ?? null);
     return () => subscription.unsubscribe();
   }, []);
+
+  // Focus edit input when editing starts
+  useEffect(() => {
+    if (editingSlot !== null) editInputRef.current?.focus();
+  }, [editingSlot]);
 
   // ── Strava ──
   const handleStravaAction = async () => {
@@ -105,6 +128,39 @@ export default function SettingsPage() {
     setShowExport(false);
   };
 
+  // ── Profiles ──
+  const handleProfileTap = async (slot: 1 | 2) => {
+    if (isSwitching || slot === activeSlot) return;
+
+    const target = profiles[slot - 1];
+    if (!target) {
+      // Profile 2 doesn't exist yet — create it first
+      if (!user) return;
+      await createProfile(slot, "Profil 2", user.id);
+      setProfiles(getProfiles());
+    }
+    setIsSwitching(true);
+    try { await switchProfile(slot); }
+    catch { setIsSwitching(false); }
+  };
+
+  const handleStartRename = (slot: 1 | 2) => {
+    const meta = profiles[slot - 1];
+    if (!meta) return;
+    setEditName(meta.name);
+    setEditingSlot(slot);
+  };
+
+  const handleFinishRename = async () => {
+    if (editingSlot === null) return;
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== profiles[editingSlot - 1]?.name) {
+      await renameProfile(editingSlot, trimmed);
+      setProfiles(getProfiles());
+    }
+    setEditingSlot(null);
+  };
+
   if (!mounted) return null;
 
   const ghName = (user?.user_metadata?.user_name as string) ?? user?.email ?? "GitHub";
@@ -140,6 +196,79 @@ export default function SettingsPage() {
       </div>
 
       <div className="px-5 space-y-5">
+
+        {/* ── Profils ── */}
+        {user && (
+          <Section title="PROFILS">
+            <div className="flex divide-x" style={{ borderColor: "#1a1a1a" }}>
+              {([1, 2] as const).map((slot) => {
+                const meta = profiles[slot - 1];
+                const isActive = slot === activeSlot;
+                const isLoading = isSwitching && slot !== activeSlot;
+                const name = meta?.name ?? (slot === 1 ? "Profil 1" : "Profil 2");
+
+                return (
+                  <button
+                    key={slot}
+                    onClick={() => isActive ? handleStartRename(slot) : handleProfileTap(slot)}
+                    disabled={isSwitching}
+                    className="flex-1 flex flex-col items-center gap-2.5 py-5 press-effect disabled:opacity-60"
+                    style={{
+                      background: isActive ? "rgba(57,255,20,0.04)" : "transparent",
+                    }}
+                  >
+                    {/* Slot number badge */}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{
+                        background: isActive ? "rgba(57,255,20,0.12)" : "#181818",
+                        border: isActive ? "1.5px solid rgba(57,255,20,0.3)" : "1.5px solid #2a2a2a",
+                      }}>
+                      {isLoading ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          className="spinner">
+                          <circle cx="12" cy="12" r="9" stroke="#333" strokeWidth="2" />
+                          <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <span className="text-xs font-bold" style={{ color: isActive ? "#39ff14" : "#555" }}>
+                          {slot}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Profile name */}
+                    {editingSlot === slot ? (
+                      <input
+                        ref={editInputRef}
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={handleFinishRename}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleFinishRename(); }}
+                        className="text-center text-[11px] font-medium w-full px-2 bg-transparent outline-none"
+                        style={{ color: "#39ff14", borderBottom: "1px solid rgba(57,255,20,0.3)", borderRadius: 0 }}
+                        maxLength={20}
+                      />
+                    ) : (
+                      <span className="text-[11px] font-medium" style={{ color: isActive ? "#aaa" : "#444" }}>
+                        {name}
+                      </span>
+                    )}
+
+                    {/* Status dot */}
+                    <span className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: isActive ? "#39ff14" : "#2a2a2a",
+                        boxShadow: isActive ? "0 0 5px #39ff14" : "none",
+                      }} />
+                  </button>
+                );
+              })}
+            </div>
+            {isSwitching && (
+              <p className="text-xs text-center pb-3" style={{ color: "#555" }}>Changement de profil…</p>
+            )}
+          </Section>
+        )}
 
         {/* ── Connexions ── */}
         <Section title="CONNEXIONS">
@@ -253,6 +382,8 @@ export default function SettingsPage() {
         </Section>
 
       </div>
+
+      <style>{`.spinner { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
