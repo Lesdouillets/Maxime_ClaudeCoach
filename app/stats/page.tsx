@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import { getSessions, getWeightHistory, addWeightEntry } from "@/lib/storage";
+import { autoSyncPush } from "@/lib/sync";
 import type { WorkoutSession, RunSession, FitnessSession } from "@/lib/types";
 import {
   ResponsiveContainer,
@@ -36,6 +37,7 @@ export default function StatsPage() {
     addWeightEntry({ date: new Date().toISOString(), kg });
     setWeightHistory(getWeightHistory());
     setNewWeight("");
+    autoSyncPush();
   };
 
   if (!mounted) return null;
