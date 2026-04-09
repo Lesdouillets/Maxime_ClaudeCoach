@@ -16,19 +16,19 @@ import {
 
 function AvatarMale() {
   return (
-    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="8" r="4" stroke="#555" strokeWidth="1.5"/>
-      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="9" r="4" stroke="#555" strokeWidth="1.5"/>
+      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
 function AvatarFemale() {
   return (
-    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="8" r="4" stroke="#777" strokeWidth="1.5"/>
-      <path d="M8.5 6.5C8.5 4 10 2.5 12 2.5s3.5 1.5 3.5 4" stroke="#777" strokeWidth="1.3" strokeLinecap="round"/>
-      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#777" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="9" r="4" stroke="#777" strokeWidth="1.5"/>
+      <path d="M8.5 7C8.5 4.5 10 3 12 3s3.5 1.5 3.5 4" stroke="#777" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#777" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -38,21 +38,21 @@ function Divider() {
 }
 
 export default function SettingsPage() {
-  const [mounted,          setMounted]          = useState(false);
-  const [user,             setUser]             = useState<User | null>(null);
-  const [lastSync,         setLastSync]         = useState("");
-  const [isStravaConnected,setIsStravaConnected]= useState(false);
-  const [stravaResyncing,  setStravaResyncing]  = useState(false);
-  const [stravaMsg,        setStravaMsg]        = useState("");
-  const [importMsg,        setImportMsg]        = useState<{ ok: boolean; text: string } | null>(null);
-  const [showExport,       setShowExport]       = useState(false);
-  const [copied,           setCopied]           = useState(false);
-  const [profiles,         setProfiles]         = useState<[ProfileMeta | null, ProfileMeta | null]>([null, null]);
-  const [activeProfile,    setActiveProfile]    = useState<ProfileMeta | null>(null);
-  const [isSwitching,      setIsSwitching]      = useState(false);
-  const [showSwitch,       setShowSwitch]       = useState(false);
-  const [editingOther,     setEditingOther]     = useState(false);
-  const [editName,         setEditName]         = useState("");
+  const [mounted,           setMounted]           = useState(false);
+  const [user,              setUser]              = useState<User | null>(null);
+  const [lastSync,          setLastSync]          = useState("");
+  const [isStravaConnected, setIsStravaConnected] = useState(false);
+  const [stravaResyncing,   setStravaResyncing]   = useState(false);
+  const [stravaMsg,         setStravaMsg]         = useState("");
+  const [importMsg,         setImportMsg]         = useState<{ ok: boolean; text: string } | null>(null);
+  const [showExport,        setShowExport]        = useState(false);
+  const [copied,            setCopied]            = useState(false);
+  const [profiles,          setProfiles]          = useState<[ProfileMeta | null, ProfileMeta | null]>([null, null]);
+  const [activeProfile,     setActiveProfile]     = useState<ProfileMeta | null>(null);
+  const [isSwitching,       setIsSwitching]       = useState(false);
+  const [showSwitch,        setShowSwitch]        = useState(false);
+  const [editingOther,      setEditingOther]      = useState(false);
+  const [editName,          setEditName]          = useState("");
   const editRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -119,38 +119,26 @@ export default function SettingsPage() {
     a.click(); setShowExport(false);
   };
 
-  // ── Switch profil ──
+  // ── Switch ──
   const targetSlot: 1 | 2 = activeProfile?.slot === 1 ? 2 : 1;
   const targetMeta = profiles[targetSlot - 1];
-  // Default names — never show "Profil 2"
-  const targetName = (targetMeta?.name && targetMeta.name !== "Profil 2" && targetMeta.name !== "Profil 1")
-    ? targetMeta.name
-    : targetSlot === 2 ? "Christine" : "Maxime";
+  const isGenericName = (n?: string) => !n || n === "Profil 2" || n === "Profil 1";
+  const targetName = isGenericName(targetMeta?.name)
+    ? (targetSlot === 2 ? "Christine" : "Maxime")
+    : targetMeta!.name;
 
   const handleSwitchTo = async () => {
     setShowSwitch(false); setIsSwitching(true);
-    // Create profile 2 if it doesn't exist yet
-    if (!targetMeta && user) {
-      await createProfile(targetSlot, targetName, user.id);
-      setProfiles(getProfiles());
-    }
-    // Rename if still generic
-    if (targetMeta && (targetMeta.name === "Profil 2" || targetMeta.name === "Profil 1")) {
-      await renameProfile(targetSlot, targetName);
-      setProfiles(getProfiles());
-    }
-    try { await switchProfile(targetSlot); }
-    catch { setIsSwitching(false); }
+    if (!targetMeta && user) { await createProfile(targetSlot, targetName, user.id); setProfiles(getProfiles()); }
+    if (targetMeta && isGenericName(targetMeta.name)) { await renameProfile(targetSlot, targetName); setProfiles(getProfiles()); }
+    try { await switchProfile(targetSlot); } catch { setIsSwitching(false); }
   };
 
   const handleRenameOther = async () => {
     const trimmed = editName.trim();
     if (trimmed && trimmed !== targetMeta?.name) {
-      if (targetMeta) {
-        await renameProfile(targetSlot, trimmed);
-      } else if (user) {
-        await createProfile(targetSlot, trimmed, user.id);
-      }
+      if (targetMeta) await renameProfile(targetSlot, trimmed);
+      else if (user) await createProfile(targetSlot, trimmed, user.id);
       setProfiles(getProfiles());
     }
     setEditingOther(false);
@@ -160,22 +148,32 @@ export default function SettingsPage() {
 
   const ghName = (user?.user_metadata?.user_name as string) ?? user?.email ?? "—";
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const profileName = activeProfile?.name ?? (activeProfile?.slot === 2 ? "Christine" : "Maxime");
+  const profileName = activeProfile?.name && !isGenericName(activeProfile.name)
+    ? activeProfile.name
+    : (activeProfile?.slot === 2 ? "Christine" : "Maxime");
   const isFemale = activeProfile?.slot === 2;
   const syncLabel = lastSync
     ? new Date(lastSync).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : "—";
 
   return (
+    // Pleine hauteur, flex centré, safe-area haut+bas
     <div className="max-w-md mx-auto flex flex-col px-4 animate-fade-in"
-      style={{ height: "calc(100svh - 100px - env(safe-area-inset-bottom))" }}>
+      style={{
+        minHeight: "calc(100svh - 100px - env(safe-area-inset-bottom))",
+        paddingTop: "env(safe-area-inset-top)",
+      }}>
+
+      {/* Espace flexible haut */}
+      <div className="flex-1"/>
 
       {/* ── Avatar + nom ── */}
-      <div className="flex flex-col items-center justify-center py-6">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 overflow-hidden"
+      <div className="flex flex-col items-center pb-8">
+        {/* Cercle — pas d'overflow-hidden pour éviter le crop */}
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
           style={{ background: "#111", border: "2px solid #1e1e1e" }}>
           {avatarUrl
-            ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover"/>
+            ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover rounded-full"/>
             : isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
@@ -186,33 +184,32 @@ export default function SettingsPage() {
             disabled={isSwitching}
             className="flex items-center gap-1.5 press-effect disabled:opacity-50"
           >
-            {isSwitching
-              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="spinner mr-1">
-                  <circle cx="12" cy="12" r="9" stroke="#222" strokeWidth="2"/>
-                  <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              : null}
-            <span className="text-xl font-semibold" style={{ color: "#eee" }}>{profileName}</span>
+            {isSwitching && (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="spinner">
+                <circle cx="12" cy="12" r="9" stroke="#222" strokeWidth="2"/>
+                <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            )}
+            {/* Nom actif en vert */}
+            <span className="text-xl font-semibold" style={{ color: "#39ff14" }}>{profileName}</span>
             {!isSwitching && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 9l6 6 6-6" stroke="#2a2a2a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             )}
           </button>
 
-          {/* Popover : les deux noms, simple */}
+          {/* Popover minimaliste */}
           {showSwitch && (
             <div className="absolute top-full mt-2 z-50 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background: "#141414", border: "1px solid #252525", minWidth: 160 }}>
-              {/* Nom actif */}
-              <div className="px-5 pt-4 pb-2 text-center">
-                <span className="text-base font-semibold" style={{ color: "#eee" }}>{profileName}</span>
+              style={{ background: "#131313", border: "1px solid #222", minWidth: 150 }}>
+              {/* Nom actif (vert, non cliquable) */}
+              <div className="px-6 pt-4 pb-2 text-center">
+                <span className="text-base font-bold" style={{ color: "#39ff14" }}>{profileName}</span>
               </div>
-
-              <div className="mx-4 h-px mb-2" style={{ background: "#222" }}/>
-
-              {/* Autre profil — tap pour switcher, tap sur ✎ pour renommer */}
-              <div className="px-5 pb-4 flex items-center justify-center gap-2">
+              <div className="mx-4 h-px" style={{ background: "#1e1e1e" }}/>
+              {/* Autre profil (blanc, cliquable) */}
+              <div className="px-6 pt-2 pb-4 flex items-center justify-center gap-2">
                 {editingOther ? (
                   <input
                     ref={editRef}
@@ -220,20 +217,20 @@ export default function SettingsPage() {
                     onChange={(e) => setEditName(e.target.value)}
                     onBlur={handleRenameOther}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRenameOther(); if (e.key === "Escape") setEditingOther(false); }}
-                    className="text-center bg-transparent outline-none text-base font-bold w-28"
-                    style={{ color: "#39ff14", borderBottom: "1px solid rgba(57,255,20,0.35)" }}
+                    className="text-center bg-transparent outline-none text-base font-semibold w-28"
+                    style={{ color: "#eee", borderBottom: "1px solid #333" }}
                     maxLength={20}
                   />
                 ) : (
                   <>
                     <button onClick={handleSwitchTo}
-                      className="text-base font-bold press-effect" style={{ color: "#39ff14" }}>
+                      className="text-base font-semibold press-effect" style={{ color: "#eee" }}>
                       {targetName}
                     </button>
                     <button
                       onClick={() => { setEditName(targetName); setEditingOther(true); }}
-                      className="press-effect opacity-40">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      className="press-effect" style={{ opacity: 0.3 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
@@ -247,7 +244,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Actions ── */}
-      <div className="flex-1 rounded-2xl overflow-hidden" style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
 
         {/* Strava */}
         <button onClick={handleStravaAction} disabled={stravaResyncing}
@@ -350,6 +347,9 @@ export default function SettingsPage() {
             style={{ background: user ? "#39ff14" : "#1e1e1e", boxShadow: user ? "0 0 5px #39ff14" : "none" }}/>
         </button>
       </div>
+
+      {/* Espace flexible bas */}
+      <div className="flex-1"/>
 
       {/* Fermer popover au clic extérieur */}
       {showSwitch && (
