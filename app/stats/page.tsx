@@ -15,8 +15,6 @@ import {
   Tooltip,
   BarChart,
   Bar,
-  LineChart,
-  Line,
 } from "recharts";
 
 export default function StatsPage() {
@@ -45,14 +43,9 @@ export default function StatsPage() {
   const runs = sessions.filter((s): s is RunSession => s.type === "run");
   const fitness = sessions.filter((s): s is FitnessSession => s.type === "fitness");
 
-  // Weekly run data (last 8 weeks)
   const weeklyRunData = getWeeklyRunData(runs);
+  const lastWeights = getLastWeightsPerExercise(fitness);
 
-  // Key fitness lifts history
-  const benchData = getExerciseData(fitness, "Développé couché");
-  const squatData = getExerciseData(fitness, "Squat barre");
-
-  // Stats summary
   const totalRunKm = runs.reduce((a, s) => a + s.distanceKm, 0);
   const avgPace = runs.length
     ? runs.reduce((a, s) => a + s.avgPaceSecPerKm, 0) / runs.length
@@ -61,6 +54,15 @@ export default function StatsPage() {
   const last30Days = sessions.filter(
     (s) => new Date(s.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
   ).length;
+
+  // Pace chart data: last 20 runs in chronological order
+  const paceChartData = [...runs]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(-20)
+    .map((s) => ({
+      pace: s.avgPaceSecPerKm,
+      label: new Date(s.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+    }));
 
   return (
     <div className="max-w-md mx-auto animate-fade-in">
@@ -125,22 +127,37 @@ export default function StatsPage() {
                 <EmptyChart />
               )}
             </ChartCard>
-
-            <SessionHistoryList sessions={sessions.slice(0, 10)} />
           </div>
         )}
 
         {/* Runs tab */}
         {tab === "runs" && (
           <div className="space-y-5 animate-fade-in">
-            <ChartCard title="ALLURE MOYENNE (s/km)">
-              {runs.length > 1 ? (
+            <ChartCard title="KM PAR SEMAINE">
+              {weeklyRunData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={weeklyRunData} barSize={20}>
+                    <CartesianGrid stroke="#1a1a1a" vertical={false} />
+                    <XAxis dataKey="week" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                    <Tooltip
+                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
+                      labelStyle={{ color: "#888", fontSize: 11 }}
+                      itemStyle={{ color: "#39ff14" }}
+                      formatter={(v: number) => [`${v.toFixed(1)} km`, ""]}
+                    />
+                    <Bar dataKey="km" fill="#39ff14" opacity={0.85} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyChart />
+              )}
+            </ChartCard>
+
+            <ChartCard title="ÉVOLUTION DE L'ALLURE">
+              {paceChartData.length > 1 ? (
                 <ResponsiveContainer width="100%" height={160}>
-                  <AreaChart data={runs.slice(-20).reverse().map((s, i) => ({
-                    n: i + 1,
-                    pace: s.avgPaceSecPerKm,
-                    label: new Date(s.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
-                  }))}>
+                  <AreaChart data={paceChartData}>
                     <defs>
                       <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#39ff14" stopOpacity={0.15}/>
@@ -149,15 +166,26 @@ export default function StatsPage() {
                     </defs>
                     <CartesianGrid stroke="#1a1a1a" vertical={false} />
                     <XAxis dataKey="label" tick={{ fill: "#555", fontSize: 9 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28}
-                      tickFormatter={(v) => `${Math.floor(v/60)}:${String(v%60).padStart(2,"0")}`}
+                    <YAxis
+                      tick={{ fill: "#555", fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
                       reversed
+                      domain={[
+                        (dataMin: number) => Math.floor(dataMin * 0.97),
+                        (dataMax: number) => Math.ceil(dataMax * 1.03),
+                      ]}
+                      tickFormatter={(v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`}
                     />
                     <Tooltip
                       contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
                       labelStyle={{ color: "#888", fontSize: 11 }}
                       itemStyle={{ color: "#39ff14" }}
-                      formatter={(v: number) => [`${Math.floor(v/60)}:${String(Math.round(v%60)).padStart(2,"0")}/km`, "Allure"]}
+                      formatter={(v: number) => [
+                        `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}/km`,
+                        "Allure",
+                      ]}
                     />
                     <Area type="monotone" dataKey="pace" stroke="#39ff14" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
@@ -166,33 +194,23 @@ export default function StatsPage() {
                 <EmptyChart />
               )}
             </ChartCard>
-
-            <div className="space-y-3">
-              {runs.map((s) => (
-                <RunHistoryRow key={s.id} session={s} />
-              ))}
-            </div>
           </div>
         )}
 
         {/* Fitness tab */}
         {tab === "fitness" && (
-          <div className="space-y-5 animate-fade-in">
-            {benchData.length > 1 && (
-              <ChartCard title="DÉVELOPPÉ COUCHÉ (kg max)">
-                <LiftChart data={benchData} color="#ff6b00" />
-              </ChartCard>
+          <div className="space-y-4 animate-fade-in">
+            {lastWeights.upper.length > 0 && (
+              <ExerciseWeightCard title="HAUT DU CORPS" exercises={lastWeights.upper} />
             )}
-            {squatData.length > 1 && (
-              <ChartCard title="SQUAT (kg max)">
-                <LiftChart data={squatData} color="#ff6b00" />
-              </ChartCard>
+            {lastWeights.lower.length > 0 && (
+              <ExerciseWeightCard title="BAS DU CORPS" exercises={lastWeights.lower} />
             )}
-            <div className="space-y-3">
-              {fitness.map((s) => (
-                <FitnessHistoryRow key={s.id} session={s} />
-              ))}
-            </div>
+            {lastWeights.upper.length === 0 && lastWeights.lower.length === 0 && (
+              <div className="rounded-2xl p-6 text-center" style={{ background: "#111", border: "1px dashed #222" }}>
+                <p className="text-muted text-sm">Aucune séance de salle</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -319,111 +337,38 @@ function EmptyChart() {
   );
 }
 
-function LiftChart({ data, color }: { data: { date: string; max: number }[]; color: string }) {
+function ExerciseWeightCard({
+  title,
+  exercises,
+}: {
+  title: string;
+  exercises: { name: string; weight: number; sets: number; reps: number }[];
+}) {
   return (
-    <ResponsiveContainer width="100%" height={140}>
-      <LineChart data={data}>
-        <CartesianGrid stroke="#1a1a1a" vertical={false} />
-        <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 9 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-        <Tooltip
-          contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-          formatter={(v: number) => [`${v} kg`, "Max"]}
-        />
-        <Line type="monotone" dataKey="max" stroke={color} strokeWidth={2} dot={{ r: 3, fill: color }} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function RunHistoryRow({ session }: { session: RunSession }) {
-  return (
-    <div
-      className="rounded-2xl p-4 flex items-center gap-4"
-      style={{ background: "#111", border: "1px solid #1a1a1a" }}
-    >
-      <div>
-        <p className="text-xs text-muted mb-1">
-          {new Date(session.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-        </p>
-        <div className="flex gap-3 items-end">
-          <span className="font-display text-2xl" style={{ color: "#39ff14" }}>
-            {session.distanceKm.toFixed(1)}
-            <span className="text-xs text-muted ml-0.5">km</span>
-          </span>
-          {session.avgPaceSecPerKm > 0 && (
-            <span className="text-sm text-muted pb-0.5">
-              {Math.floor(session.avgPaceSecPerKm / 60)}:{String(Math.round(session.avgPaceSecPerKm % 60)).padStart(2, "0")}/km
-            </span>
-          )}
-          {session.avgHeartRate && (
-            <span className="text-sm text-muted pb-0.5">♥ {Math.round(session.avgHeartRate)} bpm</span>
-          )}
-        </div>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+      <div className="px-4 pt-3 pb-2">
+        <p className="text-xs text-muted uppercase tracking-widest">{title}</p>
       </div>
-      {session.importedFromStrava && (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff6b00" className="ml-auto flex-shrink-0">
-          <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
-        </svg>
-      )}
-    </div>
-  );
-}
-
-function FitnessHistoryRow({ session }: { session: FitnessSession }) {
-  return (
-    <div
-      className="rounded-2xl p-4"
-      style={{ background: "#111", border: "1px solid #1a1a1a" }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-muted">
-          {new Date(session.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
-        </p>
-        <Badge
-          label={session.category === "upper" ? "Haut" : "Bas"}
-          variant="orange"
-          size="sm"
-        />
-      </div>
-      <div className="space-y-1.5">
-        {session.exercises.slice(0, 4).map((ex) => (
-          <div key={ex.id} className="flex justify-between text-sm">
-            <span className="text-gray-300 truncate mr-2">{ex.name}</span>
-            <span className="text-muted flex-shrink-0">
-              {ex.sets}×{ex.reps} {ex.weight > 0 ? `@ ${ex.weight}kg` : ""}
-            </span>
+      {exercises.map((ex, i) => (
+        <div key={ex.name}>
+          {i > 0 && <div className="mx-4 h-px" style={{ background: "#161616" }} />}
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm font-medium" style={{ color: "#ccc" }}>{ex.name}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs" style={{ color: "#444" }}>
+                {ex.sets}×{ex.reps}
+              </span>
+              <span className="font-display text-lg leading-none" style={{ color: "#ff6b00" }}>
+                {ex.weight > 0 ? (
+                  <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "#ff6b00", opacity: 0.6 }}>kg</span></>
+                ) : (
+                  <span className="text-sm" style={{ color: "#444" }}>PC</span>
+                )}
+              </span>
+            </div>
           </div>
-        ))}
-        {session.exercises.length > 4 && (
-          <p className="text-xs text-muted">+{session.exercises.length - 4} exercices</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SessionHistoryList({ sessions }: { sessions: WorkoutSession[] }) {
-  if (sessions.length === 0) {
-    return (
-      <div
-        className="rounded-2xl p-6 text-center"
-        style={{ background: "#111", border: "1px dashed #222" }}
-      >
-        <p className="text-muted text-sm">Aucune séance pour l'instant</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {sessions.map((s) =>
-        s.type === "run" ? (
-          <RunHistoryRow key={s.id} session={s} />
-        ) : (
-          <FitnessHistoryRow key={s.id} session={s} />
-        )
-      )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -443,21 +388,28 @@ function getWeeklyRunData(runs: RunSession[]) {
 
   return Array.from(map.entries())
     .slice(-8)
-    .map(([week, km]) => ({ week, km }));
+    .map(([week, km]) => ({ week, km: Math.round(km * 10) / 10 }));
 }
 
-function getExerciseData(sessions: FitnessSession[], exerciseName: string) {
-  return sessions
-    .map((s) => {
-      const ex = s.exercises.find(
-        (e) => e.name.toLowerCase() === exerciseName.toLowerCase()
-      );
-      if (!ex) return null;
-      return {
-        date: new Date(s.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
-        max: ex.weight,
-      };
-    })
-    .filter(Boolean)
-    .reverse() as { date: string; max: number }[];
+function getLastWeightsPerExercise(sessions: FitnessSession[]) {
+  const upper = new Map<string, { weight: number; sets: number; reps: number }>();
+  const lower = new Map<string, { weight: number; sets: number; reps: number }>();
+
+  const sorted = [...sessions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  for (const s of sorted) {
+    const map = s.category === "upper" ? upper : lower;
+    for (const ex of s.exercises) {
+      if (!map.has(ex.name)) {
+        map.set(ex.name, { weight: ex.weight, sets: ex.sets, reps: ex.reps });
+      }
+    }
+  }
+
+  return {
+    upper: Array.from(upper.entries()).map(([name, v]) => ({ name, ...v })),
+    lower: Array.from(lower.entries()).map(([name, v]) => ({ name, ...v })),
+  };
 }
