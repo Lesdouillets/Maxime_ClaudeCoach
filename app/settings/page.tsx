@@ -11,47 +11,49 @@ import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } fro
 import { addSession } from "@/lib/storage";
 import {
   getProfiles, getActiveProfile, switchProfile,
-  createProfile, type ProfileMeta,
+  createProfile, renameProfile, type ProfileMeta,
 } from "@/lib/profiles";
 
 function AvatarMale() {
   return (
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="7.5" r="4" stroke="#555" strokeWidth="1.5" />
-      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#555" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="8" r="4" stroke="#555" strokeWidth="1.5"/>
+      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
 function AvatarFemale() {
   return (
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="7.5" r="4" stroke="#777" strokeWidth="1.5" />
-      <path d="M8.5 6C8.5 3.8 10 2.5 12 2.5s3.5 1.3 3.5 3.5" stroke="#777" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#777" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="8" r="4" stroke="#777" strokeWidth="1.5"/>
+      <path d="M8.5 6.5C8.5 4 10 2.5 12 2.5s3.5 1.5 3.5 4" stroke="#777" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#777" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
 function Divider() {
-  return <div className="ml-[68px] mr-4 h-px" style={{ background: "#161616" }} />;
+  return <div className="ml-[68px] mr-4 h-px" style={{ background: "#161616" }}/>;
 }
 
 export default function SettingsPage() {
-  const [mounted, setMounted] = useState(false);
-  const [user,              setUser]              = useState<User | null>(null);
-  const [lastSync,          setLastSync]          = useState("");
-  const [isStravaConnected, setIsStravaConnected] = useState(false);
-  const [stravaResyncing,   setStravaResyncing]   = useState(false);
-  const [stravaMsg,         setStravaMsg]         = useState("");
-  const [importMsg,         setImportMsg]         = useState<{ ok: boolean; text: string } | null>(null);
-  const [showExport,        setShowExport]        = useState(false);
-  const [copied,            setCopied]            = useState(false);
-  const [profiles,          setProfiles]          = useState<[ProfileMeta | null, ProfileMeta | null]>([null, null]);
-  const [activeProfile,     setActiveProfile]     = useState<ProfileMeta | null>(null);
-  const [isSwitching,       setIsSwitching]       = useState(false);
-  const [showSwitch,        setShowSwitch]        = useState(false);
-  const nameRef = useRef<HTMLButtonElement>(null);
+  const [mounted,          setMounted]          = useState(false);
+  const [user,             setUser]             = useState<User | null>(null);
+  const [lastSync,         setLastSync]         = useState("");
+  const [isStravaConnected,setIsStravaConnected]= useState(false);
+  const [stravaResyncing,  setStravaResyncing]  = useState(false);
+  const [stravaMsg,        setStravaMsg]        = useState("");
+  const [importMsg,        setImportMsg]        = useState<{ ok: boolean; text: string } | null>(null);
+  const [showExport,       setShowExport]       = useState(false);
+  const [copied,           setCopied]           = useState(false);
+  const [profiles,         setProfiles]         = useState<[ProfileMeta | null, ProfileMeta | null]>([null, null]);
+  const [activeProfile,    setActiveProfile]    = useState<ProfileMeta | null>(null);
+  const [isSwitching,      setIsSwitching]      = useState(false);
+  const [showSwitch,       setShowSwitch]       = useState(false);
+  const [editingOther,     setEditingOther]     = useState(false);
+  const [editName,         setEditName]         = useState("");
+  const editRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -63,6 +65,8 @@ export default function SettingsPage() {
     setActiveProfile(getActiveProfile());
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => { if (editingOther) editRef.current?.focus(); }, [editingOther]);
 
   // ── Strava ──
   const handleStravaAction = async () => {
@@ -118,17 +122,38 @@ export default function SettingsPage() {
   // ── Switch profil ──
   const targetSlot: 1 | 2 = activeProfile?.slot === 1 ? 2 : 1;
   const targetMeta = profiles[targetSlot - 1];
-  const targetName = targetMeta?.name ?? (targetSlot === 2 ? "Christine" : "Maxime");
+  // Default names — never show "Profil 2"
+  const targetName = (targetMeta?.name && targetMeta.name !== "Profil 2" && targetMeta.name !== "Profil 1")
+    ? targetMeta.name
+    : targetSlot === 2 ? "Christine" : "Maxime";
 
-  const handleSwitchConfirm = async () => {
-    setShowSwitch(false);
-    setIsSwitching(true);
+  const handleSwitchTo = async () => {
+    setShowSwitch(false); setIsSwitching(true);
+    // Create profile 2 if it doesn't exist yet
     if (!targetMeta && user) {
       await createProfile(targetSlot, targetName, user.id);
       setProfiles(getProfiles());
     }
+    // Rename if still generic
+    if (targetMeta && (targetMeta.name === "Profil 2" || targetMeta.name === "Profil 1")) {
+      await renameProfile(targetSlot, targetName);
+      setProfiles(getProfiles());
+    }
     try { await switchProfile(targetSlot); }
     catch { setIsSwitching(false); }
+  };
+
+  const handleRenameOther = async () => {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== targetMeta?.name) {
+      if (targetMeta) {
+        await renameProfile(targetSlot, trimmed);
+      } else if (user) {
+        await createProfile(targetSlot, trimmed, user.id);
+      }
+      setProfiles(getProfiles());
+    }
+    setEditingOther(false);
   };
 
   if (!mounted) return null;
@@ -142,59 +167,79 @@ export default function SettingsPage() {
     : "—";
 
   return (
-    // Full height minus nav bar (100px + safe-area), no scroll
     <div className="max-w-md mx-auto flex flex-col px-4 animate-fade-in"
       style={{ height: "calc(100svh - 100px - env(safe-area-inset-bottom))" }}>
 
       {/* ── Avatar + nom ── */}
-      <div className="flex flex-col items-center pt-10 pb-6">
-        <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center mb-4"
+      <div className="flex flex-col items-center justify-center py-6">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 overflow-hidden"
           style={{ background: "#111", border: "2px solid #1e1e1e" }}>
           {avatarUrl
-            ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover"/>
             : isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
-        {/* Nom + popover switch */}
+        {/* Nom + popover */}
         <div className="relative flex flex-col items-center">
           <button
-            ref={nameRef}
             onClick={() => !isSwitching && setShowSwitch((v) => !v)}
             disabled={isSwitching}
             className="flex items-center gap-1.5 press-effect disabled:opacity-50"
           >
-            <span className="text-xl font-semibold" style={{ color: "#eee" }}>{profileName}</span>
             {isSwitching
-              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="spinner">
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="spinner mr-1">
                   <circle cx="12" cy="12" r="9" stroke="#222" strokeWidth="2"/>
                   <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-              : <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-            }
+              : null}
+            <span className="text-xl font-semibold" style={{ color: "#eee" }}>{profileName}</span>
+            {!isSwitching && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M6 9l6 6 6-6" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </button>
-          {isSwitching && <p className="text-[11px] mt-1" style={{ color: "#444" }}>Changement…</p>}
 
-          {/* Inline popover juste sous le nom */}
+          {/* Popover : les deux noms, simple */}
           {showSwitch && (
             <div className="absolute top-full mt-2 z-50 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background: "#141414", border: "1px solid #252525", minWidth: 200 }}>
-              <p className="text-xs px-4 pt-3 pb-1 text-center" style={{ color: "#444" }}>
-                Passer à
-              </p>
-              <p className="text-sm font-semibold px-4 pb-3 text-center" style={{ color: "#eee" }}>
-                {targetName}
-              </p>
-              <div className="flex border-t" style={{ borderColor: "#1e1e1e" }}>
-                <button onClick={() => setShowSwitch(false)}
-                  className="flex-1 py-3 text-sm press-effect border-r" style={{ borderColor: "#1e1e1e", color: "#444" }}>
-                  Annuler
-                </button>
-                <button onClick={handleSwitchConfirm}
-                  className="flex-1 py-3 text-sm font-bold press-effect" style={{ color: "#39ff14" }}>
-                  Changer
-                </button>
+              style={{ background: "#141414", border: "1px solid #252525", minWidth: 160 }}>
+              {/* Nom actif */}
+              <div className="px-5 pt-4 pb-2 text-center">
+                <span className="text-base font-semibold" style={{ color: "#eee" }}>{profileName}</span>
+              </div>
+
+              <div className="mx-4 h-px mb-2" style={{ background: "#222" }}/>
+
+              {/* Autre profil — tap pour switcher, tap sur ✎ pour renommer */}
+              <div className="px-5 pb-4 flex items-center justify-center gap-2">
+                {editingOther ? (
+                  <input
+                    ref={editRef}
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onBlur={handleRenameOther}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRenameOther(); if (e.key === "Escape") setEditingOther(false); }}
+                    className="text-center bg-transparent outline-none text-base font-bold w-28"
+                    style={{ color: "#39ff14", borderBottom: "1px solid rgba(57,255,20,0.35)" }}
+                    maxLength={20}
+                  />
+                ) : (
+                  <>
+                    <button onClick={handleSwitchTo}
+                      className="text-base font-bold press-effect" style={{ color: "#39ff14" }}>
+                      {targetName}
+                    </button>
+                    <button
+                      onClick={() => { setEditName(targetName); setEditingOther(true); }}
+                      className="press-effect opacity-40">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -210,22 +255,22 @@ export default function SettingsPage() {
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: "#131313", border: "1px solid #1e1e1e" }}>
             <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={20} height={20} alt="Strava"
-              style={{ opacity: isStravaConnected ? 1 : 0.3 }} />
+              style={{ opacity: isStravaConnected ? 1 : 0.3 }}/>
           </div>
           <div className="flex-1 text-left">
             <p className="text-sm font-medium" style={{ color: isStravaConnected ? "#ccc" : "#555" }}>
               {stravaResyncing ? "Synchronisation…" : "Strava"}
             </p>
-            <p className="text-[11px]" style={{ color: stravaMsg ? "#ff6b00" : "#383838" }}>
+            <p className="text-[11px]" style={{ color: stravaMsg ? "#ff6b00" : "#333" }}>
               {stravaMsg || (isStravaConnected ? "Connecté" : "Non connecté")}
             </p>
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
 
-        <Divider />
+        <Divider/>
 
         {/* Import */}
         <label className="w-full flex items-center gap-4 px-4 py-4 cursor-pointer press-effect">
@@ -243,12 +288,12 @@ export default function SettingsPage() {
             )}
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile} />
+          <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile}/>
         </label>
 
-        <Divider />
+        <Divider/>
 
         {/* Export */}
         <div>
@@ -263,17 +308,14 @@ export default function SettingsPage() {
                 : <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                     <path d="M12 9v12M7 16l5 5 5-5" stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M20 3H4" stroke="#555" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-              }
+                  </svg>}
             </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-medium" style={{ color: copied ? "#39ff14" : "#ccc" }}>
-                {copied ? "Copié !" : "Export programme"}
-              </p>
-            </div>
+            <p className="flex-1 text-left text-sm font-medium" style={{ color: copied ? "#39ff14" : "#ccc" }}>
+              {copied ? "Copié !" : "Export programme"}
+            </p>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               style={{ transform: showExport ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>
-              <path d="M9 6l6 6-6 6" stroke="#2a2a2a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {showExport && (
@@ -293,25 +335,25 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ── GitHub sync footer ── */}
+      {/* ── GitHub footer ── */}
       <div className="mt-3 px-4 py-3.5 rounded-2xl flex items-center justify-between"
         style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
         <div>
-          <p className="text-sm font-medium" style={{ color: user ? "#666" : "#2a2a2a" }}>{ghName}</p>
-          <p className="text-[11px]" style={{ color: "#2a2a2a" }}>Sync {syncLabel}</p>
+          <p className="text-sm font-medium" style={{ color: user ? "#555" : "#252525" }}>{ghName}</p>
+          <p className="text-[11px]" style={{ color: "#252525" }}>Sync {syncLabel}</p>
         </div>
         <button onClick={user ? signOut : signInWithGitHub} className="flex items-center gap-2 press-effect">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "#666" : "#252525"}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "#555" : "#222"}>
             <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
           </svg>
-          <span className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ background: user ? "#39ff14" : "#1e1e1e", boxShadow: user ? "0 0 5px #39ff14" : "none" }} />
+          <span className="w-2 h-2 rounded-full"
+            style={{ background: user ? "#39ff14" : "#1e1e1e", boxShadow: user ? "0 0 5px #39ff14" : "none" }}/>
         </button>
       </div>
 
-      {/* Close popover on outside click */}
+      {/* Fermer popover au clic extérieur */}
       {showSwitch && (
-        <div className="fixed inset-0 z-40" onClick={() => setShowSwitch(false)} />
+        <div className="fixed inset-0 z-40" onClick={() => { setShowSwitch(false); setEditingOther(false); }}/>
       )}
 
       <style>{`.spinner{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
