@@ -177,12 +177,13 @@ export default function SettingsPage() {
             : isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
-        {/* Nom + popover */}
-        <div className="relative flex flex-col items-center">
+        {/* Nom + popover — le nom n'apparaît qu'une fois */}
+        <div className="relative flex flex-col items-center" style={{ minHeight: 32 }}>
+          {/* Bouton fantôme pour maintenir la hauteur quand la carte est ouverte */}
           <button
             onClick={() => !isSwitching && setShowSwitch((v) => !v)}
             disabled={isSwitching}
-            className="flex items-center gap-1.5 press-effect disabled:opacity-50"
+            className={`flex items-center gap-1.5 press-effect disabled:opacity-50${showSwitch ? " invisible" : ""}`}
           >
             {isSwitching && (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="spinner">
@@ -190,25 +191,28 @@ export default function SettingsPage() {
                 <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             )}
-            {/* Nom actif en vert */}
             <span className="text-xl font-semibold" style={{ color: "#39ff14" }}>{profileName}</span>
-            {!isSwitching && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M6 9l6 6 6-6" stroke="#2a2a2a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke="#2a2a2a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
 
-          {/* Popover minimaliste */}
+          {/* Carte — top:0 pour que le nom soit au même endroit que le bouton */}
           {showSwitch && (
-            <div className="absolute top-full mt-2 z-50 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background: "#131313", border: "1px solid #222", minWidth: 150 }}>
-              {/* Nom actif (vert, non cliquable) */}
-              <div className="px-6 pt-4 pb-2 text-center">
-                <span className="text-base font-bold" style={{ color: "#39ff14" }}>{profileName}</span>
-              </div>
+            <div className="absolute top-0 z-50 rounded-2xl overflow-hidden shadow-2xl"
+              style={{ background: "#131313", border: "1px solid #222", minWidth: 160 }}>
+              {/* En-tête = le nom actif (remplace le bouton) */}
+              <button
+                onClick={() => setShowSwitch(false)}
+                className="w-full flex items-center justify-center gap-1.5 px-6 pt-4 pb-2 press-effect"
+              >
+                <span className="text-xl font-semibold" style={{ color: "#39ff14" }}>{profileName}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}>
+                  <path d="M6 9l6 6 6-6" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
               <div className="mx-4 h-px" style={{ background: "#1e1e1e" }}/>
-              {/* Autre profil (blanc, cliquable) */}
+              {/* Autre profil */}
               <div className="px-6 pt-2 pb-4 flex items-center justify-center gap-2">
                 {editingOther ? (
                   <input
