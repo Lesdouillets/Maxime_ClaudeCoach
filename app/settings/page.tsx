@@ -147,7 +147,6 @@ export default function SettingsPage() {
   if (!mounted) return null;
 
   const ghName = (user?.user_metadata?.user_name as string) ?? user?.email ?? "—";
-  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
   const profileName = activeProfile?.name && !isGenericName(activeProfile.name)
     ? activeProfile.name
     : (activeProfile?.slot === 2 ? "Christine" : "Maxime");
@@ -172,9 +171,7 @@ export default function SettingsPage() {
         {/* Cercle — pas d'overflow-hidden pour éviter le crop */}
         <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
           style={{ background: "#111", border: "2px solid #1e1e1e" }}>
-          {avatarUrl
-            ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover rounded-full"/>
-            : isFemale ? <AvatarFemale /> : <AvatarMale />}
+          {isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
         {/* Nom + popover — le nom n'apparaît qu'une fois */}

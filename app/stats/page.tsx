@@ -22,7 +22,7 @@ export default function StatsPage() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [weightHistory, setWeightHistory] = useState<{ date: string; kg: number }[]>([]);
   const [newWeight, setNewWeight] = useState("");
-  const [tab, setTab] = useState<"overview" | "runs" | "fitness" | "weight">("overview");
+  const [tab, setTab] = useState<"runs" | "fitness" | "weight">("runs");
 
   useEffect(() => {
     setMounted(true);
@@ -88,7 +88,7 @@ export default function StatsPage() {
           className="flex rounded-2xl p-1 gap-1"
           style={{ background: "#111", border: "1px solid #1a1a1a" }}
         >
-          {(["overview", "runs", "fitness", "weight"] as const).map((t) => (
+          {(["runs", "fitness", "weight"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -99,36 +99,10 @@ export default function StatsPage() {
                 border: tab === t ? "1px solid rgba(57,255,20,0.2)" : "1px solid transparent",
               }}
             >
-              {t === "overview" ? "Vue" : t === "runs" ? "Run" : t === "fitness" ? "Salle" : "Poids"}
+              {t === "runs" ? "Run" : t === "fitness" ? "Salle" : "Poids"}
             </button>
           ))}
         </div>
-
-        {/* Overview tab */}
-        {tab === "overview" && (
-          <div className="space-y-5 animate-fade-in">
-            <ChartCard title="KM RUN PAR SEMAINE">
-              {weeklyRunData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={weeklyRunData} barSize={20}>
-                    <CartesianGrid stroke="#1a1a1a" vertical={false} />
-                    <XAxis dataKey="week" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
-                    <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#888", fontSize: 11 }}
-                      itemStyle={{ color: "#39ff14" }}
-                      formatter={(v: number) => [`${v.toFixed(1)} km`, ""]}
-                    />
-                    <Bar dataKey="km" fill="#39ff14" opacity={0.85} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChart />
-              )}
-            </ChartCard>
-          </div>
-        )}
 
         {/* Runs tab */}
         {tab === "runs" && (
