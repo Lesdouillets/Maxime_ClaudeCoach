@@ -14,6 +14,20 @@ export interface CoachAnalysisResult {
   programChanged: boolean;
 }
 
+export function storeCoachAnalysis(date: string, result: CoachAnalysisResult): void {
+  try { localStorage.setItem(`cc_coach_analysis_${date}`, JSON.stringify(result)); } catch {}
+}
+
+export function getStoredCoachAnalysis(date: string): CoachAnalysisResult | null {
+  try {
+    const raw = localStorage.getItem(`cc_coach_analysis_${date}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.analysis === "string") return parsed as CoachAnalysisResult;
+    return null;
+  } catch { return null; }
+}
+
 /** Returns upcoming coach plans (workouts + runs) sorted by date. */
 function getCoachPlansFromNow(days: number): CoachPlan[] {
   const today = new Date().toISOString().slice(0, 10);

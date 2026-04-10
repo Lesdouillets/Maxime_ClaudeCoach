@@ -12,6 +12,8 @@ import {
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
+import { analyzeSession, storeCoachAnalysis, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import type { WorkoutSession, FitnessSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -41,6 +43,8 @@ export default function DayPage() {
   const [reschedule, setReschedule] = useState<{ from: string; to: string } | null>(null);
 
   const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
+  const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
+  const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
 
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
@@ -85,6 +89,8 @@ export default function DayPage() {
       }
     } catch {}
     setExerciseNotes(notesInit);
+    setCoachResult(getStoredCoachAnalysis(d));
+    setCoachState("done");
   };
 
   useEffect(() => {
@@ -111,7 +117,7 @@ export default function DayPage() {
       name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
       comment: exerciseNotes[i] ?? "",
     }));
-    addSession({
+    const savedSession: FitnessSession = {
       id: generateId(),
       type: "fitness",
       date: new Date(date + "T12:00:00").toISOString(),
@@ -119,9 +125,17 @@ export default function DayPage() {
       comment: "",
       exercises,
       coachWorkoutId: coachWorkout.id,
-    } as FitnessSession);
+    };
+    addSession(savedSession);
     load(date);
     autoSyncPush();
+    setCoachState("analyzing");
+    setCoachResult(null);
+    analyzeSession(savedSession).then((result) => {
+      if (result) storeCoachAnalysis(date, result);
+      setCoachResult(result);
+      setCoachState("done");
+    });
   };
 
   const handleCancelConfirm = () => {
@@ -246,6 +260,11 @@ export default function DayPage() {
       </div>
 
       <div className="px-5 space-y-4">
+
+        {/* ── Coach analysis card — shown when session is done ── */}
+        {isDone && (coachState === "analyzing" || !!coachResult) && (
+          <CoachFeedbackCard state={coachState} result={coachResult} />
+        )}
 
         {/* ── Cancelled: subtle restore banner ── */}
         {isCancelled && (

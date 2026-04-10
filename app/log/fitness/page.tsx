@@ -8,7 +8,7 @@ import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { addSession, generateId } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
-import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import { analyzeSession, storeCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import type { Exercise, FitnessCategory, FitnessSession } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
@@ -71,7 +71,9 @@ export default function LogFitness() {
     setCoachState("analyzing");
 
     // Fire async analysis — result displayed in card, doesn't block navigation
+    const analysisDate = sessionDate ?? new Date().toISOString().slice(0, 10);
     analyzeSession(session).then((result) => {
+      if (result) storeCoachAnalysis(analysisDate, result);
       setCoachResult(result);
       setCoachState("done");
     });
