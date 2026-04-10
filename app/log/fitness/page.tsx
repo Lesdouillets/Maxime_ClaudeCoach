@@ -4,10 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useTimer } from "@/contexts/TimerContext";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
+import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { addSession, generateId } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
-import type { Exercise, FitnessCategory } from "@/lib/types";
+import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import type { Exercise, FitnessCategory, FitnessSession } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
@@ -23,6 +25,8 @@ export default function LogFitness() {
   const [category, setCategory] = useState<FitnessCategory>("upper");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
+  const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const { timerKey: timerExId, timerSec, startTimer, stopTimer } = useTimer();
 
   useEffect(() => {
@@ -31,7 +35,6 @@ export default function LogFitness() {
     const d = params.get("date");
     if (d) setSessionDate(d);
 
-    // Load coach workout for this date (or today)
     const targetDate = d ?? new Date().toISOString().slice(0, 10);
     const allWorkouts = getCoachWorkouts();
     const plan = allWorkouts.find((w) => w.date === targetDate) ?? null;
@@ -40,7 +43,6 @@ export default function LogFitness() {
       setCategory(plan.category);
       setExercises(plan.exercises.map(coachToExercise));
     }
-    return () => {};
   }, []);
 
   const updateExercise = useCallback(
@@ -52,7 +54,7 @@ export default function LogFitness() {
   const handleSave = useCallback(async () => {
     if (exercises.length === 0) return;
     setSaving(true);
-    addSession({
+    const session: FitnessSession = {
       id: generateId(),
       type: "fitness",
       date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
@@ -60,13 +62,20 @@ export default function LogFitness() {
       comment: "",
       exercises,
       ...(coachWorkout ? { coachWorkoutId: coachWorkout.id } : {}),
-    });
+    };
+    addSession(session);
     if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
     autoSyncPush();
     setSaving(false);
     setSaved(true);
-    setTimeout(() => router.push("/"), 1200);
-  }, [exercises, category, coachWorkout, sessionDate, router]);
+    setCoachState("analyzing");
+
+    // Fire async analysis — result displayed in card, doesn't block navigation
+    analyzeSession(session).then((result) => {
+      setCoachResult(result);
+      setCoachState("done");
+    });
+  }, [exercises, category, coachWorkout, sessionDate]);
 
   if (!mounted) return null;
 
@@ -106,7 +115,7 @@ export default function LogFitness() {
                 </div>
               )}
 
-              {/* Sets / Reps / Weight + Timer — editable */}
+              {/* Sets / Reps / Weight + Timer */}
               <div className="flex" style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
                 {([
                   { label: "Séries", field: "sets" as keyof Exercise, unit: "×", step: "1" },
@@ -161,28 +170,45 @@ export default function LogFitness() {
                   style={{ color: "#888" }}
                 />
               </div>
-
             </div>
           );
         })}
+
+        {/* Coach feedback card — appears after save */}
+        {saved && (
+          <CoachFeedbackCard state={coachState} result={coachResult} />
+        )}
 
       </div>
 
       {/* Finaliser — fixed bottom */}
       <div className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3"
         style={{ background: "linear-gradient(to top, #0a0a0a 70%, transparent)" }}>
-        <button
-          onClick={handleSave}
-          disabled={saving || saved || exercises.length === 0}
-          className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
-          style={{
-            background: saved ? "rgba(57,255,20,0.1)" : "linear-gradient(135deg, #ff6b00, #7a3300)",
-            color: saved ? "#39ff14" : "white",
-            border: saved ? "1px solid rgba(57,255,20,0.4)" : "none",
-          }}
-        >
-          {saved ? "✓ SÉANCE FINALISÉE" : saving ? "Sauvegarde…" : "FINALISER LA SÉANCE"}
-        </button>
+        {saved ? (
+          <button
+            onClick={() => router.push("/")}
+            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+            style={{
+              background: "rgba(57,255,20,0.1)",
+              color: "#39ff14",
+              border: "1px solid rgba(57,255,20,0.4)",
+            }}
+          >
+            CONTINUER →
+          </button>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={saving || exercises.length === 0}
+            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
+            style={{
+              background: "linear-gradient(135deg, #ff6b00, #7a3300)",
+              color: "white",
+            }}
+          >
+            {saving ? "Sauvegarde…" : "FINALISER LA SÉANCE"}
+          </button>
+        )}
       </div>
     </div>
   );

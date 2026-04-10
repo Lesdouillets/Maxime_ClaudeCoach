@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
+import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { addSession, generateId } from "@/lib/storage";
+import { autoSyncPush } from "@/lib/sync";
+import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { getTodayPlan, formatPace } from "@/lib/plan";
-import type { PlannedDay } from "@/lib/types";
+import type { PlannedDay, RunSession } from "@/lib/types";
 
 export default function LogRun() {
   const router = useRouter();
@@ -23,6 +26,8 @@ export default function LogRun() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [sessionDate, setSessionDate] = useState<string | null>(null); // null = today
+  const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
+  const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -61,7 +66,7 @@ export default function LogRun() {
     const durationSeconds = min * 60 + sec;
 
     setSaving(true);
-    addSession({
+    const session: RunSession = {
       id: generateId(),
       type: "run",
       date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
@@ -74,11 +79,18 @@ export default function LogRun() {
       targetDistanceKm: todayPlan?.targetDistanceKm,
       targetPaceSecPerKm: todayPlan?.targetPaceSecPerKm,
       targetZone: todayPlan?.targetZone,
-    });
+    };
+    addSession(session);
+    autoSyncPush(); // was missing before
     setSaving(false);
     setSaved(true);
-    setTimeout(() => router.push("/"), 1200);
-  }, [distanceKm, minutes, seconds, avgHr, elevGain, comment, pace, todayPlan, router]);
+    setCoachState("analyzing");
+
+    analyzeSession(session).then((result) => {
+      setCoachResult(result);
+      setCoachState("done");
+    });
+  }, [distanceKm, minutes, seconds, avgHr, elevGain, comment, pace, todayPlan]);
 
   if (!mounted) return null;
 
@@ -90,22 +102,6 @@ export default function LogRun() {
           ? new Date(sessionDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
           : "Logger"}
         accent="neon"
-        right={
-          <button
-            onClick={handleSave}
-            disabled={saving || saved || !distanceKm}
-            className="px-4 py-2 rounded-xl text-sm font-bold press-effect disabled:opacity-50"
-            style={{
-              background: saved
-                ? "rgba(57,255,20,0.2)"
-                : "linear-gradient(135deg, #39ff14, #1a7a09)",
-              color: saved ? "#39ff14" : "#0a0a0a",
-              border: saved ? "1px solid rgba(57,255,20,0.4)" : "none",
-            }}
-          >
-            {saved ? "✓ Sauvé" : "Sauver"}
-          </button>
-        }
       />
 
       <div className="px-5 space-y-5">
@@ -378,20 +374,34 @@ export default function LogRun() {
         </div>
 
         {/* Save */}
-        <button
-          onClick={handleSave}
-          disabled={saving || saved || !distanceKm}
-          className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
-          style={{
-            background: saved
-              ? "rgba(57,255,20,0.1)"
-              : "linear-gradient(135deg, #39ff14, #1a7a09)",
-            color: saved ? "#39ff14" : "#0a0a0a",
-            border: saved ? "1px solid rgba(57,255,20,0.4)" : "none",
-          }}
-        >
-          {saved ? "✓ RUN ENREGISTRÉ" : saving ? "Sauvegarde..." : "TERMINER LE RUN"}
-        </button>
+        {saved ? (
+          <>
+            <CoachFeedbackCard state={coachState} result={coachResult} />
+            <button
+              onClick={() => router.push("/")}
+              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+              style={{
+                background: "rgba(57,255,20,0.1)",
+                color: "#39ff14",
+                border: "1px solid rgba(57,255,20,0.4)",
+              }}
+            >
+              CONTINUER →
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={saving || !distanceKm}
+            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
+            style={{
+              background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+              color: "#0a0a0a",
+            }}
+          >
+            {saving ? "Sauvegarde..." : "TERMINER LE RUN"}
+          </button>
+        )}
 
         <div className="h-4" />
       </div>
