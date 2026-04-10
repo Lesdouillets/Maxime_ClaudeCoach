@@ -7,7 +7,7 @@ import Badge from "@/components/Badge";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { addSession, generateId } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
-import { analyzeSession, storeCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { getTodayPlan, formatPace } from "@/lib/plan";
 import type { PlannedDay, RunSession } from "@/lib/types";
 
@@ -86,9 +86,7 @@ export default function LogRun() {
     setSaved(true);
     setCoachState("analyzing");
 
-    const analysisDate = sessionDate ?? new Date().toISOString().slice(0, 10);
     analyzeSession(session).then((result) => {
-      if (result) storeCoachAnalysis(analysisDate, result);
       setCoachResult(result);
       setCoachState("done");
     });

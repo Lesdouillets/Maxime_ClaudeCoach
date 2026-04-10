@@ -12,7 +12,7 @@ import {
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
-import { analyzeSession, storeCoachAnalysis, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import { analyzeSession, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, toLocalDateStr } from "@/lib/plan";
 import type { WorkoutSession, FitnessSession, CancelledDay as CancelledDayType } from "@/lib/types";
@@ -132,7 +132,6 @@ export default function DayPage() {
     setCoachState("analyzing");
     setCoachResult(null);
     analyzeSession(savedSession).then((result) => {
-      if (result) storeCoachAnalysis(date, result);
       setCoachResult(result);
       setCoachState("done");
     });

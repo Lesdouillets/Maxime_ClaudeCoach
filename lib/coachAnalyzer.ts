@@ -67,16 +67,21 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
           else addCoachRun(plan);
         }
         programChanged = true;
-        await autoSyncPush();
       } catch {
         // Malformed response — skip silently
       }
     }
 
-    return {
+    const result: CoachAnalysisResult = {
       analysis: typeof data.analysis === "string" ? data.analysis : "",
       programChanged,
     };
+
+    // Persist to localStorage then sync to Supabase
+    storeCoachAnalysis(session.date.slice(0, 10), result);
+    await autoSyncPush();
+
+    return result;
   } catch {
     return null;
   }

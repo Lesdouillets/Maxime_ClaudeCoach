@@ -96,6 +96,25 @@ function readExNotes(): { date: string; notes: object }[] {
   return result;
 }
 
+type CoachAnalysisEntry = { date: string; analysis: string; program_changed: boolean };
+
+function readCoachAnalyses(): CoachAnalysisEntry[] {
+  const result: CoachAnalysisEntry[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith("cc_coach_analysis_")) {
+      const date = k.slice("cc_coach_analysis_".length);
+      try {
+        const parsed = JSON.parse(localStorage.getItem(k) ?? "");
+        if (typeof parsed?.analysis === "string") {
+          result.push({ date, analysis: parsed.analysis, program_changed: !!parsed.programChanged });
+        }
+      } catch {}
+    }
+  }
+  return result;
+}
+
 // ─── Écriture localStorage ────────────────────────────────────────────────────
 function writeSessions(sessions: WorkoutSession[]) {
   localStorage.setItem("cc_sessions", JSON.stringify(sessions));
@@ -124,6 +143,12 @@ function writeWeightEntries(entries: WeightEntry[]) {
 function writeExNotes(notes: { date: string; notes: object }[]) {
   notes.forEach(({ date, notes }) => {
     localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(notes));
+  });
+}
+
+function writeCoachAnalyses(entries: CoachAnalysisEntry[]) {
+  entries.forEach(({ date, analysis, program_changed }) => {
+    localStorage.setItem(`cc_coach_analysis_${date}`, JSON.stringify({ analysis, programChanged: program_changed }));
   });
 }
 
@@ -209,6 +234,15 @@ async function pushExNotes(userId: string, profileId: string, notes: { date: str
   if (error) throw new Error(error.message);
 }
 
+async function pushCoachAnalyses(userId: string, profileId: string, entries: CoachAnalysisEntry[]) {
+  if (entries.length === 0) return;
+  const { error } = await supabase.from("coach_analysis").upsert(
+    entries.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, analysis: e.analysis, program_changed: e.program_changed })),
+    { onConflict: "user_id,profile_id,date" }
+  );
+  if (error) throw new Error(error.message);
+}
+
 async function pushStravaTokens(userId: string, profileId: string) {
   try {
     const raw = localStorage.getItem("cc_strava_tokens");
@@ -252,6 +286,13 @@ async function pullExNotes(userId: string, profileId: string): Promise<{ date: s
   return (data ?? []) as { date: string; notes: object }[];
 }
 
+async function pullCoachAnalyses(userId: string, profileId: string): Promise<CoachAnalysisEntry[]> {
+  const { data } = await supabase.from("coach_analysis")
+    .select("date, analysis, program_changed")
+    .eq("user_id", userId).eq("profile_id", profileId);
+  return (data ?? []) as CoachAnalysisEntry[];
+}
+
 async function pullStravaTokens(userId: string, profileId: string) {
   try {
     if (localStorage.getItem("cc_strava_tokens")) return;
@@ -265,26 +306,29 @@ async function pullStravaTokens(userId: string, profileId: string) {
 
 // ─── Core sync logic (shared) ─────────────────────────────────────────────────
 async function _runSync(userId: string, profileId: string): Promise<void> {
-  const [remoteSessions, remoteCoachPlans, remoteDayEvents, remoteWeightEntries, remoteExNotes] =
+  const [remoteSessions, remoteCoachPlans, remoteDayEvents, remoteWeightEntries, remoteExNotes, remoteCoachAnalyses] =
     await Promise.all([
       pullSessions(userId, profileId),
       pullCoachPlans(userId, profileId),
       pullDayEvents(userId, profileId),
       pullWeightEntries(userId, profileId),
       pullExNotes(userId, profileId),
+      pullCoachAnalyses(userId, profileId),
     ]);
 
-  const mergedSessions      = mergeById(remoteSessions, readSessions());
-  const mergedCoachPlans    = mergeById(remoteCoachPlans, readCoachPlans());
-  const mergedDayEvents     = mergeDayEvents(remoteDayEvents, readDayEvents());
-  const mergedWeightEntries = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
-  const mergedExNotes       = mergeByKey(remoteExNotes, readExNotes(), "date");
+  const mergedSessions        = mergeById(remoteSessions, readSessions());
+  const mergedCoachPlans      = mergeById(remoteCoachPlans, readCoachPlans());
+  const mergedDayEvents       = mergeDayEvents(remoteDayEvents, readDayEvents());
+  const mergedWeightEntries   = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
+  const mergedExNotes         = mergeByKey(remoteExNotes, readExNotes(), "date");
+  const mergedCoachAnalyses   = mergeByKey(remoteCoachAnalyses, readCoachAnalyses(), "date");
 
   writeSessions(mergedSessions);
   writeCoachPlans(mergedCoachPlans);
   writeDayEvents(mergedDayEvents);
   writeWeightEntries(mergedWeightEntries);
   writeExNotes(mergedExNotes);
+  writeCoachAnalyses(mergedCoachAnalyses);
 
   await Promise.all([
     pushSessions(userId, profileId, mergedSessions),
@@ -292,6 +336,7 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     pushDayEvents(userId, profileId, mergedDayEvents),
     pushWeightEntries(userId, profileId, mergedWeightEntries),
     pushExNotes(userId, profileId, mergedExNotes),
+    pushCoachAnalyses(userId, profileId, mergedCoachAnalyses),
     pushStravaTokens(userId, profileId),
     pullStravaTokens(userId, profileId),
   ]);
@@ -356,6 +401,7 @@ export async function autoSyncPush(): Promise<void> {
       pushDayEvents(user.id, profileId, readDayEvents()),
       pushWeightEntries(user.id, profileId, readWeightEntries()),
       pushExNotes(user.id, profileId, readExNotes()),
+      pushCoachAnalyses(user.id, profileId, readCoachAnalyses()),
       pushStravaTokens(user.id, profileId),
     ]);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
