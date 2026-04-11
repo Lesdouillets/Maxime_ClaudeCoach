@@ -12,6 +12,7 @@ import type { CoachPlan } from "./coachPlan";
 export interface CoachAnalysisResult {
   analysis: string;
   programChanged: boolean;
+  modifiedCount: number;
 }
 
 export function storeCoachAnalysis(date: string, result: CoachAnalysisResult): void {
@@ -58,6 +59,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     // Apply modified plans via the same parser used for manual JSON imports
     const rawPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
     let programChanged = false;
+    let modifiedCount = 0;
 
     if (rawPlans.length > 0) {
       try {
@@ -67,6 +69,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
           else addCoachRun(plan);
         }
         programChanged = true;
+        modifiedCount = parsed.length;
       } catch {
         // Malformed response — skip silently
       }
@@ -75,6 +78,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     const result: CoachAnalysisResult = {
       analysis: typeof data.analysis === "string" ? data.analysis : "",
       programChanged,
+      modifiedCount,
     };
 
     // Persist to localStorage then sync to Supabase

@@ -22,12 +22,12 @@ export default function CoachFeedbackCard({ state, result }: Props) {
         <span className="text-[11px] font-bold tracking-widest" style={{ color: "#39ff14" }}>
           ALEX — COACH
         </span>
-        {state === "done" && result?.programChanged && (
+        {state === "done" && result && result.modifiedCount > 0 && (
           <span
             className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.25)" }}
           >
-            Programme adapté ✓
+            {result.modifiedCount} séance{result.modifiedCount > 1 ? "s" : ""} adaptée{result.modifiedCount > 1 ? "s" : ""} ✓
           </span>
         )}
       </div>

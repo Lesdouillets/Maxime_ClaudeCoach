@@ -96,7 +96,7 @@ function readExNotes(): { date: string; notes: object }[] {
   return result;
 }
 
-type CoachAnalysisEntry = { date: string; analysis: string; program_changed: boolean };
+type CoachAnalysisEntry = { date: string; analysis: string; program_changed: boolean; modified_count: number };
 
 function readCoachAnalyses(): CoachAnalysisEntry[] {
   const result: CoachAnalysisEntry[] = [];
@@ -107,7 +107,7 @@ function readCoachAnalyses(): CoachAnalysisEntry[] {
       try {
         const parsed = JSON.parse(localStorage.getItem(k) ?? "");
         if (typeof parsed?.analysis === "string") {
-          result.push({ date, analysis: parsed.analysis, program_changed: !!parsed.programChanged });
+          result.push({ date, analysis: parsed.analysis, program_changed: !!parsed.programChanged, modified_count: Number(parsed.modifiedCount ?? 0) });
         }
       } catch {}
     }
@@ -147,8 +147,8 @@ function writeExNotes(notes: { date: string; notes: object }[]) {
 }
 
 function writeCoachAnalyses(entries: CoachAnalysisEntry[]) {
-  entries.forEach(({ date, analysis, program_changed }) => {
-    localStorage.setItem(`cc_coach_analysis_${date}`, JSON.stringify({ analysis, programChanged: program_changed }));
+  entries.forEach(({ date, analysis, program_changed, modified_count }) => {
+    localStorage.setItem(`cc_coach_analysis_${date}`, JSON.stringify({ analysis, programChanged: program_changed, modifiedCount: modified_count }));
   });
 }
 
@@ -237,7 +237,7 @@ async function pushExNotes(userId: string, profileId: string, notes: { date: str
 async function pushCoachAnalyses(userId: string, profileId: string, entries: CoachAnalysisEntry[]) {
   if (entries.length === 0) return;
   const { error } = await supabase.from("coach_analysis").upsert(
-    entries.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, analysis: e.analysis, program_changed: e.program_changed })),
+    entries.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, analysis: e.analysis, program_changed: e.program_changed, modified_count: e.modified_count })),
     { onConflict: "user_id,profile_id,date" }
   );
   if (error) throw new Error(error.message);
@@ -288,7 +288,7 @@ async function pullExNotes(userId: string, profileId: string): Promise<{ date: s
 
 async function pullCoachAnalyses(userId: string, profileId: string): Promise<CoachAnalysisEntry[]> {
   const { data } = await supabase.from("coach_analysis")
-    .select("date, analysis, program_changed")
+    .select("date, analysis, program_changed, modified_count")
     .eq("user_id", userId).eq("profile_id", profileId);
   return (data ?? []) as CoachAnalysisEntry[];
 }
