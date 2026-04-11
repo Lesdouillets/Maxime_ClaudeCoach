@@ -144,8 +144,8 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
       sets: Number(ex.sets ?? 3),
       reps: Number(ex.reps ?? 10),
       weight: Number(ex.weight ?? 0),
-      restSeconds: ex.rest ? Number(ex.rest) : undefined,
-      coachNote: ex.note ? String(ex.note) : undefined,
+      restSeconds: ex.restSeconds != null ? Number(ex.restSeconds) : (ex.rest != null ? Number(ex.rest) : undefined),
+      coachNote: ex.coachNote != null ? String(ex.coachNote) : (ex.note != null ? String(ex.note) : undefined),
     })),
   };
 }
