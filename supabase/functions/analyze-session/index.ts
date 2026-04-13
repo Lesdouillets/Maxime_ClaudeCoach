@@ -120,13 +120,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Verify request comes from our app via the anon key header
-    // (sent automatically by the Supabase JS client on every functions.invoke call)
-    const requestApiKey = req.headers.get("apikey");
-    const expectedAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    if (!requestApiKey || requestApiKey !== expectedAnonKey) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS });
-    }
+    // Personal app — no auth gate needed.
+    // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
     const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [] } = body;
