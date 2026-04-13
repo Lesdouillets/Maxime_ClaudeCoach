@@ -353,12 +353,12 @@ let isSyncing = false;
  */
 export async function syncFull(): Promise<SyncResult> {
   if (isSyncing) return { ok: false };
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false };
-  const profileId = getActiveProfileId();
-  if (!profileId) return { ok: false };
-  isSyncing = true;
+  isSyncing = true; // posé de façon synchrone avant tout await
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false };
+    const profileId = getActiveProfileId();
+    if (!profileId) return { ok: false };
     await _runSync(user.id, profileId);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
     return { ok: true };
@@ -393,12 +393,12 @@ export async function syncFullForProfile(profileId: string): Promise<SyncResult>
  */
 export async function autoSyncPush(): Promise<void> {
   if (isSyncing) return;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  const profileId = getActiveProfileId();
-  if (!profileId) return;
-  isSyncing = true;
+  isSyncing = true; // posé de façon synchrone avant tout await
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const profileId = getActiveProfileId();
+    if (!profileId) return;
     await Promise.all([
       pushSessions(user.id, profileId, readSessions()),
       pushCoachPlans(user.id, profileId, readCoachPlans()),
