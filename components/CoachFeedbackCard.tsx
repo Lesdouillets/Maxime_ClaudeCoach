@@ -53,7 +53,11 @@ export default function CoachFeedbackCard({ state, result }: Props) {
         <p className="text-sm leading-relaxed" style={{ color: "#888" }}>
           {result.analysis}
         </p>
-      ) : null}
+      ) : (
+        <p className="text-sm" style={{ color: "#444" }}>
+          Analyse temporairement indisponible.
+        </p>
+      )}
 
       <style>{`
         @keyframes pulse-dot {

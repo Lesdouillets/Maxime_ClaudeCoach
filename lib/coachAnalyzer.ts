@@ -29,13 +29,38 @@ export function getStoredCoachAnalysis(date: string): CoachAnalysisResult | null
   } catch { return null; }
 }
 
-/** Returns upcoming coach plans (workouts + runs) sorted by date. */
-function getCoachPlansFromNow(days: number): CoachPlan[] {
+/**
+ * Returns coach plans from sessionDate (inclusive) up to `days` days from now.
+ * Including the session's own date ensures past sessions still have their plan in context.
+ */
+function getCoachPlans(sessionDate: string, days: number): CoachPlan[] {
   const today = new Date().toISOString().slice(0, 10);
+  const start = sessionDate < today ? sessionDate : today;
   const end = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const workouts = getCoachWorkouts().filter((w) => w.date >= today && w.date <= end);
-  const runs = getCoachRuns().filter((r) => r.date >= today && r.date <= end);
+  const workouts = getCoachWorkouts().filter((w) => w.date >= start && w.date <= end);
+  const runs = getCoachRuns().filter((r) => r.date >= start && r.date <= end);
   return [...workouts, ...runs].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Returns the last `limit` stored coach analyses, newest first. */
+function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: string }> {
+  const analyses: Array<{ date: string; analysis: string }> = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith("cc_coach_analysis_")) continue;
+      const date = key.replace("cc_coach_analysis_", "");
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.analysis === "string" && parsed.analysis) {
+        analyses.push({ date, analysis: parsed.analysis });
+      }
+    }
+  } catch {}
+  return analyses
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit);
 }
 
 /**
@@ -48,10 +73,12 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     const profile = getActiveProfile();
     const profileName = profile?.name ?? "Maxime";
     const recentSessions = getSessions().slice(0, 5); // last 5 (excluding current — already saved)
-    const coachPlans = getCoachPlansFromNow(14);
+    const sessionDateStr = session.date.slice(0, 10);
+    const coachPlans = getCoachPlans(sessionDateStr, 14);
+    const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
 
     const { data, error } = await supabase.functions.invoke("analyze-session", {
-      body: { session, coachPlans, recentSessions, profileName },
+      body: { session, coachPlans, recentSessions, profileName, previousAnalyses },
     });
 
     if (error || !data) return null;

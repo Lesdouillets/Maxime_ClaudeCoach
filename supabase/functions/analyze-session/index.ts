@@ -78,6 +78,7 @@ function buildUserPrompt(
   session: unknown,
   coachPlans: unknown[],
   recentSessions: unknown[],
+  previousAnalyses: Array<{ date: string; analysis: string }> = [],
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -98,7 +99,11 @@ function buildUserPrompt(
     return plan.date > sessionDate;
   });
 
-  return `## Séance réalisée (${sessionDate})
+  const historySection = previousAnalyses.length > 0
+    ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
+    : "";
+
+  return `${historySection}## Séance réalisée (${sessionDate})
 ${JSON.stringify(session, null, 2)}
 
 ## Plan coach prévu pour cette séance
@@ -135,7 +140,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime" } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [] } = body;
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -145,7 +150,7 @@ Deno.serve(async (req: Request) => {
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
       system: buildSystemPrompt(profileName),
-      messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions) }],
+      messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
     });
 
     const text = message.content[0].type === "text" ? message.content[0].text : "";

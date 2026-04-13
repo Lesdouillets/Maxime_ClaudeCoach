@@ -64,7 +64,7 @@ export default function LogFitness() {
       ...(coachWorkout ? { coachWorkoutId: coachWorkout.id } : {}),
     };
     addSession(session);
-    if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
+    // Delete the coach workout AFTER analysis so getCoachPlans can still find its plan
     autoSyncPush();
     setSaving(false);
     setSaved(true);
@@ -72,6 +72,7 @@ export default function LogFitness() {
 
     // Fire async analysis — result displayed in card, doesn't block navigation
     analyzeSession(session).then((result) => {
+      if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
       setCoachResult(result);
       setCoachState("done");
     });
