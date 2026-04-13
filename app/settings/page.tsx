@@ -9,6 +9,7 @@ import { buildExportData } from "@/lib/export";
 import { getCancelledDays, getStravaTokens } from "@/lib/storage";
 import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } from "@/lib/strava";
 import { addSession } from "@/lib/storage";
+import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import {
   getProfiles, getActiveProfile, switchProfile,
   createProfile, renameProfile, type ProfileMeta,
@@ -76,7 +77,16 @@ export default function SettingsPage() {
     try {
       const acts = await forceResyncRecentActivities(14);
       let n = 0;
-      acts.forEach((a) => { const s = autoImportActivity(a); if (s) { addSession(s); n++; } });
+      acts.forEach((a) => {
+        const s = autoImportActivity(a);
+        if (s) {
+          addSession(s);
+          n++;
+          if (s.type === "run" && !getStoredCoachAnalysis(s.date.slice(0, 10))) {
+            analyzeSession(s).catch(() => {});
+          }
+        }
+      });
       setStravaMsg(n > 0 ? `${n} activité${n > 1 ? "s" : ""} importée${n > 1 ? "s" : ""}` : "Déjà à jour");
       setTimeout(() => setStravaMsg(""), 3000);
     } catch { setStravaMsg("Erreur"); }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
+import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -59,7 +60,15 @@ export default function HomePage() {
         let count = 0;
         activities.forEach((act) => {
           const s = autoImportActivity(act);
-          if (s) { addSession(s); count++; }
+          if (s) {
+            addSession(s);
+            count++;
+            // Fire coach analysis in background for runs — result stored in localStorage,
+            // visible next time the user opens the day view for that date.
+            if (s.type === "run" && !getStoredCoachAnalysis(s.date.slice(0, 10))) {
+              analyzeSession(s).catch(() => {});
+            }
+          }
         });
         if (count > 0) {
           setImportedCount(count);
