@@ -176,14 +176,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call Anthropic API directly via fetch to avoid SDK version issues
-    // anthropic-beta: prompt-caching-2024-07-16 — activates if system prompt reaches 4096 token threshold
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-16",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
