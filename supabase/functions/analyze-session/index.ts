@@ -1,5 +1,5 @@
 // Edge Function — analyse une séance terminée et adapte le programme coach
-// Déployer : supabase functions deploy analyze-session
+// Déployer : supabase functions deploy analyze-session --no-verify-jwt
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -71,6 +71,43 @@ Format séance run :
 {"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}`;
 }
 
+// Session courante : conserve tous les détails utiles, supprime le bruit technique
+function stripSession(s: Record<string, unknown>): Record<string, unknown> {
+  // deno-lint-ignore no-unused-vars
+  const { stravaActivityId, importedFromStrava, coachWorkoutId,
+          durationSeconds, elevationGainM,
+          targetDistanceKm, targetPaceSecPerKm, targetZone, ...clean } = s as Record<string, unknown>;
+  if (Array.isArray(clean.exercises)) {
+    clean.exercises = (clean.exercises as Record<string, unknown>[]).map(
+      // deno-lint-ignore no-unused-vars
+      ({ id: _id, ...ex }) => ex
+    );
+  }
+  return clean;
+}
+
+// Sessions récentes : résumé minimal pour le contexte de progression
+function summarizeSession(s: Record<string, unknown>): Record<string, unknown> {
+  const base: Record<string, unknown> = { date: s.date, type: s.type, comment: s.comment };
+  if (s.type === "fitness") {
+    return {
+      ...base,
+      category: s.category,
+      exercises: Array.isArray(s.exercises)
+        ? (s.exercises as Record<string, unknown>[]).map(({ name, sets, reps, weight, comment }) =>
+            ({ name, sets, reps, weight, ...(comment ? { comment } : {}) }))
+        : [],
+    };
+  }
+  // run
+  return {
+    ...base,
+    distanceKm: s.distanceKm,
+    avgPaceSecPerKm: s.avgPaceSecPerKm,
+    ...(s.avgHeartRate !== undefined ? { avgHeartRate: s.avgHeartRate } : {}),
+  };
+}
+
 function buildUserPrompt(
   session: unknown,
   coachPlans: unknown[],
@@ -99,14 +136,17 @@ function buildUserPrompt(
     ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
     : "";
 
+  const strippedSession = stripSession(session as Record<string, unknown>);
+  const summarizedRecent = recentSessions.map((s) => summarizeSession(s as Record<string, unknown>));
+
   return `${historySection}## Séance réalisée (${sessionDate})
-${JSON.stringify(session, null, 2)}
+${JSON.stringify(strippedSession, null, 2)}
 
 ## Plan coach prévu pour cette séance
 ${todayPlan ? JSON.stringify(todayPlan, null, 2) : "Aucun plan coach défini pour cette séance"}
 
 ## 5 dernières séances (contexte de progression)
-${JSON.stringify(recentSessions, null, 2)}
+${JSON.stringify(summarizedRecent, null, 2)}
 
 ## Programme à venir (${futurePlans.length} séances) — à adapter si nécessaire
 ${futurePlans.length > 0 ? JSON.stringify(futurePlans, null, 2) : "Aucune séance programmée à venir"}
@@ -136,17 +176,25 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call Anthropic API directly via fetch to avoid SDK version issues
+    // anthropic-beta: prompt-caching-2024-07-16 — activates if system prompt reaches 4096 token threshold
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-16",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 8192,
-        system: buildSystemPrompt(profileName),
+        system: [
+          {
+            type: "text",
+            text: buildSystemPrompt(profileName),
+            cache_control: { type: "ephemeral" },
+          },
+        ],
         messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
       }),
     });
@@ -159,6 +207,11 @@ Deno.serve(async (req: Request) => {
 
     const anthropicData = await anthropicRes.json();
     const text = anthropicData.content?.[0]?.type === "text" ? (anthropicData.content[0].text as string) : "";
+
+    // Log token usage for monitoring
+    if (anthropicData.usage) {
+      console.log("[analyze-session] usage:", JSON.stringify(anthropicData.usage));
+    }
 
     // Extract the outermost JSON object from the response
     const start = text.indexOf("{");
