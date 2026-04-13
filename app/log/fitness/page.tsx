@@ -52,7 +52,7 @@ export default function LogFitness() {
   );
 
   const handleSave = useCallback(async () => {
-    if (exercises.length === 0) return;
+    if (exercises.length === 0 && coachWorkout !== null) return;
     setSaving(true);
     const session: FitnessSession = {
       id: generateId(),
@@ -200,7 +200,7 @@ export default function LogFitness() {
         ) : (
           <button
             onClick={handleSave}
-            disabled={saving || exercises.length === 0}
+            disabled={saving || (exercises.length === 0 && coachWorkout !== null)}
             className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
             style={{
               background: "linear-gradient(135deg, #ff6b00, #7a3300)",

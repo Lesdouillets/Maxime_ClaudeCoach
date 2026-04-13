@@ -40,6 +40,7 @@ export default function DayPage() {
   const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
   const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
+  const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState<"run" | "workout">("run");
 
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
@@ -79,6 +80,7 @@ export default function DayPage() {
     // For Strava runs without a stored analysis, trigger background analysis and show loader.
     // The in-flight guard in analyzeSession prevents double calls if home page already triggered it.
     if (!storedAnalysis && s?.importedFromStrava && s.type === "run") {
+      setAnalysisAttempted(true);
       setCoachState("analyzing");
       analyzeSession(s).then((result) => {
         setCoachResult(result);
@@ -105,7 +107,10 @@ export default function DayPage() {
   };
 
   const handleValidateFitness = () => {
-    if (!coachWorkout) return;
+    if (!coachWorkout) {
+      router.push(`/log/fitness?date=${date}`);
+      return;
+    }
     const exercises = coachWorkout.exercises.map((ce, i) => ({
       id: `${generateId()}-ex-${i}`,
       name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
@@ -123,6 +128,7 @@ export default function DayPage() {
     addSession(savedSession);
     load(date);
     autoSyncPush();
+    setAnalysisAttempted(true);
     setCoachState("analyzing");
     setCoachResult(null);
     analyzeSession(savedSession).then((result) => {
@@ -219,7 +225,7 @@ export default function DayPage() {
 
       <div className="px-5 space-y-4">
 
-        {isDone && (coachState === "analyzing" || !!coachResult) && (
+        {isDone && (analysisAttempted || coachState === "analyzing" || !!coachResult) && (
           <CoachFeedbackCard state={coachState} result={coachResult} />
         )}
 
