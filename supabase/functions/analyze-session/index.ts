@@ -173,8 +173,9 @@ Deno.serve(async (req: Request) => {
       // JSON truncated or malformed — extract analysis text and skip plan modifications
       console.error("[analyze-session] JSON parse failed, attempting text fallback");
       const analysisMatch = jsonStr.match(/"analysis"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const analysis = analysisMatch ? analysisMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "Analyse reçue mais JSON malformé.";
-      result = { analysis, modified_plans: [] };
+      const rawAnalysis = analysisMatch ? analysisMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
+      const suffix = "\n\n⚠️ La réponse du coach était trop longue et a été tronquée — les modifications du programme n'ont pas pu être appliquées. Relance l'analyse pour réessayer.";
+      result = { analysis: (rawAnalysis || "Analyse reçue mais JSON malformé.") + suffix, modified_plans: [] };
     }
 
     return new Response(JSON.stringify(result), {
