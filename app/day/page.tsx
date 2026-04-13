@@ -89,8 +89,19 @@ export default function DayPage() {
       }
     } catch {}
     setExerciseNotes(notesInit);
-    setCoachResult(getStoredCoachAnalysis(d));
-    setCoachState("done");
+    const storedAnalysis = getStoredCoachAnalysis(d);
+    setCoachResult(storedAnalysis);
+    // For Strava runs without a stored analysis, trigger background analysis and show loader.
+    // The in-flight guard in analyzeSession prevents double calls if home page already triggered it.
+    if (!storedAnalysis && s?.importedFromStrava && s.type === "run") {
+      setCoachState("analyzing");
+      analyzeSession(s).then((result) => {
+        setCoachResult(result);
+        setCoachState("done");
+      });
+    } else {
+      setCoachState("done");
+    }
   };
 
   useEffect(() => {

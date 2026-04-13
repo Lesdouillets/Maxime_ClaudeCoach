@@ -63,12 +63,17 @@ function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: 
     .slice(0, limit);
 }
 
+// Prevents firing two concurrent API calls for the same session (e.g. home page + day view both trigger).
+const analyzingInFlight = new Set<string>();
+
 /**
  * Sends the just-saved session to the Edge Function for AI analysis.
  * Applies any program changes returned by Claude.
  * Returns the result for display in the UI, or null if anything fails.
  */
 export async function analyzeSession(session: WorkoutSession): Promise<CoachAnalysisResult | null> {
+  if (analyzingInFlight.has(session.id)) return null;
+  analyzingInFlight.add(session.id);
   try {
     const profile = getActiveProfile();
     const profileName = profile?.name ?? "Maxime";
@@ -115,5 +120,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     return result;
   } catch {
     return null;
+  } finally {
+    analyzingInFlight.delete(session.id);
   }
 }
