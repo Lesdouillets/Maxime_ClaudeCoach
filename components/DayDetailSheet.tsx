@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { WorkoutSession, PlannedDay } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
+import { formatPace, formatDuration } from "@/lib/plan";
 
 interface Props {
   date: string; // "YYYY-MM-DD"
@@ -11,19 +12,6 @@ interface Props {
   coachWorkout?: CoachWorkout | null;
   coachRun?: CoachRun | null;
   onClose: () => void;
-}
-
-function formatPace(secPerKm: number) {
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${s.toString().padStart(2, "0")}/km`;
-}
-
-function formatDuration(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}`;
-  return `${m} min`;
 }
 
 const StravaIcon = () => (
