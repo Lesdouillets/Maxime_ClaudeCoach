@@ -208,62 +208,30 @@ async function pushCoachPlans(userId: string, profileId: string, plans: CoachPla
 }
 
 async function pushDayEvents(userId: string, profileId: string, events: DayEvent[]) {
-  // Upsert local events (idempotent, safe under concurrent calls)
-  if (events.length > 0) {
-    const { error } = await supabase.from("day_events").upsert(
-      events.map((e) => ({ user_id: userId, profile_id: profileId, ...e })),
-      { onConflict: "user_id,profile_id,event_type,date" }
-    );
-    if (error) throw new Error(error.message);
-  }
-  // Delete stale remote rows not present locally
-  const localKeys = new Set(events.map((e) => `${e.event_type}_${e.date}`));
-  const { data: remoteRows } = await supabase.from("day_events").select("event_type,date")
-    .eq("user_id", userId).eq("profile_id", profileId);
-  const toDelete = (remoteRows ?? []).filter((r) => !localKeys.has(`${r.event_type as string}_${r.date as string}`));
-  if (toDelete.length > 0) {
-    for (const row of toDelete) {
-      await supabase.from("day_events").delete()
-        .eq("user_id", userId).eq("profile_id", profileId)
-        .eq("event_type", row.event_type as string).eq("date", row.date as string);
-    }
-  }
+  await supabase.from("day_events").delete().eq("user_id", userId).eq("profile_id", profileId);
+  if (events.length === 0) return;
+  const { error } = await supabase.from("day_events").insert(
+    events.map((e) => ({ user_id: userId, profile_id: profileId, ...e }))
+  );
+  if (error) throw new Error(error.message);
 }
 
 async function pushWeightEntries(userId: string, profileId: string, entries: WeightEntry[]) {
-  if (entries.length > 0) {
-    const { error } = await supabase.from("weight_entries").upsert(
-      entries.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, kg: e.kg })),
-      { onConflict: "user_id,profile_id,date" }
-    );
-    if (error) throw new Error(error.message);
-  }
-  const localDates = new Set(entries.map((e) => e.date));
-  const { data: remoteRows } = await supabase.from("weight_entries").select("date")
-    .eq("user_id", userId).eq("profile_id", profileId);
-  const toDelete = (remoteRows ?? []).map((r) => r.date as string).filter((d) => !localDates.has(d));
-  if (toDelete.length > 0) {
-    await supabase.from("weight_entries").delete()
-      .eq("user_id", userId).eq("profile_id", profileId).in("date", toDelete);
-  }
+  await supabase.from("weight_entries").delete().eq("user_id", userId).eq("profile_id", profileId);
+  if (entries.length === 0) return;
+  const { error } = await supabase.from("weight_entries").insert(
+    entries.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, kg: e.kg }))
+  );
+  if (error) throw new Error(error.message);
 }
 
 async function pushExNotes(userId: string, profileId: string, notes: { date: string; notes: object }[]) {
-  if (notes.length > 0) {
-    const { error } = await supabase.from("ex_notes").upsert(
-      notes.map((n) => ({ user_id: userId, profile_id: profileId, ...n })),
-      { onConflict: "user_id,profile_id,date" }
-    );
-    if (error) throw new Error(error.message);
-  }
-  const localDates = new Set(notes.map((n) => n.date));
-  const { data: remoteRows } = await supabase.from("ex_notes").select("date")
-    .eq("user_id", userId).eq("profile_id", profileId);
-  const toDelete = (remoteRows ?? []).map((r) => r.date as string).filter((d) => !localDates.has(d));
-  if (toDelete.length > 0) {
-    await supabase.from("ex_notes").delete()
-      .eq("user_id", userId).eq("profile_id", profileId).in("date", toDelete);
-  }
+  await supabase.from("ex_notes").delete().eq("user_id", userId).eq("profile_id", profileId);
+  if (notes.length === 0) return;
+  const { error } = await supabase.from("ex_notes").insert(
+    notes.map((n) => ({ user_id: userId, profile_id: profileId, ...n }))
+  );
+  if (error) throw new Error(error.message);
 }
 
 async function pushCoachAnalyses(userId: string, profileId: string, entries: CoachAnalysisEntry[]) {
