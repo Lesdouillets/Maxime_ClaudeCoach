@@ -209,7 +209,7 @@ async function pushCoachPlans(userId: string, profileId: string, plans: CoachPla
 
 async function pushDayEvents(userId: string, profileId: string, events: DayEvent[]) {
   // Déduplique par (event_type, date) — protège contre les doublons existants dans le remote
-  const deduped = [...new Map(events.map((e) => [`${e.event_type}_${e.date}`, e])).values()];
+  const deduped = Array.from(new Map(events.map((e) => [`${e.event_type}_${e.date}`, e])).values());
   await supabase.from("day_events").delete().eq("user_id", userId).eq("profile_id", profileId);
   if (deduped.length === 0) return;
   const { error } = await supabase.from("day_events").insert(
@@ -220,7 +220,7 @@ async function pushDayEvents(userId: string, profileId: string, events: DayEvent
 
 async function pushWeightEntries(userId: string, profileId: string, entries: WeightEntry[]) {
   // Déduplique par date
-  const deduped = [...new Map(entries.map((e) => [e.date, e])).values()];
+  const deduped = Array.from(new Map(entries.map((e) => [e.date, e])).values());
   await supabase.from("weight_entries").delete().eq("user_id", userId).eq("profile_id", profileId);
   if (deduped.length === 0) return;
   const { error } = await supabase.from("weight_entries").insert(
@@ -231,7 +231,7 @@ async function pushWeightEntries(userId: string, profileId: string, entries: Wei
 
 async function pushExNotes(userId: string, profileId: string, notes: { date: string; notes: object }[]) {
   // Déduplique par date — protège contre les doublons existants dans le remote
-  const deduped = [...new Map(notes.map((n) => [n.date, n])).values()];
+  const deduped = Array.from(new Map(notes.map((n) => [n.date, n])).values());
   await supabase.from("ex_notes").delete().eq("user_id", userId).eq("profile_id", profileId);
   if (deduped.length === 0) return;
   const { error } = await supabase.from("ex_notes").insert(
