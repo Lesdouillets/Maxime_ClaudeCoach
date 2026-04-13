@@ -86,7 +86,14 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
       body: { session, coachPlans, recentSessions, profileName, previousAnalyses },
     });
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("[analyzeSession] edge function error:", error);
+      return null;
+    }
+    if (!data) {
+      console.error("[analyzeSession] no data returned");
+      return null;
+    }
 
     // Apply modified plans via the same parser used for manual JSON imports
     const rawPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
@@ -118,7 +125,8 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     await autoSyncPush();
 
     return result;
-  } catch {
+  } catch (e) {
+    console.error("[analyzeSession] unexpected error:", e);
     return null;
   } finally {
     analyzingInFlight.delete(session.id);
