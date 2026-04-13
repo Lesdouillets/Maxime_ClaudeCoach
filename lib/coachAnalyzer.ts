@@ -77,7 +77,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
   try {
     const profile = getActiveProfile();
     const profileName = profile?.name ?? "Maxime";
-    const recentSessions = getSessions().slice(0, 5); // last 5 (excluding current — already saved)
+    const recentSessions = getSessions().slice(1, 6); // last 5, excluding current (already in session param)
     const sessionDateStr = session.date.slice(0, 10);
     const coachPlans = getCoachPlans(sessionDateStr, 14);
     const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
