@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2048,
+        max_tokens: 8192,
         system: buildSystemPrompt(profileName),
         messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
       }),
@@ -160,10 +160,22 @@ Deno.serve(async (req: Request) => {
     const anthropicData = await anthropicRes.json();
     const text = anthropicData.content?.[0]?.type === "text" ? (anthropicData.content[0].text as string) : "";
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Response is not valid JSON");
+    // Extract the outermost JSON object from the response
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("No JSON object found in response");
+    const jsonStr = text.slice(start, end + 1);
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result: Record<string, unknown>;
+    try {
+      result = JSON.parse(jsonStr);
+    } catch {
+      // JSON truncated or malformed — extract analysis text and skip plan modifications
+      console.error("[analyze-session] JSON parse failed, attempting text fallback");
+      const analysisMatch = jsonStr.match(/"analysis"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const analysis = analysisMatch ? analysisMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "Analyse reçue mais JSON malformé.";
+      result = { analysis, modified_plans: [] };
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", ...CORS },
