@@ -3,9 +3,6 @@
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import Anthropic from "npm:@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" });
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -93,7 +90,6 @@ function buildUserPrompt(
     return plan.category === sessionCategory;
   });
 
-  // Separate upcoming plans from today's plan for clarity
   const futurePlans = coachPlans.filter((p: unknown) => {
     const plan = p as Record<string, string>;
     return plan.date > sessionDate;
@@ -146,14 +142,35 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
     }
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: buildSystemPrompt(profileName),
-      messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: CORS });
+    }
+
+    // Call Anthropic API directly via fetch to avoid SDK version issues
+    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2048,
+        system: buildSystemPrompt(profileName),
+        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
+      }),
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    if (!anthropicRes.ok) {
+      const errBody = await anthropicRes.text();
+      console.error("[analyze-session] Anthropic API error:", anthropicRes.status, errBody);
+      throw new Error(`Anthropic API error ${anthropicRes.status}: ${errBody}`);
+    }
+
+    const anthropicData = await anthropicRes.json();
+    const text = anthropicData.content?.[0]?.type === "text" ? (anthropicData.content[0].text as string) : "";
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Response is not valid JSON");

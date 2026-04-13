@@ -229,6 +229,23 @@ export default function DayPage() {
           <CoachFeedbackCard state={coachState} result={coachResult} />
         )}
 
+        {isDone && !analysisAttempted && coachState === "done" && !coachResult && session && (
+          <button
+            onClick={() => {
+              setAnalysisAttempted(true);
+              setCoachState("analyzing");
+              analyzeSession(session).then((result) => {
+                setCoachResult(result);
+                setCoachState("done");
+              });
+            }}
+            className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
+            style={{ background: "rgba(57,255,20,0.06)", border: "1px solid rgba(57,255,20,0.2)", color: "#39ff14" }}
+          >
+            RELANCER L'ANALYSE COACH →
+          </button>
+        )}
+
         {isCancelled && (
           <div className="flex items-center justify-between rounded-xl px-3 py-2.5"
             style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
