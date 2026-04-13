@@ -79,7 +79,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     const profileName = profile?.name ?? "Maxime";
     const recentSessions = getSessions().slice(1, 6); // last 5, excluding current (already in session param)
     const sessionDateStr = session.date.slice(0, 10);
-    const coachPlans = getCoachPlans(sessionDateStr, 14);
+    const coachPlans = getCoachPlans(sessionDateStr, 7);
     const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
 
     const { data, error } = await supabase.functions.invoke("analyze-session", {

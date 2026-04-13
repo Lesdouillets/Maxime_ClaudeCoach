@@ -127,10 +127,20 @@ function buildUserPrompt(
     return plan.category === sessionCategory;
   });
 
-  const futurePlans = coachPlans.filter((p: unknown) => {
-    const plan = p as Record<string, string>;
-    return plan.date > sessionDate;
-  });
+  // Strip exercise coachNotes from future plans — the AI wrote them, no need to re-read them
+  const futurePlans = coachPlans
+    .filter((p: unknown) => (p as Record<string, string>).date > sessionDate)
+    .map((p: unknown) => {
+      const plan = p as Record<string, unknown>;
+      if (!Array.isArray(plan.exercises)) return plan;
+      return {
+        ...plan,
+        exercises: (plan.exercises as Record<string, unknown>[]).map(
+          // deno-lint-ignore no-unused-vars
+          ({ coachNote: _cn, ...ex }) => ex
+        ),
+      };
+    });
 
   const historySection = previousAnalyses.length > 0
     ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
