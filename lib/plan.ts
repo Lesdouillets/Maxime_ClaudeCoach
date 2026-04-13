@@ -62,6 +62,13 @@ export function formatPace(secPerKm: number): string {
   return `${min}:${sec.toString().padStart(2, "0")}/km`;
 }
 
+export function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
+  return `${m} min`;
+}
+
 /** Format a Date to "YYYY-MM-DD" using local time (avoids UTC offset issues) */
 export function toLocalDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
