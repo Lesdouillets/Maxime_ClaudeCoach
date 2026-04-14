@@ -30,13 +30,13 @@ export function getStoredCoachAnalysis(date: string): CoachAnalysisResult | null
 }
 
 /**
- * Returns coach plans from sessionDate (inclusive) up to `days` days from now.
- * Including the session's own date ensures past sessions still have their plan in context.
+ * Returns all future coach plans from sessionDate onwards (up to 28 days).
+ * Wide window so the coach has full context — but it must only RETURN modified plans.
  */
-function getCoachPlans(sessionDate: string, days: number): CoachPlan[] {
+function getCoachPlans(sessionDate: string): CoachPlan[] {
   const today = new Date().toISOString().slice(0, 10);
   const start = sessionDate < today ? sessionDate : today;
-  const end = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const end = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const workouts = getCoachWorkouts().filter((w) => w.date >= start && w.date <= end);
   const runs = getCoachRuns().filter((r) => r.date >= start && r.date <= end);
   return [...workouts, ...runs].sort((a, b) => a.date.localeCompare(b.date));
@@ -123,8 +123,11 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     const allRecent = getSessions().slice(0, 11); // current + last 10 for perf index
     const recentSessions = allRecent.slice(1, 6); // last 5, excluding current session
     const sessionDateStr = session.date.slice(0, 10);
-    const coachPlans = getCoachPlans(sessionDateStr, 7);
+    const coachPlans = getCoachPlans(sessionDateStr);
     const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
+
+    // Build an ID whitelist — only plans we sent can be modified
+    const sentPlanIds = new Set(coachPlans.map((p) => p.id));
 
     // Enrich upcoming plans: replace verbose coachNotes with compact deltas (+X kg / maintenu / 1er essai)
     const perfIndex = buildPerfIndex(allRecent);
@@ -143,7 +146,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
       return null;
     }
 
-    // Apply modified plans via the same parser used for manual JSON imports
+    // Apply modified plans — only those whose IDs were in the plans we sent (prevent phantom plans)
     const rawPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
     let programChanged = false;
     let modifiedCount = 0;
@@ -151,12 +154,20 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     if (rawPlans.length > 0) {
       try {
         const parsed = parseCoachWorkoutJSON(JSON.stringify(rawPlans));
-        for (const plan of parsed) {
+        const safe = parsed.filter((plan) => {
+          if (sentPlanIds.has(plan.id)) return true;
+          console.warn("[analyzeSession] ignoring plan with unknown ID:", plan.id, plan.date);
+          return false;
+        });
+        for (const plan of safe) {
           if (plan.type === "fitness") addCoachWorkout(plan);
           else addCoachRun(plan);
         }
-        programChanged = true;
-        modifiedCount = parsed.length;
+        programChanged = safe.length > 0;
+        modifiedCount = safe.length;
+        if (parsed.length !== safe.length) {
+          console.warn(`[analyzeSession] filtered ${parsed.length - safe.length} phantom plans`);
+        }
       } catch (e) {
         console.error("[analyzeSession] failed to apply modified_plans:", e, JSON.stringify(rawPlans));
       }

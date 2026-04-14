@@ -60,10 +60,11 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
   "modified_plans": []
 }
 
-### Règles pour modified_plans
-- Inclus le plan COMPLET avec TOUS ses exercices (pas seulement les exercices modifiés)
-- Conserve l'ID du plan existant tel qu'il t'a été fourni en contexte
-- Tableau vide uniquement si vraiment aucun ajustement n'est justifié
+### Règles pour modified_plans — ÉCONOMIE DE TOKENS IMPÉRATIVE
+- **Ne renvoie QUE les plans qui changent réellement.** Si une séance reste identique, ne la mets pas dans modified_plans.
+- **Tableau vide `[]` si aucun ajustement n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
+- **N'invente pas de nouvelles séances** pour des dates non présentes dans le programme fourni. Utilise uniquement les IDs existants.
+- Pour les plans modifiés : inclus le plan complet (tous les exercices), en conservant l'ID exact fourni en contexte.
 
 Format séance salle (fitness) :
 {"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
@@ -224,7 +225,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 8192,
+        max_tokens: 2500,
         system: [
           {
             type: "text",
