@@ -9,11 +9,24 @@ import { addSession, generateId } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
 import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
-import type { Exercise, FitnessCategory, FitnessSession } from "@/lib/types";
+import type { Exercise, FitnessCategory, FitnessSession, SetLog } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
-  return { id: generateId(), name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight, comment: "" };
+  const setLogs: SetLog[] = Array.from({ length: ce.sets }, () => ({
+    weight: ce.weight,
+    reps: ce.reps,
+    done: false,
+  }));
+  return {
+    id: generateId(),
+    name: ce.name,
+    sets: ce.sets,
+    reps: ce.reps,
+    weight: ce.weight,
+    comment: "",
+    setLogs,
+  };
 }
 
 export default function LogFitness() {
@@ -23,11 +36,12 @@ export default function LogFitness() {
   const [coachWorkout, setCoachWorkout] = useState<CoachWorkout | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [category, setCategory] = useState<FitnessCategory>("upper");
+  const [activeExIdx, setActiveExIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
-  const { timerKey: timerExId, timerSec, startTimer, stopTimer } = useTimer();
+  const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
   useEffect(() => {
     setMounted(true);
@@ -45,32 +59,94 @@ export default function LogFitness() {
     }
   }, []);
 
-  const updateExercise = useCallback(
-    (id: string, field: keyof Exercise, value: string | number) => {
-      setExercises((prev) => prev.map((ex) => ex.id === id ? { ...ex, [field]: value } : ex));
-    }, []
+  // Auto-advance to next exercise when all sets of the current one are done
+  useEffect(() => {
+    if (saved || exercises.length === 0) return;
+    const currentEx = exercises[activeExIdx];
+    if (!currentEx?.setLogs) return;
+    if (currentEx.setLogs.every((s) => s.done) && activeExIdx < exercises.length - 1) {
+      setActiveExIdx(activeExIdx + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises]);
+
+  const updateSetLog = useCallback(
+    (exId: string, setIdx: number, field: "weight" | "reps", value: number) => {
+      setExercises((prev) =>
+        prev.map((ex) => {
+          if (ex.id !== exId || !ex.setLogs) return ex;
+          return {
+            ...ex,
+            setLogs: ex.setLogs.map((s, i) =>
+              i === setIdx ? { ...s, [field]: value } : s
+            ),
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const validateSet = useCallback(
+    (exId: string, setIdx: number) => {
+      setExercises((prev) =>
+        prev.map((ex) => {
+          if (ex.id !== exId || !ex.setLogs) return ex;
+          return {
+            ...ex,
+            setLogs: ex.setLogs.map((s, i) =>
+              i === setIdx ? { ...s, done: true } : s
+            ),
+          };
+        })
+      );
+
+      // Start rest timer from coach plan
+      const exIdx = exercises.findIndex((e) => e.id === exId);
+      const restSecs = coachWorkout?.exercises[exIdx]?.restSeconds ?? 90;
+      startTimer(exId + "-set-" + setIdx, restSecs);
+    },
+    [exercises, coachWorkout, startTimer]
+  );
+
+  const updateComment = useCallback(
+    (exId: string, value: string) => {
+      setExercises((prev) =>
+        prev.map((ex) => ex.id === exId ? { ...ex, comment: value } : ex)
+      );
+    },
+    []
   );
 
   const handleSave = useCallback(async () => {
     if (exercises.length === 0 && coachWorkout !== null) return;
     setSaving(true);
+
+    // Compute summary sets/reps/weight from setLogs for backward compat
+    const finalExercises = exercises.map((ex) => {
+      if (!ex.setLogs?.length) return ex;
+      const done = ex.setLogs.filter((s) => s.done);
+      if (done.length === 0) return ex;
+      const avgWeight = done.reduce((sum, s) => sum + s.weight, 0) / done.length;
+      const avgReps = done.reduce((sum, s) => sum + s.reps, 0) / done.length;
+      return { ...ex, sets: done.length, reps: Math.round(avgReps), weight: Math.round(avgWeight * 2) / 2 };
+    });
+
     const session: FitnessSession = {
       id: generateId(),
       type: "fitness",
       date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
       category,
       comment: "",
-      exercises,
+      exercises: finalExercises,
       ...(coachWorkout ? { coachWorkoutId: coachWorkout.id } : {}),
     };
     addSession(session);
-    // Delete the coach workout AFTER analysis so getCoachPlans can still find its plan
     autoSyncPush();
     setSaving(false);
     setSaved(true);
     setCoachState("analyzing");
 
-    // Fire async analysis — result displayed in card, doesn't block navigation
     analyzeSession(session).then((result) => {
       if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
       setCoachResult(result);
@@ -96,95 +172,249 @@ export default function LogFitness() {
           </div>
         )}
 
-        {/* Exercises */}
-        {exercises.map((ex, idx) => {
-          const coachEx = coachWorkout?.exercises[idx];
+        {exercises.map((ex, exIdx) => {
+          const coachEx = coachWorkout?.exercises[exIdx];
+          const isActive = exIdx === activeExIdx && !saved;
+          const allDone = ex.setLogs?.every((s) => s.done) ?? false;
+
           return (
-            <div key={ex.id} className="rounded-2xl overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
-              {/* Name + number */}
-              <div className="px-4 py-3 flex items-center gap-3" style={{ background: "#111" }}>
-                <span className="font-display text-2xl leading-none w-7 text-center flex-shrink-0" style={{ color: "#ff6b00" }}>
-                  {idx + 1}
+            <div
+              key={ex.id}
+              className="rounded-2xl overflow-hidden"
+              style={{
+                border: isActive
+                  ? "1px solid rgba(255,107,0,0.6)"
+                  : allDone
+                  ? "1px solid rgba(57,255,20,0.25)"
+                  : "1px solid #1a1a1a",
+                boxShadow: isActive ? "0 0 24px rgba(255,107,0,0.12)" : "none",
+              }}
+              onClick={() => !saved && setActiveExIdx(exIdx)}
+            >
+              {/* Exercise header */}
+              <div
+                className="px-4 py-3 flex items-center gap-3"
+                style={{ background: isActive ? "rgba(255,107,0,0.07)" : "#111" }}
+              >
+                <span
+                  className="font-display text-2xl leading-none w-7 text-center flex-shrink-0"
+                  style={{ color: isActive ? "#ff6b00" : allDone ? "#39ff14" : "#555" }}
+                >
+                  {exIdx + 1}
                 </span>
-                <span className="font-bold text-xs tracking-widest">{ex.name.toUpperCase()}</span>
+                <span className="flex-1 font-bold text-xs tracking-widest">
+                  {ex.name.toUpperCase()}
+                </span>
+                {isActive && (
+                  <span
+                    className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: "rgba(255,107,0,0.15)",
+                      color: "#ff6b00",
+                      border: "1px solid rgba(255,107,0,0.35)",
+                    }}
+                  >
+                    EN COURS
+                  </span>
+                )}
+                {allDone && !isActive && (
+                  <span className="text-base flex-shrink-0" style={{ color: "#39ff14" }}>✓</span>
+                )}
               </div>
 
               {/* Coach note */}
               {coachEx?.coachNote && (
-                <div className="px-4 py-2" style={{ background: "rgba(57,255,20,0.02)", borderTop: "1px solid #1a1a1a" }}>
-                  <p className="text-xs italic" style={{ color: "#555" }}>↳ {coachEx.coachNote}</p>
+                <div
+                  className="px-4 py-2"
+                  style={{ background: "rgba(57,255,20,0.02)", borderTop: "1px solid #1a1a1a" }}
+                >
+                  <p className="text-xs italic" style={{ color: "#555" }}>
+                    ↳ {coachEx.coachNote}
+                  </p>
                 </div>
               )}
 
-              {/* Sets / Reps / Weight + Timer */}
-              <div className="flex" style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
-                {([
-                  { label: "Séries", field: "sets" as keyof Exercise, unit: "×", step: "1" },
-                  { label: "Reps",   field: "reps" as keyof Exercise, unit: "",  step: "1" },
-                  { label: "Poids",  field: "weight" as keyof Exercise, unit: "kg", step: "0.5" },
-                ] as const).map(({ label, field, unit, step }) => (
-                  <div key={field} className="flex-1 p-3 flex flex-col items-center gap-1" style={{ borderRight: "1px solid #1a1a1a" }}>
-                    <span className="text-[10px] text-muted uppercase tracking-wide">{label}</span>
-                    <div className="flex items-end gap-0.5">
-                      <input
-                        type="number"
-                        value={ex[field] as number}
-                        onChange={(e) => updateExercise(ex.id, field, parseFloat(e.target.value) || 0)}
-                        className="w-14 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none"
-                        style={{ color: "white" }}
-                        min="0"
-                        step={step}
-                      />
-                      {unit && <span className="text-xs text-muted pb-0.5">{unit}</span>}
-                    </div>
+              {/* Per-set table */}
+              {ex.setLogs && ex.setLogs.length > 0 && (
+                <div style={{ borderTop: "1px solid #1a1a1a" }}>
+                  {/* Column headers */}
+                  <div
+                    className="grid px-4 py-1.5"
+                    style={{
+                      gridTemplateColumns: "32px 1fr 1fr 52px",
+                      background: "#0a0a0a",
+                      borderBottom: "1px solid #1a1a1a",
+                    }}
+                  >
+                    {["SÉR.", "KG", "REPS", ""].map((h, i) => (
+                      <span
+                        key={i}
+                        className="text-[9px] font-bold tracking-widest text-center"
+                        style={{ color: "#3a3a3a" }}
+                      >
+                        {h}
+                      </span>
+                    ))}
                   </div>
-                ))}
-                {/* Timer column */}
-                {coachEx?.restSeconds && (
-                  <div className="px-3 flex items-center justify-center min-w-[90px]">
-                    {timerExId === ex.id ? (
-                      <button onClick={stopTimer} className="flex items-center gap-2 press-effect">
-                        <span className="font-display text-2xl leading-none"
-                          style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
-                          {timerSec}s
-                        </span>
-                        <span className="text-sm" style={{ color: "#555" }}>■</span>
-                      </button>
-                    ) : (
-                      <button onClick={() => startTimer(ex.id, coachEx.restSeconds!)} className="flex items-center gap-2 press-effect">
-                        <span className="text-xs font-bold tracking-wide" style={{ color: "#333" }}>RÉCUP {coachEx.restSeconds}s</span>
-                        <span className="text-sm" style={{ color: "#555" }}>▶</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {/* Per-exercise note */}
-              <div style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
-                <textarea
-                  value={ex.comment}
-                  onChange={(e) => updateExercise(ex.id, "comment", e.target.value)}
-                  placeholder="Ressenti sur cet exercice…"
-                  rows={2}
-                  className="w-full bg-transparent border-none px-4 py-3 text-xs resize-none focus:outline-none"
-                  style={{ color: "#888" }}
-                />
-              </div>
+                  {/* Set rows */}
+                  {ex.setLogs.map((set, setIdx) => {
+                    const setTimerKey = ex.id + "-set-" + setIdx;
+                    const isTimerActive = timerKey === setTimerKey;
+
+                    return (
+                      <div
+                        key={setIdx}
+                        className="grid px-4 py-2.5 items-center"
+                        style={{
+                          gridTemplateColumns: "32px 1fr 1fr 52px",
+                          background: set.done
+                            ? "rgba(57,255,20,0.03)"
+                            : isActive
+                            ? "rgba(255,107,0,0.02)"
+                            : "#0f0f0f",
+                          borderBottom:
+                            setIdx < (ex.setLogs?.length ?? 0) - 1
+                              ? "1px solid #151515"
+                              : "none",
+                          opacity: set.done && !isTimerActive ? 0.65 : 1,
+                        }}
+                      >
+                        {/* Set number */}
+                        <span
+                          className="font-display text-xl leading-none text-center"
+                          style={{ color: set.done ? "#39ff14" : "#444" }}
+                        >
+                          {setIdx + 1}
+                        </span>
+
+                        {/* KG input */}
+                        <div className="flex items-end justify-center gap-0.5">
+                          <input
+                            type="number"
+                            value={set.weight}
+                            onChange={(e) =>
+                              updateSetLog(ex.id, setIdx, "weight", parseFloat(e.target.value) || 0)
+                            }
+                            disabled={set.done || saved}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-14 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
+                            style={{ color: set.done ? "#39ff14" : "white" }}
+                            min="0"
+                            step="0.5"
+                          />
+                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
+                            kg
+                          </span>
+                        </div>
+
+                        {/* REPS input */}
+                        <div className="flex items-end justify-center gap-0.5">
+                          <input
+                            type="number"
+                            value={set.reps}
+                            onChange={(e) =>
+                              updateSetLog(ex.id, setIdx, "reps", parseInt(e.target.value) || 0)
+                            }
+                            disabled={set.done || saved}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-10 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
+                            style={{ color: set.done ? "#39ff14" : "white" }}
+                            min="0"
+                            step="1"
+                          />
+                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
+                            ×
+                          </span>
+                        </div>
+
+                        {/* Validate / Timer */}
+                        <div className="flex justify-center">
+                          {isTimerActive ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); stopTimer(); }}
+                              className="flex flex-col items-center press-effect"
+                            >
+                              <span
+                                className="font-display text-xl leading-none"
+                                style={{
+                                  color:
+                                    timerSec > 10
+                                      ? "#39ff14"
+                                      : timerSec > 3
+                                      ? "#ff6b00"
+                                      : "#ff4444",
+                                }}
+                              >
+                                {timerSec}s
+                              </span>
+                              <span className="text-[8px]" style={{ color: "#555" }}>
+                                ■
+                              </span>
+                            </button>
+                          ) : set.done ? (
+                            <span className="text-base" style={{ color: "#39ff14" }}>
+                              ✓
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); validateSet(ex.id, setIdx); }}
+                              disabled={saved}
+                              className="w-9 h-9 rounded-xl flex items-center justify-center press-effect disabled:opacity-30"
+                              style={{
+                                background: "rgba(255,107,0,0.12)",
+                                border: "1px solid rgba(255,107,0,0.4)",
+                              }}
+                            >
+                              <span className="text-sm" style={{ color: "#ff6b00" }}>✓</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Rest time label */}
+              {coachEx?.restSeconds && (
+                <div
+                  className="px-4 py-1.5 flex items-center gap-2"
+                  style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }}
+                >
+                  <span className="text-[9px] font-bold tracking-widest" style={{ color: "#2a2a2a" }}>
+                    ⏱ RÉCUP {coachEx.restSeconds}s
+                  </span>
+                </div>
+              )}
+
+              {/* Comment — shown only on active exercise */}
+              {isActive && (
+                <div style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
+                  <textarea
+                    value={ex.comment}
+                    onChange={(e) => updateComment(ex.id, e.target.value)}
+                    placeholder="Ressenti sur cet exercice…"
+                    rows={2}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-transparent border-none px-4 py-3 text-xs resize-none focus:outline-none"
+                    style={{ color: "#888" }}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
 
-        {/* Coach feedback card — appears after save */}
-        {saved && (
-          <CoachFeedbackCard state={coachState} result={coachResult} />
-        )}
-
+        {/* Coach feedback — appears after save */}
+        {saved && <CoachFeedbackCard state={coachState} result={coachResult} />}
       </div>
 
-      {/* Finaliser — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3"
-        style={{ background: "linear-gradient(to top, #0a0a0a 70%, transparent)" }}>
+      {/* Bottom action */}
+      <div
+        className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3"
+        style={{ background: "linear-gradient(to top, #0a0a0a 70%, transparent)" }}
+      >
         {saved ? (
           <button
             onClick={() => router.push("/")}
