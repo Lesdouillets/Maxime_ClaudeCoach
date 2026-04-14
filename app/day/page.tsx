@@ -42,6 +42,7 @@ export default function DayPage() {
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState<"run" | "workout">("run");
+  const [activeExIdx, setActiveExIdx] = useState(0);
 
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
@@ -197,12 +198,20 @@ export default function DayPage() {
         const se = session?.type === "fitness"
           ? (session.exercises.find((e) => e.name === ce.name) ?? session.exercises[i])
           : null;
+        // Per-set breakdown: session setLogs take priority, then plan setPlans
+        let setRows: Array<{ weight: number; reps: number; done?: boolean }> | undefined;
+        if (se?.setLogs && se.setLogs.length > 0) {
+          setRows = se.setLogs.map((s) => ({ weight: s.weight, reps: s.reps, done: s.done }));
+        } else if (ce.setPlans && ce.setPlans.length > 0) {
+          setRows = ce.setPlans.map((s) => ({ weight: s.weight, reps: s.reps }));
+        }
         return {
           index: i,
           name: ce.name,
           sets: se?.sets ?? ce.sets,
           reps: se?.reps ?? ce.reps,
           weight: se?.weight ?? ce.weight,
+          setRows,
           restSeconds: ce.restSeconds,
           coachNote: ce.coachNote,
           note: exerciseNotes[i] ?? se?.comment ?? "",
@@ -302,11 +311,14 @@ export default function DayPage() {
                 key={ex.index}
                 ex={ex}
                 isDone={isDone}
+                isActive={!isDone && ex.index === activeExIdx}
+                isInteractive={!isDone}
                 timerExIndex={timerExIndex}
                 timerSec={timerSec}
                 onStartTimer={startTimer}
                 onStopTimer={stopTimer}
                 onNoteChange={handleNoteChange}
+                onAllSetsDone={() => setActiveExIdx(ex.index + 1)}
               />
             ))}
           </div>
