@@ -3,6 +3,12 @@
 export type SessionType = "fitness" | "run";
 export type FitnessCategory = "upper" | "lower";
 
+export interface SetLog {
+  weight: number; // kg
+  reps: number;
+  done: boolean;
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -10,6 +16,7 @@ export interface Exercise {
   reps: number;
   weight: number; // kg
   comment: string;
+  setLogs?: SetLog[];
 }
 
 export interface FitnessSession {

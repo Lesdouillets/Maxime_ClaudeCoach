@@ -34,6 +34,7 @@ Tu es le coach — c'est toi qui décides. Tu peux modifier **tout** ce qui te s
 - Les **charges ou l'allure** (augmenter, maintenir, baisser)
 - Les **exercices eux-mêmes** : remplacer un exercice par un autre, en ajouter, en supprimer, varier les angles ou les machines si tu penses qu'un changement de stimulus sera bénéfique
 - La **structure** : changer l'ordre, ajuster les séries/reps, modifier les temps de repos
+- Les **charges et reps par série** : au sein d'un même exercice, tu peux proposer une progression pyramidale, des drop sets ou toute autre variation de charge/reps série par série — l'appli enregistre désormais chaque série individuellement
 - Ou **ne rien changer** si le programme est bien calibré et que la séance s'est déroulée comme prévu
 
 La variété est un outil de coach à part entière — si un même exercice revient trop souvent, tu peux le remplacer ponctuellement pour éviter la monotonie ou cibler différemment un groupe musculaire. Mais sois cohérent avec les objectifs et le niveau de l'athlète.
@@ -91,6 +92,14 @@ function sessionToText(s: Record<string, unknown>): string {
     ? (s.exercises as Record<string, unknown>[])
         .map((ex) => {
           const note = ex.comment ? ` ("${ex.comment}")` : "";
+          // Show per-set detail when setLogs are available
+          if (Array.isArray(ex.setLogs) && (ex.setLogs as Record<string, unknown>[]).length > 0) {
+            const setDetails = (ex.setLogs as Record<string, unknown>[])
+              .filter((s) => s.done)
+              .map((s, i) => `S${i + 1}:${s.weight}kg×${s.reps}`)
+              .join(" ");
+            return `  ${ex.name}: ${setDetails}${note}`;
+          }
           return `  ${ex.name}: ${ex.sets}×${ex.reps} @${ex.weight}kg${note}`;
         })
         .join("\n")
