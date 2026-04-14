@@ -6,7 +6,7 @@ import { getSessions } from "./storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, parseCoachWorkoutJSON } from "./coachPlan";
 import { autoSyncPush } from "./sync";
 import { getActiveProfile } from "./profiles";
-import type { WorkoutSession } from "./types";
+import type { WorkoutSession, FitnessSession } from "./types";
 import type { CoachPlan } from "./coachPlan";
 
 export interface CoachAnalysisResult {
@@ -63,6 +63,49 @@ function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: 
     .slice(0, limit);
 }
 
+/**
+ * Builds an index of last recorded weight per exercise name from recent sessions.
+ * Only fitness sessions are considered. Most recent session wins.
+ */
+function buildPerfIndex(sessions: WorkoutSession[]): Map<string, number> {
+  const index = new Map<string, number>();
+  for (const session of sessions) {
+    if (session.type !== "fitness") continue;
+    for (const ex of (session as FitnessSession).exercises) {
+      if (!index.has(ex.name) && typeof ex.weight === "number") {
+        index.set(ex.name, ex.weight);
+      }
+    }
+  }
+  return index;
+}
+
+/**
+ * Strips plan-level coachNote and replaces exercise-level coachNote with a
+ * short delta label vs last recorded performance: "+2 kg", "maintenu", "1er essai".
+ * Keeps all other plan data intact so the coach can modify them.
+ */
+function annotatePlansWithDelta(plans: CoachPlan[], perfIndex: Map<string, number>): CoachPlan[] {
+  return plans.map((plan) => {
+    const p = plan as unknown as Record<string, unknown>;
+    if (!Array.isArray(p.exercises)) return plan; // run plans: keep as-is
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { coachNote: _note, ...planCore } = p;
+    return {
+      ...planCore,
+      exercises: (p.exercises as Array<Record<string, unknown>>).map((ex) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { coachNote: _cn, ...exCore } = ex;
+        const lastWeight = perfIndex.get(ex.name as string);
+        if (lastWeight === undefined || typeof ex.weight !== "number") return exCore;
+        const delta = (ex.weight as number) - lastWeight;
+        const label = delta > 0 ? `+${delta} kg` : delta < 0 ? `${delta} kg` : "maintenu";
+        return { ...exCore, delta: label };
+      }),
+    } as unknown as CoachPlan;
+  });
+}
+
 // Prevents firing two concurrent API calls for the same session (e.g. home page + day view both trigger).
 const analyzingInFlight = new Set<string>();
 
@@ -77,13 +120,18 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
   try {
     const profile = getActiveProfile();
     const profileName = profile?.name ?? "Maxime";
-    const recentSessions = getSessions().slice(1, 6); // last 5, excluding current (already in session param)
+    const allRecent = getSessions().slice(0, 11); // current + last 10 for perf index
+    const recentSessions = allRecent.slice(1, 6); // last 5, excluding current session
     const sessionDateStr = session.date.slice(0, 10);
     const coachPlans = getCoachPlans(sessionDateStr, 7);
     const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
 
+    // Enrich upcoming plans: replace verbose coachNotes with compact deltas (+X kg / maintenu / 1er essai)
+    const perfIndex = buildPerfIndex(allRecent);
+    const annotatedPlans = annotatePlansWithDelta(coachPlans, perfIndex);
+
     const { data, error } = await supabase.functions.invoke("analyze-session", {
-      body: { session, coachPlans, recentSessions, profileName, previousAnalyses },
+      body: { session, coachPlans: annotatedPlans, recentSessions, profileName, previousAnalyses },
     });
 
     if (error) {

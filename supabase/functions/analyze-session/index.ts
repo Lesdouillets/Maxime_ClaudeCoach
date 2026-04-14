@@ -127,15 +127,16 @@ function buildUserPrompt(
     return plan.category === sessionCategory;
   });
 
-  // Strip exercise coachNotes from future plans — the AI wrote them, no need to re-read them
+  // Strip coachNotes from future plans (plan-level + exercise-level) — verbose text not needed by AI coach
   const futurePlans = coachPlans
     .filter((p: unknown) => (p as Record<string, string>).date > sessionDate)
     .map((p: unknown) => {
-      const plan = p as Record<string, unknown>;
-      if (!Array.isArray(plan.exercises)) return plan;
+      // deno-lint-ignore no-unused-vars
+      const { coachNote: _planNote, ...planCore } = p as Record<string, unknown>;
+      if (!Array.isArray(planCore.exercises)) return planCore;
       return {
-        ...plan,
-        exercises: (plan.exercises as Record<string, unknown>[]).map(
+        ...planCore,
+        exercises: (planCore.exercises as Record<string, unknown>[]).map(
           // deno-lint-ignore no-unused-vars
           ({ coachNote: _cn, ...ex }) => ex
         ),
