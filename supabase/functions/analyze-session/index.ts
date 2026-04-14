@@ -71,41 +71,60 @@ Format séance run :
 {"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}`;
 }
 
-// Session courante : conserve tous les détails utiles, supprime le bruit technique
-function stripSession(s: Record<string, unknown>): Record<string, unknown> {
-  // deno-lint-ignore no-unused-vars
-  const { stravaActivityId, importedFromStrava, coachWorkoutId,
-          durationSeconds, elevationGainM,
-          targetDistanceKm, targetPaceSecPerKm, targetZone, ...clean } = s as Record<string, unknown>;
-  if (Array.isArray(clean.exercises)) {
-    clean.exercises = (clean.exercises as Record<string, unknown>[]).map(
-      // deno-lint-ignore no-unused-vars
-      ({ id: _id, ...ex }) => ex
-    );
+// Format the current session as compact text (read-only for Claude — no need for JSON structure)
+function sessionToText(s: Record<string, unknown>): string {
+  const date = String(s.date ?? "").slice(0, 10);
+  const comment = s.comment ? ` | "${s.comment}"` : "";
+
+  if (s.type === "run") {
+    const dist = s.distanceKm ?? "?";
+    const pace = s.avgPaceSecPerKm
+      ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Number(s.avgPaceSecPerKm) % 60).padStart(2, "0")}/km`
+      : "";
+    const hr = s.avgHeartRate ? ` FC:${s.avgHeartRate}` : "";
+    return `run ${date} | ${dist}km @${pace}${hr}${comment}`;
   }
-  return clean;
+
+  // fitness
+  const cat = s.category ?? "";
+  const exos = Array.isArray(s.exercises)
+    ? (s.exercises as Record<string, unknown>[])
+        .map((ex) => {
+          const note = ex.comment ? ` ("${ex.comment}")` : "";
+          return `  ${ex.name}: ${ex.sets}×${ex.reps} @${ex.weight}kg${note}`;
+        })
+        .join("\n")
+    : "";
+  return `fitness/${cat} ${date}${comment}\n${exos}`;
 }
 
-// Sessions récentes : résumé minimal pour le contexte de progression
-function summarizeSession(s: Record<string, unknown>): Record<string, unknown> {
-  const base: Record<string, unknown> = { date: s.date, type: s.type, comment: s.comment };
-  if (s.type === "fitness") {
-    return {
-      ...base,
-      category: s.category,
-      exercises: Array.isArray(s.exercises)
-        ? (s.exercises as Record<string, unknown>[]).map(({ name, sets, reps, weight, comment }) =>
-            ({ name, sets, reps, weight, ...(comment ? { comment } : {}) }))
-        : [],
-    };
-  }
-  // run
-  return {
-    ...base,
-    distanceKm: s.distanceKm,
-    avgPaceSecPerKm: s.avgPaceSecPerKm,
-    ...(s.avgHeartRate !== undefined ? { avgHeartRate: s.avgHeartRate } : {}),
-  };
+// Format recent sessions as compact single-line entries (context only — Claude never writes these)
+function recentToText(sessions: unknown[]): string {
+  return sessions.map((s) => {
+    const r = s as Record<string, unknown>;
+    const date = String(r.date ?? "").slice(0, 10);
+    const comment = r.comment ? ` | "${r.comment}"` : "";
+
+    if (r.type === "run") {
+      const dist = r.distanceKm ?? "?";
+      const pace = r.avgPaceSecPerKm
+        ? `${Math.floor(Number(r.avgPaceSecPerKm) / 60)}:${String(Number(r.avgPaceSecPerKm) % 60).padStart(2, "0")}/km`
+        : "";
+      const hr = r.avgHeartRate ? ` FC:${r.avgHeartRate}` : "";
+      return `${date} run: ${dist}km @${pace}${hr}${comment}`;
+    }
+
+    const cat = r.category ?? "";
+    const exos = Array.isArray(r.exercises)
+      ? (r.exercises as Record<string, unknown>[])
+          .map((ex) => {
+            const note = ex.comment ? ` ("${ex.comment}")` : "";
+            return `${ex.name} ${ex.sets}×${ex.reps}@${ex.weight}kg${note}`;
+          })
+          .join(", ")
+      : "";
+    return `${date} fitness/${cat}${comment}: ${exos}`;
+  }).join("\n");
 }
 
 function buildUserPrompt(
@@ -147,20 +166,17 @@ function buildUserPrompt(
     ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
     : "";
 
-  const strippedSession = stripSession(session as Record<string, unknown>);
-  const summarizedRecent = recentSessions.map((s) => summarizeSession(s as Record<string, unknown>));
-
   return `${historySection}## Séance réalisée (${sessionDate})
-${JSON.stringify(strippedSession, null, 2)}
+${sessionToText(session as Record<string, unknown>)}
 
 ## Plan coach prévu pour cette séance
-${todayPlan ? JSON.stringify(todayPlan, null, 2) : "Aucun plan coach défini pour cette séance"}
+${todayPlan ? JSON.stringify(todayPlan) : "Aucun plan coach défini pour cette séance"}
 
 ## 5 dernières séances (contexte de progression)
-${JSON.stringify(summarizedRecent, null, 2)}
+${recentToText(recentSessions)}
 
 ## Programme à venir (${futurePlans.length} séances) — à adapter si nécessaire
-${futurePlans.length > 0 ? JSON.stringify(futurePlans, null, 2) : "Aucune séance programmée à venir"}
+${futurePlans.length > 0 ? JSON.stringify(futurePlans) : "Aucune séance programmée à venir"}
 
 Analyse la séance et forme ton jugement de coach. Modifie les séances à venir si tu l'estimes pertinent, ou laisse le programme tel quel si tu penses qu'il est bien calibré. Retourne le JSON.`;
 }
