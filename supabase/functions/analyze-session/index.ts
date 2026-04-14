@@ -61,10 +61,10 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 }
 
 ### Règles pour modified_plans — ÉCONOMIE DE TOKENS IMPÉRATIVE
-- **Ne renvoie QUE les plans qui changent réellement.** Si une séance reste identique, ne la mets pas dans modified_plans.
-- **Tableau vide [] si aucun ajustement n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
-- **N'invente pas de nouvelles séances** pour des dates non présentes dans le programme fourni. Utilise uniquement les IDs existants.
-- Pour les plans modifiés : inclus le plan complet (tous les exercices), en conservant l'ID exact fourni en contexte.
+- **Ne renvoie QUE les plans utiles** : séances modifiées OU nouvelles séances à créer. Ne renvoie jamais une séance identique à ce qui t'a été fourni.
+- **Tableau vide [] si aucun ajustement ni création n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
+- **Pour modifier une séance existante** : conserve son ID exact tel qu'il t'a été fourni. Inclus le plan complet avec tous ses exercices.
+- **Pour créer une nouvelle séance** (semaine sans programme) : génère un nouvel ID au format "coach-TIMESTAMP" ou "coach-run-TIMESTAMP". N'en crée que si c'est pertinent pour la progression.
 
 Format séance salle (fitness) :
 {"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}

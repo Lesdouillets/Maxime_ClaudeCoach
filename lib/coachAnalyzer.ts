@@ -154,10 +154,24 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     if (rawPlans.length > 0) {
       try {
         const parsed = parseCoachWorkoutJSON(JSON.stringify(rawPlans));
+        // Allow: plans with a known ID (modifications) OR plans with a new ID (creations)
+        // Block: plans with an unknown ID that clash with an existing plan on the same date+category
+        //        (would silently replace a plan the AI wasn't asked to touch)
+        const existingByKey = new Set([
+          ...getCoachWorkouts().map((w) => `${w.date}-${w.category}`),
+          ...getCoachRuns().map((r) => `${r.date}-run`),
+        ]);
         const safe = parsed.filter((plan) => {
-          if (sentPlanIds.has(plan.id)) return true;
-          console.warn("[analyzeSession] ignoring plan with unknown ID:", plan.id, plan.date);
-          return false;
+          if (sentPlanIds.has(plan.id)) return true; // known modification — always OK
+          const key = plan.type === "fitness"
+            ? `${plan.date}-${(plan as { category: string }).category}`
+            : `${plan.date}-run`;
+          if (existingByKey.has(key) && !sentPlanIds.has(plan.id)) {
+            // Unknown ID but date+type conflicts with an existing plan we didn't send — skip
+            console.warn("[analyzeSession] ignoring phantom plan for existing date:", plan.id, plan.date);
+            return false;
+          }
+          return true; // new plan for a new date — allow
         });
         for (const plan of safe) {
           if (plan.type === "fitness") addCoachWorkout(plan);
