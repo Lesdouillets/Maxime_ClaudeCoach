@@ -229,10 +229,11 @@ export default function DayPage() {
           <CoachFeedbackCard state={coachState} result={coachResult} />
         )}
 
-        {isDone && !analysisAttempted && coachState === "done" && !coachResult && session && (
+        {isDone && coachState === "done" && !analysisAttempted && session && (
           <button
             onClick={() => {
               setAnalysisAttempted(true);
+              setCoachResult(null);
               setCoachState("analyzing");
               analyzeSession(session).then((result) => {
                 setCoachResult(result);

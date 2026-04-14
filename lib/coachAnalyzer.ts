@@ -123,7 +123,7 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     const allRecent = getSessions().slice(0, 11); // current + last 10 for perf index
     const recentSessions = allRecent.slice(1, 6); // last 5, excluding current session
     const sessionDateStr = session.date.slice(0, 10);
-    const coachPlans = getCoachPlans(sessionDateStr, 7);
+    const coachPlans = getCoachPlans(sessionDateStr, 60);
     const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
 
     // Enrich upcoming plans: replace verbose coachNotes with compact deltas (+X kg / maintenu / 1er essai)
