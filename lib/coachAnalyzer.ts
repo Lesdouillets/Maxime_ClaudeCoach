@@ -157,9 +157,11 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
         }
         programChanged = true;
         modifiedCount = parsed.length;
-      } catch {
-        // Malformed response — skip silently
+      } catch (e) {
+        console.error("[analyzeSession] failed to apply modified_plans:", e, JSON.stringify(rawPlans));
       }
+    } else {
+      console.log("[analyzeSession] coach returned no modified_plans — program unchanged");
     }
 
     const result: CoachAnalysisResult = {

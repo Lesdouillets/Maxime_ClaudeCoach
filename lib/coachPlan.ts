@@ -2,11 +2,17 @@ import type { FitnessCategory } from "./types";
 
 // ─── Fitness types ────────────────────────────────────────────────────────────
 
+export interface SetPlan {
+  weight: number;
+  reps: number;
+}
+
 export interface CoachExercise {
   name: string;
   sets: number;
   reps: number;
   weight: number;
+  setPlans?: SetPlan[]; // Per-set variations (pyramid, drop sets, etc.)
   restSeconds?: number;
   coachNote?: string;
 }
@@ -58,9 +64,25 @@ export function getCoachWorkouts(): CoachWorkout[] {
   try {
     const raw = localStorage.getItem(KEY_WORKOUTS);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    // backward compat: old entries may not have type field
-    return parsed.map((w: CoachWorkout) => ({ ...w, type: "fitness" as const }));
+    const parsed = JSON.parse(raw) as CoachWorkout[];
+    let needsSave = false;
+    const expanded = parsed.map((w) => ({
+      ...w,
+      type: "fitness" as const,
+      exercises: w.exercises.map((ex) => {
+        // Already has setPlans — keep as-is (preserves coach pyramids/drop sets)
+        if (ex.setPlans && ex.setPlans.length > 0) return ex;
+        // Expand flat sets/reps/weight into per-set detail
+        needsSave = true;
+        return {
+          ...ex,
+          setPlans: Array.from({ length: ex.sets }, () => ({ weight: ex.weight, reps: ex.reps })),
+        };
+      }),
+    }));
+    // Persist migration so it only runs once per plan
+    if (needsSave) localStorage.setItem(KEY_WORKOUTS, JSON.stringify(expanded));
+    return expanded;
   } catch { return []; }
 }
 
@@ -139,14 +161,23 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
     category: data.category === "lower" ? "lower" : "upper",
     label: String(data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS")),
     coachNote: data.coachNote != null ? String(data.coachNote) : (data.note != null ? String(data.note) : undefined),
-    exercises: (data.exercises as Record<string, unknown>[]).map((ex) => ({
-      name: String(ex.name ?? ""),
-      sets: Number(ex.sets ?? 3),
-      reps: Number(ex.reps ?? 10),
-      weight: Number(ex.weight ?? 0),
-      restSeconds: ex.restSeconds != null ? Number(ex.restSeconds) : (ex.rest != null ? Number(ex.rest) : undefined),
-      coachNote: ex.coachNote != null ? String(ex.coachNote) : (ex.note != null ? String(ex.note) : undefined),
-    })),
+    exercises: (data.exercises as Record<string, unknown>[]).map((ex) => {
+      const setPlans = Array.isArray(ex.setPlans)
+        ? (ex.setPlans as Record<string, unknown>[]).map((sp) => ({
+            weight: Number(sp.weight ?? 0),
+            reps: Number(sp.reps ?? 0),
+          }))
+        : undefined;
+      return {
+        name: String(ex.name ?? ""),
+        sets: setPlans ? setPlans.length : Number(ex.sets ?? 3),
+        reps: Number(ex.reps ?? 10),
+        weight: Number(ex.weight ?? 0),
+        setPlans,
+        restSeconds: ex.restSeconds != null ? Number(ex.restSeconds) : (ex.rest != null ? Number(ex.rest) : undefined),
+        coachNote: ex.coachNote != null ? String(ex.coachNote) : (ex.note != null ? String(ex.note) : undefined),
+      };
+    }),
   };
 }
 

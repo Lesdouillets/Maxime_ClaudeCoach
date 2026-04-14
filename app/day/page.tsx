@@ -14,7 +14,6 @@ import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import {
   getSessions, getCancelledDays, cancelDay, uncancelDay,
   rescheduleDay, unrescheduleDay, getRescheduledDays, deleteSession,
-  addSession, generateId,
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
@@ -108,34 +107,7 @@ export default function DayPage() {
   };
 
   const handleValidateFitness = () => {
-    if (!coachWorkout) {
-      router.push(`/log/fitness?date=${date}`);
-      return;
-    }
-    const exercises = coachWorkout.exercises.map((ce, i) => ({
-      id: `${generateId()}-ex-${i}`,
-      name: ce.name, sets: ce.sets, reps: ce.reps, weight: ce.weight,
-      comment: exerciseNotes[i] ?? "",
-    }));
-    const savedSession: FitnessSession = {
-      id: generateId(),
-      type: "fitness",
-      date: new Date(date + "T12:00:00").toISOString(),
-      category: coachWorkout.category,
-      comment: "",
-      exercises,
-      coachWorkoutId: coachWorkout.id,
-    };
-    addSession(savedSession);
-    load(date);
-    autoSyncPush();
-    setAnalysisAttempted(true);
-    setCoachState("analyzing");
-    setCoachResult(null);
-    analyzeSession(savedSession).then((result) => {
-      setCoachResult(result);
-      setCoachState("done");
-    });
+    router.push(`/log/fitness?date=${date}`);
   };
 
   const handleUncancel = () => { uncancelDay(date); load(date); autoSyncPush(); };
@@ -247,6 +219,8 @@ export default function DayPage() {
               analyzeSession(session).then((result) => {
                 setCoachResult(result);
                 setCoachState("done");
+                // Reload plan data in case coach modified upcoming sessions
+                if (result?.programChanged) load(date);
               });
             }}
             className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
