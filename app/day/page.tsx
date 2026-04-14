@@ -218,6 +218,8 @@ export default function DayPage() {
               analyzeSession(session).then((result) => {
                 setCoachResult(result);
                 setCoachState("done");
+                // Reload plan data in case coach modified upcoming sessions
+                if (result?.programChanged) load(date);
               });
             }}
             className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"

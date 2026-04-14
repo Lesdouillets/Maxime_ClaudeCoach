@@ -64,9 +64,25 @@ export function getCoachWorkouts(): CoachWorkout[] {
   try {
     const raw = localStorage.getItem(KEY_WORKOUTS);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    // backward compat: old entries may not have type field
-    return parsed.map((w: CoachWorkout) => ({ ...w, type: "fitness" as const }));
+    const parsed = JSON.parse(raw) as CoachWorkout[];
+    let needsSave = false;
+    const expanded = parsed.map((w) => ({
+      ...w,
+      type: "fitness" as const,
+      exercises: w.exercises.map((ex) => {
+        // Already has setPlans — keep as-is (preserves coach pyramids/drop sets)
+        if (ex.setPlans && ex.setPlans.length > 0) return ex;
+        // Expand flat sets/reps/weight into per-set detail
+        needsSave = true;
+        return {
+          ...ex,
+          setPlans: Array.from({ length: ex.sets }, () => ({ weight: ex.weight, reps: ex.reps })),
+        };
+      }),
+    }));
+    // Persist migration so it only runs once per plan
+    if (needsSave) localStorage.setItem(KEY_WORKOUTS, JSON.stringify(expanded));
+    return expanded;
   } catch { return []; }
 }
 
