@@ -62,7 +62,7 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 
 ### Règles pour modified_plans — ÉCONOMIE DE TOKENS IMPÉRATIVE
 - **Ne renvoie QUE les plans qui changent réellement.** Si une séance reste identique, ne la mets pas dans modified_plans.
-- **Tableau vide `[]` si aucun ajustement n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
+- **Tableau vide [] si aucun ajustement n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
 - **N'invente pas de nouvelles séances** pour des dates non présentes dans le programme fourni. Utilise uniquement les IDs existants.
 - Pour les plans modifiés : inclus le plan complet (tous les exercices), en conservant l'ID exact fourni en contexte.
 
