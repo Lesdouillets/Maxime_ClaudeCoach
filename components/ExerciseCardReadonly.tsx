@@ -1,11 +1,18 @@
 "use client";
 
+interface SetRow {
+  weight: number;
+  reps: number;
+  done?: boolean;
+}
+
 interface ExerciseData {
   index: number;
   name: string;
   sets: number;
   reps: number;
   weight: number;
+  setRows?: SetRow[]; // per-set breakdown (from plan setPlans or session setLogs)
   restSeconds?: number;
   coachNote?: string;
   note: string;
@@ -22,12 +29,93 @@ interface Props {
 }
 
 export default function ExerciseCardReadonly({ ex, isDone, timerExIndex, timerSec, onStartTimer, onStopTimer, onNoteChange }: Props) {
+  const hasPerSet = Array.isArray(ex.setRows) && ex.setRows.length > 0;
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
-      {/* Exercise header: name + metrics + timer */}
-      <div className="px-4 pt-4 pb-3">
-        <p className="font-bold text-xs tracking-widest mb-3">{ex.name.toUpperCase()}</p>
-        <div className="flex items-end justify-between">
+      {/* Header: name + rest timer */}
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+        <p className="font-bold text-xs tracking-widest flex-1">{ex.name.toUpperCase()}</p>
+        {ex.restSeconds && !isDone && (
+          timerExIndex === String(ex.index) ? (
+            <button onClick={onStopTimer} className="flex items-center gap-2 press-effect flex-shrink-0">
+              <span className="font-display text-xl leading-none"
+                style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
+                {timerSec}s
+              </span>
+              <span className="text-sm" style={{ color: "#555" }}>■</span>
+            </button>
+          ) : (
+            <button onClick={() => onStartTimer(String(ex.index), ex.restSeconds!)} className="flex items-center gap-2 press-effect flex-shrink-0">
+              <span className="text-[10px] font-bold tracking-wide" style={{ color: "#333" }}>RÉCUP {ex.restSeconds}s</span>
+              <span className="text-xs" style={{ color: "#555" }}>▶</span>
+            </button>
+          )
+        )}
+      </div>
+
+      {/* Metrics — per-set table OR flat summary */}
+      {hasPerSet ? (
+        <div style={{ borderTop: "1px solid #1a1a1a" }}>
+          {/* Column headers */}
+          <div
+            className="grid px-4 py-1.5"
+            style={{
+              gridTemplateColumns: "32px 1fr 1fr",
+              background: "#0a0a0a",
+              borderBottom: "1px solid #1a1a1a",
+            }}
+          >
+            {["SÉR.", "KG", "REPS"].map((h, i) => (
+              <span
+                key={i}
+                className="text-[9px] font-bold tracking-widest text-center"
+                style={{ color: "#3a3a3a" }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+          {/* Set rows */}
+          {ex.setRows!.map((row, i) => (
+            <div
+              key={i}
+              className="grid px-4 py-2 items-center"
+              style={{
+                gridTemplateColumns: "32px 1fr 1fr",
+                background: row.done ? "rgba(57,255,20,0.04)" : "#0f0f0f",
+                borderBottom: i < ex.setRows!.length - 1 ? "1px solid #151515" : "none",
+              }}
+            >
+              <span
+                className="font-display text-lg leading-none text-center"
+                style={{ color: row.done ? "#39ff14" : "#444" }}
+              >
+                {i + 1}
+              </span>
+              <div className="flex items-end justify-center gap-0.5">
+                <span
+                  className="font-display text-xl leading-none"
+                  style={{ color: row.done ? "#39ff14" : "#39ff14" }}
+                >
+                  {row.weight}
+                </span>
+                <span className="text-[9px] pb-0.5" style={{ color: "#3a3a3a" }}>kg</span>
+              </div>
+              <div className="flex items-end justify-center gap-0.5">
+                <span
+                  className="font-display text-xl leading-none"
+                  style={{ color: row.done ? "#39ff14" : "#39ff14" }}
+                >
+                  {row.reps}
+                </span>
+                <span className="text-[9px] pb-0.5" style={{ color: "#3a3a3a" }}>×</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="px-4 pb-3">
           <div className="flex items-end gap-5">
             {ex.weight > 0 && (
               <div className="flex items-end gap-0.5">
@@ -44,25 +132,8 @@ export default function ExerciseCardReadonly({ ex, isDone, timerExIndex, timerSe
               <span className="text-xs text-muted mb-0.5 ml-0.5">rep</span>
             </div>
           </div>
-          {/* Rest timer */}
-          {ex.restSeconds && !isDone && (
-            timerExIndex === String(ex.index) ? (
-              <button onClick={onStopTimer} className="flex items-center gap-2 press-effect">
-                <span className="font-display text-2xl leading-none"
-                  style={{ color: timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444" }}>
-                  {timerSec}s
-                </span>
-                <span className="text-sm" style={{ color: "#555" }}>■</span>
-              </button>
-            ) : (
-              <button onClick={() => onStartTimer(String(ex.index), ex.restSeconds!)} className="flex items-center gap-2 press-effect">
-                <span className="text-xs font-bold tracking-wide" style={{ color: "#333" }}>RÉCUP {ex.restSeconds}s</span>
-                <span className="text-sm" style={{ color: "#555" }}>▶</span>
-              </button>
-            )
-          )}
         </div>
-      </div>
+      )}
 
       {/* Coach note */}
       {ex.coachNote && (

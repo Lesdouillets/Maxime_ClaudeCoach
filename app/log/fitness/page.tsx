@@ -13,15 +13,19 @@ import type { Exercise, FitnessCategory, FitnessSession, SetLog } from "@/lib/ty
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
-  const setLogs: SetLog[] = Array.from({ length: ce.sets }, () => ({
-    weight: ce.weight,
-    reps: ce.reps,
-    done: false,
-  }));
+  // If the coach plan specifies per-set variations, use them.
+  // Otherwise generate N identical sets from the flat sets/reps/weight.
+  const setLogs: SetLog[] = ce.setPlans && ce.setPlans.length > 0
+    ? ce.setPlans.map((sp) => ({ weight: sp.weight, reps: sp.reps, done: false }))
+    : Array.from({ length: ce.sets }, () => ({
+        weight: ce.weight,
+        reps: ce.reps,
+        done: false,
+      }));
   return {
     id: generateId(),
     name: ce.name,
-    sets: ce.sets,
+    sets: setLogs.length,
     reps: ce.reps,
     weight: ce.weight,
     comment: "",

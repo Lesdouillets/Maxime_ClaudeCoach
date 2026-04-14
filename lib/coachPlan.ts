@@ -2,11 +2,17 @@ import type { FitnessCategory } from "./types";
 
 // ─── Fitness types ────────────────────────────────────────────────────────────
 
+export interface SetPlan {
+  weight: number;
+  reps: number;
+}
+
 export interface CoachExercise {
   name: string;
   sets: number;
   reps: number;
   weight: number;
+  setPlans?: SetPlan[]; // Per-set variations (pyramid, drop sets, etc.)
   restSeconds?: number;
   coachNote?: string;
 }
@@ -139,14 +145,23 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
     category: data.category === "lower" ? "lower" : "upper",
     label: String(data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS")),
     coachNote: data.coachNote != null ? String(data.coachNote) : (data.note != null ? String(data.note) : undefined),
-    exercises: (data.exercises as Record<string, unknown>[]).map((ex) => ({
-      name: String(ex.name ?? ""),
-      sets: Number(ex.sets ?? 3),
-      reps: Number(ex.reps ?? 10),
-      weight: Number(ex.weight ?? 0),
-      restSeconds: ex.restSeconds != null ? Number(ex.restSeconds) : (ex.rest != null ? Number(ex.rest) : undefined),
-      coachNote: ex.coachNote != null ? String(ex.coachNote) : (ex.note != null ? String(ex.note) : undefined),
-    })),
+    exercises: (data.exercises as Record<string, unknown>[]).map((ex) => {
+      const setPlans = Array.isArray(ex.setPlans)
+        ? (ex.setPlans as Record<string, unknown>[]).map((sp) => ({
+            weight: Number(sp.weight ?? 0),
+            reps: Number(sp.reps ?? 0),
+          }))
+        : undefined;
+      return {
+        name: String(ex.name ?? ""),
+        sets: setPlans ? setPlans.length : Number(ex.sets ?? 3),
+        reps: Number(ex.reps ?? 10),
+        weight: Number(ex.weight ?? 0),
+        setPlans,
+        restSeconds: ex.restSeconds != null ? Number(ex.restSeconds) : (ex.rest != null ? Number(ex.rest) : undefined),
+        coachNote: ex.coachNote != null ? String(ex.coachNote) : (ex.note != null ? String(ex.note) : undefined),
+      };
+    }),
   };
 }
 
