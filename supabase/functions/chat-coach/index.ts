@@ -1,11 +1,6 @@
 // Edge Function — conversation directe avec le coach Alex
-// Déployer : supabase functions deploy chat-coach
+// Déployer : supabase functions deploy chat-coach --no-verify-jwt
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-
-import { createClient } from "npm:@supabase/supabase-js@2";
-import Anthropic from "npm:@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" });
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,21 +83,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: CORS });
-    }
-
     const body = await req.json();
     const {
       messages = [],
@@ -116,9 +96,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
     }
 
-    // Build context as a system-level user message (prepended before conversation history)
     const today = new Date().toISOString().slice(0, 10);
-
     const contextParts: string[] = [`## Date du jour : ${today}`];
 
     if (previousAnalyses.length > 0) {
@@ -159,14 +137,37 @@ Deno.serve(async (req: Request) => {
         ]
       : recentMessages;
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system: buildSystemPrompt(profileName),
-      messages: apiMessages,
+    const systemPrompt = buildSystemPrompt(profileName);
+
+    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2048,
+        system: [
+          {
+            type: "text",
+            text: systemPrompt,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: apiMessages,
+      }),
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    if (!anthropicResp.ok) {
+      const errText = await anthropicResp.text();
+      throw new Error(`Anthropic API error ${anthropicResp.status}: ${errText}`);
+    }
+
+    const anthropicData = await anthropicResp.json();
+    const text = anthropicData.content?.[0]?.type === "text" ? anthropicData.content[0].text : "";
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Response is not valid JSON");
