@@ -57,6 +57,18 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/coach",
+    label: "Coach",
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8"
+          strokeLinecap="round" strokeLinejoin="round"
+          fill={active ? "rgba(57,255,20,0.1)" : "none"} />
+      </svg>
+    ),
+  },
 ];
 
 export default function BottomNav() {

@@ -31,7 +31,6 @@ export function getStoredCoachAnalysis(date: string): CoachAnalysisResult | null
 
 /**
  * Returns all future coach plans from sessionDate onwards (up to 28 days).
- * Wide window so the coach has full context — but it must only RETURN modified plans.
  */
 function getCoachPlans(sessionDate: string): CoachPlan[] {
   const today = new Date().toISOString().slice(0, 10);
@@ -43,7 +42,7 @@ function getCoachPlans(sessionDate: string): CoachPlan[] {
 }
 
 /** Returns the last `limit` stored coach analyses, newest first. */
-function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: string }> {
+export function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: string }> {
   const analyses: Array<{ date: string; analysis: string }> = [];
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -65,7 +64,6 @@ function getRecentCoachAnalyses(limit: number): Array<{ date: string; analysis: 
 
 /**
  * Builds an index of last recorded weight per exercise name from recent sessions.
- * Only fitness sessions are considered. Most recent session wins.
  */
 function buildPerfIndex(sessions: WorkoutSession[]): Map<string, number> {
   const index = new Map<string, number>();
@@ -83,12 +81,11 @@ function buildPerfIndex(sessions: WorkoutSession[]): Map<string, number> {
 /**
  * Strips plan-level coachNote and replaces exercise-level coachNote with a
  * short delta label vs last recorded performance: "+2 kg", "maintenu", "1er essai".
- * Keeps all other plan data intact so the coach can modify them.
  */
 function annotatePlansWithDelta(plans: CoachPlan[], perfIndex: Map<string, number>): CoachPlan[] {
   return plans.map((plan) => {
     const p = plan as unknown as Record<string, unknown>;
-    if (!Array.isArray(p.exercises)) return plan; // run plans: keep as-is
+    if (!Array.isArray(p.exercises)) return plan;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { coachNote: _note, ...planCore } = p;
     return {
@@ -106,35 +103,56 @@ function annotatePlansWithDelta(plans: CoachPlan[], perfIndex: Map<string, numbe
   });
 }
 
-// Prevents firing two concurrent API calls for the same session (e.g. home page + day view both trigger).
+/** Format pace from seconds/km to "M:SS" string */
+function formatPace(secPerKm: number): string {
+  const m = Math.floor(secPerKm / 60);
+  const s = Math.round(secPerKm % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Compact text representation of a session — used by coachChat.ts for token efficiency */
+export function compactSession(s: WorkoutSession): string {
+  if (s.type === "run") {
+    const parts: string[] = [`${s.date.slice(0, 10)}: Run`];
+    if (s.distanceKm) parts.push(`${s.distanceKm}km`);
+    if (s.avgPaceSecPerKm) parts.push(`${formatPace(s.avgPaceSecPerKm)}/km`);
+    if (s.avgHeartRate) parts.push(`HR${s.avgHeartRate}`);
+    if (s.elevationGainM) parts.push(`D+${s.elevationGainM}m`);
+    if (s.targetZone) parts.push(s.targetZone);
+    if (s.comment) parts.push(`"${s.comment}"`);
+    return parts.join(" ");
+  }
+  const exSummary = s.exercises
+    .slice(0, 4)
+    .map((ex) => `${ex.name} ${ex.sets}x${ex.reps}@${ex.weight}kg`)
+    .join(", ");
+  const parts: string[] = [`${s.date.slice(0, 10)}: ${s.category === "lower" ? "Lower" : "Upper"}`];
+  if (exSummary) parts.push(`(${exSummary})`);
+  if (s.comment) parts.push(`"${s.comment}"`);
+  return parts.join(" ");
+}
+
+// Prevents firing two concurrent API calls for the same session.
 const analyzingInFlight = new Set<string>();
 
-/**
- * Sends the just-saved session to the Edge Function for AI analysis.
- * Applies any program changes returned by Claude.
- * Returns the result for display in the UI, or null if anything fails.
- */
-export async function analyzeSession(session: WorkoutSession): Promise<CoachAnalysisResult | null> {
+export async function analyzeSession(session: WorkoutSession, chatContext?: string): Promise<CoachAnalysisResult | null> {
   if (analyzingInFlight.has(session.id)) return null;
   analyzingInFlight.add(session.id);
   try {
     const profile = getActiveProfile();
     const profileName = profile?.name ?? "Maxime";
-    const allRecent = getSessions().slice(0, 11); // current + last 10 for perf index
-    const recentSessions = allRecent.slice(1, 6); // last 5, excluding current session
+    const allRecent = getSessions().slice(0, 11);
+    const recentSessions = allRecent.slice(1, 6);
     const sessionDateStr = session.date.slice(0, 10);
     const coachPlans = getCoachPlans(sessionDateStr);
-    const previousAnalyses = getRecentCoachAnalyses(3); // last 3 coach analyses for context
+    const previousAnalyses = getRecentCoachAnalyses(3);
 
-    // Build an ID whitelist — only plans we sent can be modified
     const sentPlanIds = new Set(coachPlans.map((p) => p.id));
-
-    // Enrich upcoming plans: replace verbose coachNotes with compact deltas (+X kg / maintenu / 1er essai)
     const perfIndex = buildPerfIndex(allRecent);
     const annotatedPlans = annotatePlansWithDelta(coachPlans, perfIndex);
 
     const { data, error } = await supabase.functions.invoke("analyze-session", {
-      body: { session, coachPlans: annotatedPlans, recentSessions, profileName, previousAnalyses },
+      body: { session, coachPlans: annotatedPlans, recentSessions, profileName, previousAnalyses, chatContext },
     });
 
     if (error) {
@@ -146,7 +164,6 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
       return null;
     }
 
-    // Apply modified plans — only those whose IDs were in the plans we sent (prevent phantom plans)
     const rawPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
     let programChanged = false;
     let modifiedCount = 0;
@@ -154,24 +171,20 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
     if (rawPlans.length > 0) {
       try {
         const parsed = parseCoachWorkoutJSON(JSON.stringify(rawPlans));
-        // Allow: plans with a known ID (modifications) OR plans with a new ID (creations)
-        // Block: plans with an unknown ID that clash with an existing plan on the same date+category
-        //        (would silently replace a plan the AI wasn't asked to touch)
         const existingByKey = new Set([
           ...getCoachWorkouts().map((w) => `${w.date}-${w.category}`),
           ...getCoachRuns().map((r) => `${r.date}-run`),
         ]);
         const safe = parsed.filter((plan) => {
-          if (sentPlanIds.has(plan.id)) return true; // known modification — always OK
+          if (sentPlanIds.has(plan.id)) return true;
           const key = plan.type === "fitness"
             ? `${plan.date}-${(plan as { category: string }).category}`
             : `${plan.date}-run`;
           if (existingByKey.has(key) && !sentPlanIds.has(plan.id)) {
-            // Unknown ID but date+type conflicts with an existing plan we didn't send — skip
-            console.warn("[analyzeSession] ignoring phantom plan for existing date:", plan.id, plan.date);
+            console.warn("[analyzeSession] ignoring phantom plan:", plan.id, plan.date);
             return false;
           }
-          return true; // new plan for a new date — allow
+          return true;
         });
         for (const plan of safe) {
           if (plan.type === "fitness") addCoachWorkout(plan);
@@ -195,7 +208,6 @@ export async function analyzeSession(session: WorkoutSession): Promise<CoachAnal
       modifiedCount,
     };
 
-    // Persist to localStorage then sync to Supabase
     storeCoachAnalysis(session.date.slice(0, 10), result);
     await autoSyncPush();
 

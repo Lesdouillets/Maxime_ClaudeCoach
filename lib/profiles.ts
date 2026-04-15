@@ -23,6 +23,8 @@ export const PROFILED_KEYS = [
   "cc_last_strava_fetch",
   "cc_pending_strava",
   "cc_last_sync",
+  "cc_chat_history",
+  "cc_chat_updated_at",
 ] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────

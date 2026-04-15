@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import type { WorkoutSession, CancelledDay, StravaTokens } from "./types";
 import type { CoachPlan } from "./coachPlan";
 import type { WeightEntry, RescheduledDay } from "./storage";
+import type { ChatMessage } from "./coachChat";
 import { getActiveProfileId } from "./profiles";
 
 const LAST_SYNC_KEY = "cc_last_sync";
@@ -249,6 +250,46 @@ async function pushCoachAnalyses(userId: string, profileId: string, entries: Coa
   if (error) throw new Error(error.message);
 }
 
+// ─── Chat messages helpers ────────────────────────────────────────────────────
+
+function readChatMessages(): { messages: ChatMessage[]; updatedAt: string } {
+  try {
+    const messages = JSON.parse(localStorage.getItem("cc_chat_history") ?? "[]") as ChatMessage[];
+    const updatedAt = localStorage.getItem("cc_chat_updated_at") ?? "";
+    return { messages, updatedAt };
+  } catch { return { messages: [], updatedAt: "" }; }
+}
+
+function writeChatMessages(messages: ChatMessage[], updatedAt: string): void {
+  localStorage.setItem("cc_chat_history", JSON.stringify(messages));
+  localStorage.setItem("cc_chat_updated_at", updatedAt);
+}
+
+async function pushChatMessages(userId: string, profileId: string): Promise<void> {
+  const { messages, updatedAt } = readChatMessages();
+  if (messages.length === 0 && !updatedAt) return;
+  const { error } = await supabase.from("chat_messages").upsert(
+    { user_id: userId, profile_id: profileId, messages, updated_at: updatedAt || new Date().toISOString() },
+    { onConflict: "user_id,profile_id" }
+  );
+  if (error) throw new Error(error.message);
+}
+
+async function pullChatMessages(userId: string, profileId: string): Promise<void> {
+  const { data } = await supabase.from("chat_messages")
+    .select("messages, updated_at")
+    .eq("user_id", userId)
+    .eq("profile_id", profileId)
+    .single();
+  if (!data) return;
+  const remoteUpdatedAt = data.updated_at as string;
+  const { updatedAt: localUpdatedAt } = readChatMessages();
+  // Last-write-wins: only overwrite local if remote is newer
+  if (remoteUpdatedAt > localUpdatedAt) {
+    writeChatMessages(data.messages as ChatMessage[], remoteUpdatedAt);
+  }
+}
+
 async function pushStravaTokens(userId: string, profileId: string) {
   try {
     const raw = localStorage.getItem("cc_strava_tokens");
@@ -345,6 +386,7 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     pushCoachAnalyses(userId, profileId, mergedCoachAnalyses),
     pushStravaTokens(userId, profileId),
     pullStravaTokens(userId, profileId),
+    pullChatMessages(userId, profileId), // last-write-wins, handles its own merge
   ]);
 }
 
@@ -413,6 +455,7 @@ export async function autoSyncPush(): Promise<void> {
       pushExNotes(user.id, profileId, readExNotes()),
       pushCoachAnalyses(user.id, profileId, readCoachAnalyses()),
       pushStravaTokens(user.id, profileId),
+      pushChatMessages(user.id, profileId),
     ]);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
   } catch { /* silent */ } finally {

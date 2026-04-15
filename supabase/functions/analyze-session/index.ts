@@ -46,6 +46,35 @@ Quelques repères à ta disposition (pas des règles automatiques) :
 - Toujours garder ≥ 2 exercices de tirage par séance haut du corps
 - Ne jamais supprimer les exercices fondamentaux (squat, deadlift, développé) sans raison explicite
 
+## FORMATS DE SÉANCE RUN (pour modified_plans)
+
+**1. Run continu (Z2, long run)**
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Dimanche","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"}
+
+**2. Fractionné (intervals)**
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"FRACTIONNÉ 400m","distanceKm":8,"pace":"5:00",
+ "intervals":[
+   {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
+   {"label":"400m rapide","reps":8,"distanceKm":0.4,"pace":"4:00","targetZone":"Z4","restSeconds":90},
+   {"label":"Retour au calme","distanceKm":1.5,"pace":"6:30","targetZone":"Z2"}
+ ]}
+
+**3. Run progressif (multi-allures)**
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN PROGRESSIF","distanceKm":9,"pace":"5:30",
+ "intervals":[
+   {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2"},
+   {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3"},
+   {"label":"Phase 3","distanceKm":2,"pace":"4:50","targetZone":"Z4"}
+ ]}
+
+**4. Tempo (seuil)**
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"TEMPO","distanceKm":9,"pace":"5:10",
+ "intervals":[
+   {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
+   {"label":"Tempo","distanceKm":6,"pace":"4:50","targetZone":"Z3","targetHR":"149-168"},
+   {"label":"Récup","distanceKm":1,"pace":"6:30","targetZone":"Z2"}
+ ]}
+
 ## PROCESSUS
 1. Lis la séance réalisée, les commentaires, et compare avec le plan prévu
 2. Regarde le contexte des séances récentes pour sentir la tendance de forme
@@ -145,6 +174,7 @@ function buildUserPrompt(
   coachPlans: unknown[],
   recentSessions: unknown[],
   previousAnalyses: Array<{ date: string; analysis: string }> = [],
+  chatContext?: string,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -179,7 +209,11 @@ function buildUserPrompt(
     ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
     : "";
 
-  return `${historySection}## Séance réalisée (${sessionDate})
+  const chatContextSection = chatContext
+    ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
+    : "";
+
+  return `${historySection}${chatContextSection}## Séance réalisée (${sessionDate})
 ${sessionToText(session as Record<string, unknown>)}
 
 ## Plan coach prévu pour cette séance
@@ -204,7 +238,7 @@ Deno.serve(async (req: Request) => {
     // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [] } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext } = body;
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -233,7 +267,7 @@ Deno.serve(async (req: Request) => {
             cache_control: { type: "ephemeral" },
           },
         ],
-        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses) }],
+        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext) }],
       }),
     });
 
