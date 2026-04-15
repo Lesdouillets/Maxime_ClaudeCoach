@@ -70,14 +70,18 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 {
   "response": "Ta réponse en 2-5 phrases, ton de coach direct et chaleureux",
   "pending_plans": [],
-  "modified_plans": []
+  "pending_delete_ids": [],
+  "modified_plans": [],
+  "delete_plan_ids": []
 }
 
 RÈGLE IMPORTANTE — CONFIRMATION OBLIGATOIRE :
-- Quand tu proposes de créer ou modifier des séances, mets-les dans "pending_plans" et demande confirmation dans "response" (ex: "Voilà ce que je te propose — tu valides ?").
-- "modified_plans" doit toujours rester VIDE sauf si le dernier message de l'utilisateur est une confirmation explicite (ex: "oui", "ok", "valide", "c'est bon", "go", "applique").
-- Si l'utilisateur confirme, remets les plans dans "modified_plans" et laisse "pending_plans" vide.
-- Si tu réponds juste à une question sans créer de plan, les deux tableaux sont vides.
+- Quand tu proposes de créer ou modifier des séances, mets-les dans "pending_plans" et demande confirmation dans "response".
+- Quand tu proposes de SUPPRIMER des séances, mets leurs IDs dans "pending_delete_ids" et demande confirmation.
+- Tu peux combiner les deux : proposer des suppressions ET des créations/modifications en même temps.
+- "modified_plans" et "delete_plan_ids" restent VIDES tant que l'utilisateur n'a pas confirmé explicitement (oui, ok, valide, c'est bon, go, applique).
+- Si l'utilisateur confirme, déplace les plans dans "modified_plans" et les IDs dans "delete_plan_ids", vide les pending.
+- Si tu réponds juste à une question sans modifier le programme, les quatre tableaux sont vides.
 Pour les plans existants modifiés : conserve leur ID d'origine. Pour les nouveaux : utilise "coach-chat-{date}-{n}".
 Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.`;
 }

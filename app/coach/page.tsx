@@ -221,7 +221,7 @@ export default function CoachPage() {
                     </p>
                   )}
                   <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
-                  {msg.pendingPlans && msg.pendingPlans.length > 0 && (
+                  {(msg.pendingPlans?.length || msg.pendingDeleteIds?.length) ? (
                     <button
                       onClick={() => handleApply(msg.id)}
                       disabled={applying === msg.id}
@@ -233,10 +233,15 @@ export default function CoachPage() {
                         transition: "all 0.2s",
                       }}
                     >
-                      {applying === msg.id ? "Application…" : `Appliquer ce plan (${msg.pendingPlans.length} séance${msg.pendingPlans.length > 1 ? "s" : ""}) ✓`}
+                      {applying === msg.id ? "Application…" : (() => {
+                        const parts: string[] = [];
+                        if (msg.pendingPlans?.length) parts.push(`${msg.pendingPlans.length} séance${msg.pendingPlans.length > 1 ? "s" : ""}`);
+                        if (msg.pendingDeleteIds?.length) parts.push(`${msg.pendingDeleteIds.length} suppression${msg.pendingDeleteIds.length > 1 ? "s" : ""}`);
+                        return `Appliquer (${parts.join(", ")}) ✓`;
+                      })()}
                     </button>
-                  )}
-                  {msg.modifiedCount != null && msg.modifiedCount > 0 && (
+                  ) : null}
+                  {(msg.modifiedCount || msg.deletedCount) ? (
                     <span
                       className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{
@@ -245,9 +250,12 @@ export default function CoachPage() {
                         border: "1px solid rgba(57,255,20,0.25)",
                       }}
                     >
-                      {msg.modifiedCount} séance{msg.modifiedCount > 1 ? "s" : ""} créée{msg.modifiedCount > 1 ? "s" : ""}/adaptée{msg.modifiedCount > 1 ? "s" : ""} ✓
+                      {[
+                        msg.modifiedCount ? `${msg.modifiedCount} séance${msg.modifiedCount > 1 ? "s" : ""} créée${msg.modifiedCount > 1 ? "s" : ""}/adaptée${msg.modifiedCount > 1 ? "s" : ""}` : "",
+                        msg.deletedCount ? `${msg.deletedCount} supprimée${msg.deletedCount > 1 ? "s" : ""}` : "",
+                      ].filter(Boolean).join(", ")} ✓
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             ))}
