@@ -6,6 +6,7 @@ import {
   sendMessage,
   clearChatHistory,
   loadChatFromSupabase,
+  applyPendingPlans,
   type ChatMessage,
 } from "@/lib/coachChat";
 
@@ -74,6 +75,16 @@ export default function CoachPage() {
     await clearChatHistory();
     setMessages([]);
     setClearing(false);
+  };
+
+  const [applying, setApplying] = useState<string | null>(null); // msgId being applied
+
+  const handleApply = async (msgId: string) => {
+    if (applying) return;
+    setApplying(msgId);
+    await applyPendingPlans(msgId);
+    setMessages(getChatHistory());
+    setApplying(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -210,6 +221,21 @@ export default function CoachPage() {
                     </p>
                   )}
                   <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                  {msg.pendingPlans && msg.pendingPlans.length > 0 && (
+                    <button
+                      onClick={() => handleApply(msg.id)}
+                      disabled={applying === msg.id}
+                      className="press-effect flex items-center gap-1.5 mt-2 text-[11px] font-bold px-3 py-1.5 rounded-xl"
+                      style={{
+                        background: applying === msg.id ? "rgba(57,255,20,0.05)" : "rgba(57,255,20,0.12)",
+                        color: applying === msg.id ? "#555" : "#39ff14",
+                        border: "1px solid rgba(57,255,20,0.3)",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      {applying === msg.id ? "Application…" : `Appliquer ce plan (${msg.pendingPlans.length} séance${msg.pendingPlans.length > 1 ? "s" : ""}) ✓`}
+                    </button>
+                  )}
                   {msg.modifiedCount != null && msg.modifiedCount > 0 && (
                     <span
                       className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full"

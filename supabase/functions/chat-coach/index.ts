@@ -69,10 +69,15 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdown :
 {
   "response": "Ta réponse en 2-5 phrases, ton de coach direct et chaleureux",
+  "pending_plans": [],
   "modified_plans": []
 }
 
-modified_plans : tableau de plans créés ou modifiés. Vide si aucun changement de programme.
+RÈGLE IMPORTANTE — CONFIRMATION OBLIGATOIRE :
+- Quand tu proposes de créer ou modifier des séances, mets-les dans "pending_plans" et demande confirmation dans "response" (ex: "Voilà ce que je te propose — tu valides ?").
+- "modified_plans" doit toujours rester VIDE sauf si le dernier message de l'utilisateur est une confirmation explicite (ex: "oui", "ok", "valide", "c'est bon", "go", "applique").
+- Si l'utilisateur confirme, remets les plans dans "modified_plans" et laisse "pending_plans" vide.
+- Si tu réponds juste à une question sans créer de plan, les deux tableaux sont vides.
 Pour les plans existants modifiés : conserve leur ID d'origine. Pour les nouveaux : utilise "coach-chat-{date}-{n}".
 Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.`;
 }

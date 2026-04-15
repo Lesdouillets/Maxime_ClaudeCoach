@@ -15,7 +15,8 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: string; // ISO
-  modifiedCount?: number; // set on assistant messages when plans were created/modified
+  modifiedCount?: number;   // set once plans are applied
+  pendingPlans?: unknown[]; // plans proposed by coach, awaiting user confirmation
 }
 
 // ─── localStorage keys ────────────────────────────────────────────────────────
@@ -147,12 +148,12 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       return null;
     }
 
-    // Apply modified plans
-    const rawPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
+    // Apply confirmed plans immediately (coach said "yes" / user confirmed)
+    const confirmedPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
     let modifiedCount = 0;
-    if (rawPlans.length > 0) {
+    if (confirmedPlans.length > 0) {
       try {
-        const parsed = parseCoachWorkoutJSON(JSON.stringify(rawPlans));
+        const parsed = parseCoachWorkoutJSON(JSON.stringify(confirmedPlans));
         for (const plan of parsed) {
           if (plan.type === "fitness") addCoachWorkout(plan);
           else addCoachRun(plan);
@@ -161,12 +162,18 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       } catch { /* Malformed response — skip silently */ }
     }
 
+    // Pending plans require user confirmation before being applied
+    const pendingPlans: unknown[] = Array.isArray(data.pending_plans) && data.pending_plans.length > 0
+      ? data.pending_plans
+      : [];
+
     const assistantMsg: ChatMessage = {
       id: `chat-${Date.now()}-assistant`,
       role: "assistant",
       content: typeof data.response === "string" ? data.response : "",
       timestamp: new Date().toISOString(),
       modifiedCount: modifiedCount > 0 ? modifiedCount : undefined,
+      pendingPlans: pendingPlans.length > 0 ? pendingPlans : undefined,
     };
 
     const finalHistory = [...history, assistantMsg];
@@ -178,4 +185,35 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     _saveChatLocal(history.slice(0, -1));
     return null;
   }
+}
+
+/**
+ * Apply pending plans from a coach message and update the message in history.
+ * Returns the number of plans applied, or 0 on failure.
+ */
+export async function applyPendingPlans(msgId: string): Promise<number> {
+  const history = getChatHistory();
+  const msgIndex = history.findIndex((m) => m.id === msgId);
+  if (msgIndex === -1) return 0;
+
+  const msg = history[msgIndex];
+  if (!msg.pendingPlans || msg.pendingPlans.length === 0) return 0;
+
+  let modifiedCount = 0;
+  try {
+    const parsed = parseCoachWorkoutJSON(JSON.stringify(msg.pendingPlans));
+    for (const plan of parsed) {
+      if (plan.type === "fitness") addCoachWorkout(plan);
+      else addCoachRun(plan);
+    }
+    modifiedCount = parsed.length;
+  } catch { return 0; }
+
+  // Update message: remove pendingPlans, set modifiedCount
+  const updated: ChatMessage = { ...msg, pendingPlans: undefined, modifiedCount };
+  const newHistory = [...history];
+  newHistory[msgIndex] = updated;
+  await saveChatHistory(newHistory);
+
+  return modifiedCount;
 }
