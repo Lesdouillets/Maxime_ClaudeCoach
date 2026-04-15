@@ -149,7 +149,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2048,
+        max_tokens: 8192,
         system: [
           {
             type: "text",
@@ -167,12 +167,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const anthropicData = await anthropicResp.json();
+
+    // Guard against truncated responses
+    if (anthropicData.stop_reason === "max_tokens") {
+      throw new Error("Response truncated — plan too large. Try a shorter request.");
+    }
+
     const text = anthropicData.content?.[0]?.type === "text" ? anthropicData.content[0].text : "";
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Response is not valid JSON");
+    // Find the outermost JSON object (first { to its matching })
+    const start = text.indexOf("{");
+    if (start === -1) throw new Error("Response is not valid JSON");
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < text.length; i++) {
+      if (text[i] === "{") depth++;
+      else if (text[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) throw new Error("Unbalanced JSON in response");
 
-    const result = JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(text.slice(start, end + 1));
 
     return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", ...CORS },
