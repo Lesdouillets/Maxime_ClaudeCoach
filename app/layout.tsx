@@ -7,7 +7,7 @@ import GlobalUI from "@/components/GlobalUI";
 export const metadata: Metadata = {
   title: "Claude Coach",
   description: "Ton coach sportif personnel — Maxime",
-  manifest: "/manifest.json",
+  manifest: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/manifest.json`,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
