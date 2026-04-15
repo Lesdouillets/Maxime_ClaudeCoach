@@ -364,14 +364,18 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     ]);
 
   const mergedSessions        = mergeById(remoteSessions, readSessions());
-  const mergedCoachPlans      = mergeById(remoteCoachPlans, readCoachPlans());
+  // Coach plans: Supabase is authoritative. Remote wins on deletions.
+  // Only preserve local-only plans (created but not yet pushed).
+  const remoteCoachPlanIds    = new Set(remoteCoachPlans.map((p) => p.id));
+  const localOnlyCoachPlans   = readCoachPlans().filter((p) => !remoteCoachPlanIds.has(p.id));
+  const authoritativeCoachPlans = [...remoteCoachPlans, ...localOnlyCoachPlans];
   const mergedDayEvents       = mergeDayEvents(remoteDayEvents, readDayEvents());
   const mergedWeightEntries   = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
   const mergedExNotes         = mergeByKey(remoteExNotes, readExNotes(), "date");
   const mergedCoachAnalyses   = mergeByKey(remoteCoachAnalyses, readCoachAnalyses(), "date");
 
   writeSessions(mergedSessions);
-  writeCoachPlans(mergedCoachPlans);
+  writeCoachPlans(authoritativeCoachPlans);
   writeDayEvents(mergedDayEvents);
   writeWeightEntries(mergedWeightEntries);
   writeExNotes(mergedExNotes);
@@ -379,7 +383,7 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
 
   await Promise.all([
     pushSessions(userId, profileId, mergedSessions),
-    pushCoachPlans(userId, profileId, mergedCoachPlans),
+    pushCoachPlans(userId, profileId, authoritativeCoachPlans),
     pushDayEvents(userId, profileId, mergedDayEvents),
     pushWeightEntries(userId, profileId, mergedWeightEntries),
     pushExNotes(userId, profileId, mergedExNotes),
