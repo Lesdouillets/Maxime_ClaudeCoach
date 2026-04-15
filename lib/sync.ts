@@ -209,14 +209,24 @@ async function pushCoachPlans(userId: string, profileId: string, plans: CoachPla
 }
 
 async function pushDayEvents(userId: string, profileId: string, events: DayEvent[]) {
-  // Déduplique par (event_type, date) — protège contre les doublons existants dans le remote
   const deduped = Array.from(new Map(events.map((e) => [`${e.event_type}_${e.date}`, e])).values());
-  await supabase.from("day_events").delete().eq("user_id", userId).eq("profile_id", profileId);
-  if (deduped.length === 0) return;
-  const { error } = await supabase.from("day_events").insert(
-    deduped.map((e) => ({ user_id: userId, profile_id: profileId, ...e }))
-  );
-  if (error) throw new Error(error.message);
+  if (deduped.length > 0) {
+    const { error } = await supabase.from("day_events").upsert(
+      deduped.map((e) => ({ user_id: userId, profile_id: profileId, ...e })),
+      { onConflict: "user_id,event_type,date" }
+    );
+    if (error) throw new Error(error.message);
+  }
+  // Delete remote rows not present locally
+  const localKeys = new Set(deduped.map((e) => `${e.event_type}_${e.date}`));
+  const { data: remoteRows } = await supabase.from("day_events")
+    .select("event_type, date").eq("user_id", userId).eq("profile_id", profileId);
+  const toDelete = (remoteRows ?? []).filter((r) => !localKeys.has(`${r.event_type}_${r.date}`));
+  for (const r of toDelete) {
+    await supabase.from("day_events").delete()
+      .eq("user_id", userId).eq("profile_id", profileId)
+      .eq("event_type", r.event_type).eq("date", r.date);
+  }
 }
 
 async function pushWeightEntries(userId: string, profileId: string, entries: WeightEntry[]) {
@@ -231,14 +241,23 @@ async function pushWeightEntries(userId: string, profileId: string, entries: Wei
 }
 
 async function pushExNotes(userId: string, profileId: string, notes: { date: string; notes: object }[]) {
-  // Déduplique par date — protège contre les doublons existants dans le remote
   const deduped = Array.from(new Map(notes.map((n) => [n.date, n])).values());
-  await supabase.from("ex_notes").delete().eq("user_id", userId).eq("profile_id", profileId);
-  if (deduped.length === 0) return;
-  const { error } = await supabase.from("ex_notes").insert(
-    deduped.map((n) => ({ user_id: userId, profile_id: profileId, ...n }))
-  );
-  if (error) throw new Error(error.message);
+  if (deduped.length > 0) {
+    const { error } = await supabase.from("ex_notes").upsert(
+      deduped.map((n) => ({ user_id: userId, profile_id: profileId, ...n })),
+      { onConflict: "user_id,date" }
+    );
+    if (error) throw new Error(error.message);
+  }
+  // Delete remote rows not present locally
+  const localDates = new Set(deduped.map((n) => n.date));
+  const { data: remoteRows } = await supabase.from("ex_notes")
+    .select("date").eq("user_id", userId).eq("profile_id", profileId);
+  const toDelete = (remoteRows ?? []).map((r) => r.date as string).filter((d) => !localDates.has(d));
+  if (toDelete.length > 0) {
+    await supabase.from("ex_notes").delete()
+      .eq("user_id", userId).eq("profile_id", profileId).in("date", toDelete);
+  }
 }
 
 async function pushCoachAnalyses(userId: string, profileId: string, entries: CoachAnalysisEntry[]) {
