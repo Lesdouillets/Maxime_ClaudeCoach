@@ -6,6 +6,7 @@ import { getSessions } from "./storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, deleteCoachWorkout, deleteCoachRun, parseCoachWorkoutJSON } from "./coachPlan";
 import { getActiveProfile, getActiveProfileId } from "./profiles";
 import { getRecentCoachAnalyses, compactSession } from "./coachAnalyzer";
+import { autoSyncPush } from "./sync";
 import type { CoachPlan } from "./coachPlan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -192,6 +193,11 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     const finalHistory = [...history, assistantMsg];
     await saveChatHistory(finalHistory); // persist + push Supabase
 
+    // Sync plan changes to Supabase if any mutations happened
+    if (modifiedCount > 0 || deletedCount > 0) {
+      try { await autoSyncPush(); } catch { /* silent */ }
+    }
+
     return assistantMsg;
   } catch {
     // Rollback on network error
@@ -200,10 +206,6 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
   }
 }
 
-/**
- * Apply pending plans from a coach message and update the message in history.
- * Returns the number of plans applied, or 0 on failure.
- */
 /**
  * Apply pending plans + deletions from a coach message and update the message in history.
  * Returns total number of changes applied (creates + deletes), or 0 on failure.
@@ -249,6 +251,9 @@ export async function applyPendingPlans(msgId: string): Promise<number> {
   const newHistory = [...history];
   newHistory[msgIndex] = updated;
   await saveChatHistory(newHistory);
+
+  // Push plan mutations to Supabase so they survive page reloads / pulls
+  try { await autoSyncPush(); } catch { /* silent */ }
 
   return modifiedCount + deletedCount;
 }
