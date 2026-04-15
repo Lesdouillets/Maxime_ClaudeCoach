@@ -364,11 +364,9 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     ]);
 
   const mergedSessions        = mergeById(remoteSessions, readSessions());
-  // Coach plans: Supabase is authoritative. Remote wins on deletions.
-  // Only preserve local-only plans (created but not yet pushed).
-  const remoteCoachPlanIds    = new Set(remoteCoachPlans.map((p) => p.id));
-  const localOnlyCoachPlans   = readCoachPlans().filter((p) => !remoteCoachPlanIds.has(p.id));
-  const authoritativeCoachPlans = [...remoteCoachPlans, ...localOnlyCoachPlans];
+  // Coach plans: Supabase is the single source of truth.
+  // Remote fully overwrites local — no local-only preservation.
+  const authoritativeCoachPlans = remoteCoachPlans;
   const mergedDayEvents       = mergeDayEvents(remoteDayEvents, readDayEvents());
   const mergedWeightEntries   = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
   const mergedExNotes         = mergeByKey(remoteExNotes, readExNotes(), "date");
