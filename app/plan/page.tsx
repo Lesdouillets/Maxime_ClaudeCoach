@@ -7,6 +7,7 @@ import Badge from "@/components/Badge";
 import { getWeekDays, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getCancelledDays, getRescheduledDays } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
+import { syncFull } from "@/lib/sync";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
@@ -83,7 +84,11 @@ export default function PlanPage() {
     setCoachRuns(getCoachRuns());
   };
 
-  useEffect(() => { setMounted(true); refresh(); }, []);
+  useEffect(() => {
+    setMounted(true);
+    refresh(); // affiche le cache local immédiatement
+    syncFull().then(() => refresh()).catch(() => {}); // puis met à jour depuis Supabase
+  }, []);
 
   if (!mounted) return null;
 
