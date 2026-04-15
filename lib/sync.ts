@@ -280,7 +280,7 @@ async function pullChatMessages(userId: string, profileId: string): Promise<void
     .select("messages, updated_at")
     .eq("user_id", userId)
     .eq("profile_id", profileId)
-    .single();
+    .maybeSingle();
   if (!data) return;
   const remoteUpdatedAt = data.updated_at as string;
   const { updatedAt: localUpdatedAt } = readChatMessages();
