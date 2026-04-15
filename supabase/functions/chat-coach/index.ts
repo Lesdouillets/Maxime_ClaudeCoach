@@ -108,34 +108,54 @@ Deno.serve(async (req: Request) => {
     const today = new Date().toISOString().slice(0, 10);
     const contextParts: string[] = [`## Date du jour : ${today}`];
 
+    // Max 2 analyses, truncated to 400 chars each
     if (previousAnalyses.length > 0) {
-      contextParts.push(
-        `\n## Tes analyses post-séance récentes\n${previousAnalyses.map((a: { date: string; analysis: string }) => `### ${a.date}\n${a.analysis}`).join("\n\n")}`
-      );
+      const trimmed = previousAnalyses
+        .slice(0, 2)
+        .map((a: { date: string; analysis: string }) => `${a.date}: ${a.analysis.slice(0, 400)}`);
+      contextParts.push(`\n## Analyses récentes\n${trimmed.join("\n")}`);
     }
 
     if (recentSessions.length > 0) {
-      contextParts.push(`\n## 5 dernières séances réalisées\n${recentSessions.join("\n")}`);
+      contextParts.push(`\n## Séances récentes\n${recentSessions.join("\n")}`);
     }
 
-    // Split plans: full JSON for next 7 days, compact for 8-21 days
-    const cutoff = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const nearPlans = (coachPlans as Record<string, unknown>[]).filter((p) => (p.date as string) <= cutoff);
-    const farPlans = (coachPlans as Record<string, unknown>[]).filter((p) => (p.date as string) > cutoff);
+    // Strip coachNote fields to save tokens, keep only what the coach needs
+    function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
+      return plans.map((p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { coachNote: _cn, ...rest } = p;
+        if (Array.isArray(rest.exercises)) {
+          rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { coachNote: _ecn, ...exRest } = ex;
+            return exRest;
+          });
+        }
+        return rest;
+      });
+    }
+
+    // J0-3: full JSON (stripped), J4-21: compact text
+    const nearCutoff = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const farCutoff = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const allPlans = coachPlans as Record<string, unknown>[];
+    const nearPlans = allPlans.filter((p) => (p.date as string) <= nearCutoff);
+    const farPlans = allPlans.filter((p) => (p.date as string) > nearCutoff && (p.date as string) <= farCutoff);
 
     if (nearPlans.length > 0) {
-      contextParts.push(`\n## Programme à venir — J0-7 (JSON complet)\n${JSON.stringify(nearPlans, null, 2)}`);
+      contextParts.push(`\n## Programme J0-3\n${JSON.stringify(stripCoachNotes(nearPlans))}`);
     }
     if (farPlans.length > 0) {
       const compact = farPlans.map((p) => {
-        if (p.type === "run") return `${p.date}: Run ${p.label} ${p.distanceKm}km`;
-        return `${p.date}: ${p.category === "lower" ? "Lower" : "Upper"} (${(p.exercises as unknown[])?.length ?? 0} ex.)`;
+        if (p.type === "run") return `${p.date}:Run ${p.label} ${p.distanceKm}km`;
+        return `${p.date}:${p.category === "lower" ? "Lower" : "Upper"}(${(p.exercises as unknown[])?.length ?? 0}ex)`;
       }).join(" | ");
-      contextParts.push(`\n## Programme à venir — J8-21 (résumé)\n${compact}`);
+      contextParts.push(`\n## Programme J4-21\n${compact}`);
     }
 
-    // Only keep last 8 messages for API call (token control)
-    const recentMessages = messages.slice(-8);
+    // Only keep last 6 messages for API call
+    const recentMessages = messages.slice(-6);
 
     // Prepend context as first user message if there's context
     const apiMessages = contextParts.length > 0
