@@ -66,7 +66,7 @@ export async function pullChatFromSupabase(): Promise<void> {
     .select("messages, updated_at")
     .eq("user_id", user.id)
     .eq("profile_id", profileId)
-    .single();
+    .maybeSingle();
 
   if (!data) return;
 
