@@ -50,7 +50,7 @@ export default function RootLayout({
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
               navigator.serviceWorker.register('${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/sw.js', {
-                scope: '${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/''
+                scope: '${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/'
               });
             });
           }
