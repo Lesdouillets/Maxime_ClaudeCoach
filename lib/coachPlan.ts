@@ -92,10 +92,13 @@ export function saveCoachWorkouts(workouts: CoachWorkout[]): void {
 }
 
 export function addCoachWorkout(workout: CoachWorkout): void {
-  const existing = getCoachWorkouts();
-  const idx = existing.findIndex((w) => w.date === workout.date && w.category === workout.category);
-  if (idx !== -1) existing[idx] = workout;
-  else existing.unshift(workout);
+  // Drop every pre-existing plan that collides by id OR by (date, category).
+  // Using filter (not findIndex) ensures that if duplicates were created in the
+  // past (multi-device races, re-imports…), they all get cleaned up on next write.
+  const existing = getCoachWorkouts().filter(
+    (w) => w.id !== workout.id && !(w.date === workout.date && w.category === workout.category)
+  );
+  existing.unshift(workout);
   saveCoachWorkouts(existing);
 }
 
@@ -117,7 +120,8 @@ export function saveCoachRuns(runs: CoachRun[]): void {
 }
 
 export function addCoachRun(run: CoachRun): void {
-  const existing = getCoachRuns().filter((r) => r.date !== run.date);
+  // Drop every pre-existing plan that collides by id OR by date (one run per day).
+  const existing = getCoachRuns().filter((r) => r.id !== run.id && r.date !== run.date);
   existing.unshift(run);
   saveCoachRuns(existing);
 }
@@ -154,8 +158,14 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
   if (!data.exercises || !Array.isArray(data.exercises)) {
     throw new Error("Séance fitness : 'exercises' manquant.");
   }
+  // Preserve the incoming id when present — the coach reuses ids to update plans.
+  // Generating a fresh id on every parse broke the "update existing plan" path
+  // (sentPlanIds filter in coachAnalyzer + dedup by id in addCoachWorkout).
+  const id = typeof data.id === "string" && data.id.trim() !== ""
+    ? data.id
+    : `coach-${Date.now()}-${index}`;
   return {
-    id: `coach-${Date.now()}-${index}`,
+    id,
     type: "fitness",
     date: String(data.date ?? new Date().toISOString().slice(0, 10)),
     category: data.category === "lower" ? "lower" : "upper",
@@ -182,8 +192,11 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
 }
 
 function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
+  const id = typeof data.id === "string" && data.id.trim() !== ""
+    ? data.id
+    : `coach-run-${Date.now()}-${index}`;
   return {
-    id: `coach-run-${Date.now()}-${index}`,
+    id,
     type: "run",
     date: String(data.date ?? new Date().toISOString().slice(0, 10)),
     label: String(data.label ?? "RUN"),

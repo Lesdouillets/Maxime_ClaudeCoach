@@ -190,6 +190,18 @@ async function pushSessions(userId: string, profileId: string, sessions: Workout
 }
 
 async function pushCoachPlans(userId: string, profileId: string, plans: CoachPlan[]) {
+  // Delete orphan remote rows BEFORE upserting.
+  // A partial unique index on (user_id, profile_id, date, category/type) enforces
+  // one plan per slot at the DB level. If we upsert first, a new local id replacing
+  // an old remote id in the same slot would violate that constraint.
+  const localIds = new Set(plans.map((p) => p.id));
+  const { data: remoteRows } = await supabase.from("coach_plans").select("id")
+    .eq("user_id", userId).eq("profile_id", profileId);
+  const toDelete = (remoteRows ?? []).map((r) => r.id as string).filter((id) => !localIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("coach_plans").delete()
+      .eq("user_id", userId).eq("profile_id", profileId).in("id", toDelete);
+  }
   if (plans.length > 0) {
     const rows = plans.map((p) => ({
       id: p.id, user_id: userId, profile_id: profileId,
@@ -197,14 +209,6 @@ async function pushCoachPlans(userId: string, profileId: string, plans: CoachPla
     }));
     const { error } = await supabase.from("coach_plans").upsert(rows, { onConflict: "id" });
     if (error) throw new Error(error.message);
-  }
-  const localIds = plans.map((p) => p.id);
-  const { data: remoteRows } = await supabase.from("coach_plans").select("id")
-    .eq("user_id", userId).eq("profile_id", profileId);
-  const toDelete = (remoteRows ?? []).map((r) => r.id as string).filter((id) => !localIds.includes(id));
-  if (toDelete.length > 0) {
-    await supabase.from("coach_plans").delete()
-      .eq("user_id", userId).eq("profile_id", profileId).in("id", toDelete);
   }
 }
 

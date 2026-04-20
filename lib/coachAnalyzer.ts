@@ -171,17 +171,35 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
     if (rawPlans.length > 0) {
       try {
         const parsed = parseCoachWorkoutJSON(JSON.stringify(rawPlans));
+
+        // Collapse any duplicates the coach may have returned for the same slot
+        // (date + category, or date for runs). Last wins — coach typically puts
+        // the canonical replacement last after listing anything to clean up.
+        const bySlot = new Map<string, typeof parsed[number]>();
+        for (const plan of parsed) {
+          const slot = plan.type === "fitness"
+            ? `${plan.date}-${(plan as { category: string }).category}`
+            : `${plan.date}-run`;
+          bySlot.set(slot, plan);
+        }
+        const deduped = Array.from(bySlot.values());
+        if (deduped.length !== parsed.length) {
+          console.warn(`[analyzeSession] collapsed ${parsed.length - deduped.length} same-slot duplicate plans from coach response`);
+        }
+
+        // Phantom guard: if the coach returns a brand new id at a slot that already
+        // has a plan we did NOT send (eg. race with older local state), drop it.
         const existingByKey = new Set([
           ...getCoachWorkouts().map((w) => `${w.date}-${w.category}`),
           ...getCoachRuns().map((r) => `${r.date}-run`),
         ]);
-        const safe = parsed.filter((plan) => {
+        const safe = deduped.filter((plan) => {
           if (sentPlanIds.has(plan.id)) return true;
           const key = plan.type === "fitness"
             ? `${plan.date}-${(plan as { category: string }).category}`
             : `${plan.date}-run`;
-          if (existingByKey.has(key) && !sentPlanIds.has(plan.id)) {
-            console.warn("[analyzeSession] ignoring phantom plan:", plan.id, plan.date);
+          if (existingByKey.has(key)) {
+            console.warn("[analyzeSession] ignoring phantom plan at occupied slot:", plan.id, key);
             return false;
           }
           return true;
@@ -192,9 +210,6 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
         }
         programChanged = safe.length > 0;
         modifiedCount = safe.length;
-        if (parsed.length !== safe.length) {
-          console.warn(`[analyzeSession] filtered ${parsed.length - safe.length} phantom plans`);
-        }
       } catch (e) {
         console.error("[analyzeSession] failed to apply modified_plans:", e, JSON.stringify(rawPlans));
       }

@@ -94,6 +94,8 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 - **Tableau vide [] si aucun ajustement ni création n'est justifié** — c'est la réponse la plus fréquente et la plus économique.
 - **Pour modifier une séance existante** : conserve son ID exact tel qu'il t'a été fourni. Inclus le plan complet avec tous ses exercices.
 - **Pour créer une nouvelle séance** (semaine sans programme) : génère un nouvel ID au format "coach-TIMESTAMP" ou "coach-run-TIMESTAMP". N'en crée que si c'est pertinent pour la progression.
+- **JAMAIS deux plans pour la même date + catégorie** : si plusieurs plans coexistent dans le contexte à la même date (doublons hérités), choisis-en UN SEUL (le plus récent/pertinent) et renvoie sa version corrigée avec son ID. N'en crée pas un nouveau à côté — cela crée encore plus de doublons.
+- **Ne mentionne pas "doublon supprimé" dans le label** — la déduplication est gérée côté client, contente-toi de renvoyer le plan canonique propre.
 
 Format séance salle (fitness) :
 {"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
@@ -189,9 +191,22 @@ function buildUserPrompt(
     return plan.category === sessionCategory;
   });
 
-  // Strip coachNotes from future plans (plan-level + exercise-level) — verbose text not needed by AI coach
-  const futurePlans = coachPlans
-    .filter((p: unknown) => (p as Record<string, string>).date > sessionDate)
+  // Split future plans into near (full JSON, modifiable) and far (compact summary only).
+  // Rationale: the coach almost always adjusts only the next ~10 days; beyond that
+  // it needs context but not every set/rep. This caps the prompt size even when the
+  // user has 2+ months of pre-seeded plans.
+  const NEAR_DAYS = 10;
+  const nearCutoff = new Date(Date.parse(sessionDate) + NEAR_DAYS * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const futurePlansSrc = coachPlans.filter(
+    (p: unknown) => (p as Record<string, string>).date > sessionDate,
+  );
+
+  // Near: strip coachNote (plan + exercise) to save tokens but keep exercises/setPlans
+  const nearFuturePlans = futurePlansSrc
+    .filter((p: unknown) => (p as Record<string, string>).date <= nearCutoff)
     .map((p: unknown) => {
       // deno-lint-ignore no-unused-vars
       const { coachNote: _planNote, ...planCore } = p as Record<string, unknown>;
@@ -205,12 +220,33 @@ function buildUserPrompt(
       };
     });
 
+  // Far: compact one-liner per plan (id + date + type + label). Coach can still
+  // reference these ids if it truly needs to modify them (rare).
+  const farFuturePlans = futurePlansSrc
+    .filter((p: unknown) => (p as Record<string, string>).date > nearCutoff)
+    .map((p: unknown) => {
+      const plan = p as Record<string, unknown>;
+      if (plan.type === "run") {
+        return `${plan.id} ${plan.date} run "${plan.label}" ${plan.distanceKm ?? "?"}km@${plan.pace ?? "?"}`;
+      }
+      const exCount = Array.isArray(plan.exercises) ? plan.exercises.length : 0;
+      return `${plan.id} ${plan.date} fitness/${plan.category} "${plan.label}" (${exCount}ex)`;
+    });
+
   const historySection = previousAnalyses.length > 0
     ? `\n## Tes analyses précédentes (mémoire coach)\n${previousAnalyses.map((a) => `### ${a.date}\n${a.analysis}`).join("\n\n")}\n`
     : "";
 
   const chatContextSection = chatContext
     ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
+    : "";
+
+  const nearSection = nearFuturePlans.length > 0
+    ? `## Programme J0-${NEAR_DAYS} (${nearFuturePlans.length} séances — modifiables)\n${JSON.stringify(nearFuturePlans)}`
+    : `## Programme J0-${NEAR_DAYS}\nAucune séance programmée`;
+
+  const farSection = farFuturePlans.length > 0
+    ? `\n\n## Programme J${NEAR_DAYS + 1}+ (${farFuturePlans.length} séances — contexte seulement, n'y touche qu'en cas de besoin manifeste)\n${farFuturePlans.join("\n")}`
     : "";
 
   return `${historySection}${chatContextSection}## Séance réalisée (${sessionDate})
@@ -222,8 +258,7 @@ ${todayPlan ? JSON.stringify(todayPlan) : "Aucun plan coach défini pour cette s
 ## 5 dernières séances (contexte de progression)
 ${recentToText(recentSessions)}
 
-## Programme à venir (${futurePlans.length} séances) — à adapter si nécessaire
-${futurePlans.length > 0 ? JSON.stringify(futurePlans) : "Aucune séance programmée à venir"}
+${nearSection}${farSection}
 
 Analyse la séance et forme ton jugement de coach. Modifie les séances à venir si tu l'estimes pertinent, ou laisse le programme tel quel si tu penses qu'il est bien calibré. Retourne le JSON.`;
 }
@@ -259,7 +294,10 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2500,
+        // 2500 was too tight: a full modified fitness plan (~500 tokens each)
+        // plus the analysis easily breaches it, truncating the JSON. 6000 gives
+        // headroom for 4-5 adjusted plans without losing the response.
+        max_tokens: 6000,
         system: [
           {
             type: "text",
@@ -279,28 +317,38 @@ Deno.serve(async (req: Request) => {
 
     const anthropicData = await anthropicRes.json();
     const text = anthropicData.content?.[0]?.type === "text" ? (anthropicData.content[0].text as string) : "";
+    const stopReason = anthropicData.stop_reason as string | undefined;
+    const truncated = stopReason === "max_tokens";
 
     // Log token usage for monitoring
     if (anthropicData.usage) {
-      console.log("[analyze-session] usage:", JSON.stringify(anthropicData.usage));
+      console.log("[analyze-session] usage:", JSON.stringify(anthropicData.usage), "stop:", stopReason);
     }
 
     // Extract the outermost JSON object from the response
     const start = text.indexOf("{");
     const end = text.lastIndexOf("}");
-    if (start === -1 || end === -1) throw new Error("No JSON object found in response");
-    const jsonStr = text.slice(start, end + 1);
+    const truncSuffix = "\n\n⚠️ La réponse du coach était trop longue et a été tronquée — les modifications du programme n'ont pas pu être appliquées. Relance l'analyse pour réessayer.";
 
     let result: Record<string, unknown>;
-    try {
-      result = JSON.parse(jsonStr);
-    } catch {
-      // JSON truncated or malformed — extract analysis text and skip plan modifications
-      console.error("[analyze-session] JSON parse failed, attempting text fallback");
-      const analysisMatch = jsonStr.match(/"analysis"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const rawAnalysis = analysisMatch ? analysisMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
-      const suffix = "\n\n⚠️ La réponse du coach était trop longue et a été tronquée — les modifications du programme n'ont pas pu être appliquées. Relance l'analyse pour réessayer.";
-      result = { analysis: (rawAnalysis || "Analyse reçue mais JSON malformé.") + suffix, modified_plans: [] };
+    if (start === -1 || end === -1) {
+      // Nothing parseable at all — surface the raw text if we can
+      result = { analysis: (text || "Analyse reçue mais JSON malformé.") + (truncated ? truncSuffix : ""), modified_plans: [] };
+    } else {
+      const jsonStr = text.slice(start, end + 1);
+      try {
+        result = JSON.parse(jsonStr);
+        if (truncated) {
+          // Parsed, but response hit max_tokens — plans may be incomplete, drop them
+          console.warn("[analyze-session] stop_reason=max_tokens, dropping modified_plans");
+          result = { analysis: String(result.analysis ?? "") + truncSuffix, modified_plans: [] };
+        }
+      } catch {
+        console.error("[analyze-session] JSON parse failed, attempting text fallback");
+        const analysisMatch = jsonStr.match(/"analysis"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        const rawAnalysis = analysisMatch ? analysisMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
+        result = { analysis: (rawAnalysis || "Analyse reçue mais JSON malformé.") + truncSuffix, modified_plans: [] };
+      }
     }
 
     return new Response(JSON.stringify(result), {
