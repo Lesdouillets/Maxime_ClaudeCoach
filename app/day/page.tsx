@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTimer } from "@/contexts/TimerContext";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/Badge";
 import DayHeader from "@/components/DayHeader";
 import CoachRunPlan from "@/components/CoachRunPlan";
-import ExerciseCardReadonly from "@/components/ExerciseCardReadonly";
 import RunSessionResults from "@/components/RunSessionResults";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
 import DayActions from "@/components/DayActions";
@@ -36,14 +34,10 @@ export default function DayPage() {
   const [coachRun, setCoachRun] = useState<CoachRun | null>(null);
   const [cancelledDay, setCancelledDay] = useState<CancelledDayType | null>(null);
   const [reschedule, setReschedule] = useState<{ from: string; to: string } | null>(null);
-  const [exerciseNotes, setExerciseNotes] = useState<Record<number, string>>({});
   const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState<"run" | "workout">("run");
-  const [activeExIdx, setActiveExIdx] = useState(0);
-
-  const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
   const load = (d: string) => {
     const sessions = getSessions();
@@ -61,20 +55,6 @@ export default function DayPage() {
     const cancelled = getCancelledDays();
     setCancelledDay(cancelled.find((c) => c.date === d) ?? null);
     setReschedule(rescheduled.find((r) => r.from === d) ?? null);
-    const notesInit: Record<number, string> = {};
-    if (s?.type === "fitness") {
-      s.exercises.forEach((ex, i) => { if (ex.comment) notesInit[i] = ex.comment; });
-    }
-    try {
-      const stored = localStorage.getItem(`cc_ex_notes_${d}`);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Record<number, string>;
-        Object.entries(parsed).forEach(([k, v]) => {
-          if (!notesInit[Number(k)]) notesInit[Number(k)] = v;
-        });
-      }
-    } catch {}
-    setExerciseNotes(notesInit);
     const storedAnalysis = getStoredCoachAnalysis(d);
     setCoachResult(storedAnalysis);
     // For Strava runs without a stored analysis, trigger background analysis and show loader.
@@ -99,12 +79,6 @@ export default function DayPage() {
     load(d);
     return () => {};
   }, []);
-
-  const handleNoteChange = (index: number, value: string) => {
-    const updated = { ...exerciseNotes, [index]: value };
-    setExerciseNotes(updated);
-    try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(updated)); } catch {}
-  };
 
   const handleValidateFitness = () => {
     router.push(`/log/fitness?date=${date}`);
@@ -162,34 +136,6 @@ export default function DayPage() {
   } else if (coachRun) { titleLine = coachRun.label; }
   else if (coachWorkout) { titleLine = coachWorkout.label; }
   else if (genericPlan) { titleLine = genericPlan.label; }
-
-  const timerExIndex = timerKey !== null ? timerKey : null;
-
-  const mergedExercises = coachWorkout
-    ? coachWorkout.exercises.map((ce, i) => {
-        const se = session?.type === "fitness"
-          ? (session.exercises.find((e) => e.name === ce.name) ?? session.exercises[i])
-          : null;
-        // Per-set breakdown: session setLogs take priority, then plan setPlans
-        let setRows: Array<{ weight: number; reps: number; done?: boolean }> | undefined;
-        if (se?.setLogs && se.setLogs.length > 0) {
-          setRows = se.setLogs.map((s) => ({ weight: s.weight, reps: s.reps, done: s.done }));
-        } else if (ce.setPlans && ce.setPlans.length > 0) {
-          setRows = ce.setPlans.map((s) => ({ weight: s.weight, reps: s.reps }));
-        }
-        return {
-          index: i,
-          name: ce.name,
-          sets: se?.sets ?? ce.sets,
-          reps: se?.reps ?? ce.reps,
-          weight: se?.weight ?? ce.weight,
-          setRows,
-          restSeconds: ce.restSeconds,
-          coachNote: ce.coachNote,
-          note: exerciseNotes[i] ?? se?.comment ?? "",
-        };
-      })
-    : [];
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
@@ -273,31 +219,6 @@ export default function DayPage() {
           <CoachRunPlan coachRun={coachRun} />
         )}
 
-        {/* Coach workout — one card per exercise */}
-        {coachWorkout && (!hasDouble || activeTab === "workout") && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-widest" style={{ color: "#39ff14" }}>PLAN COACH</p>
-              <Badge label={coachWorkout.category === "upper" ? "Haut du corps" : "Bas du corps"} variant="orange" />
-            </div>
-            {mergedExercises.map((ex) => (
-              <ExerciseCardReadonly
-                key={ex.index}
-                ex={ex}
-                isDone={isDone}
-                isActive={!isDone && ex.index === activeExIdx}
-                isInteractive={!isDone}
-                timerExIndex={timerExIndex}
-                timerSec={timerSec}
-                onStartTimer={startTimer}
-                onStopTimer={stopTimer}
-                onNoteChange={handleNoteChange}
-                onAllSetsDone={() => setActiveExIdx(ex.index + 1)}
-              />
-            ))}
-          </div>
-        )}
-
         {/* No coach data — generic plan */}
         {!coachRun && !coachWorkout && genericPlan && !session && (
           <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
@@ -324,8 +245,8 @@ export default function DayPage() {
           <RunSessionResults session={session as RunSession} />
         )}
 
-        {/* Fitness session without coach plan */}
-        {session && session.type === "fitness" && !coachWorkout && (
+        {/* Fitness session archive (the interactive flow lives on /log/fitness) */}
+        {session && session.type === "fitness" && (
           <FitnessSessionResults session={session as FitnessSession} />
         )}
 
