@@ -206,24 +206,6 @@ export function mapStravaTypeToSession(stravaType: string): "run" | "fitness" | 
   return null;
 }
 
-/** Guess upper/lower body from activity name */
-export function guessFitnessCategory(activityName: string): "upper" | "lower" {
-  const name = activityName.toLowerCase();
-  const lowerKeywords = [
-    "bas", "lower", "jambe", "leg", "squat", "dead", "deadlift",
-    "fesse", "glute", "hip", "rdl", "soulevé",
-  ];
-  const upperKeywords = [
-    "haut", "upper", "chest", "pec", "dos", "back", "bras", "épaule",
-    "shoulder", "bicep", "tricep", "pull", "push", "traction", "rowing",
-    "bench", "développé",
-  ];
-  const lowerScore = lowerKeywords.filter((k) => name.includes(k)).length;
-  const upperScore = upperKeywords.filter((k) => name.includes(k)).length;
-  if (lowerScore > upperScore) return "lower";
-  return "upper"; // default to upper
-}
-
 /** Convert a StravaActivity to a WorkoutSession and save it */
 export function autoImportActivity(
   activity: StravaActivity
@@ -252,32 +234,33 @@ export function autoImportActivity(
     };
   }
 
+  // Strava confirme qu'une séance a eu lieu, mais ne porte aucune information :
+  // la catégorie et le contenu d'une séance de salle viennent du coach uniquement.
+  // Sans plan coach pour ce jour, pas de FitnessSession importée.
   const dateStr = activity.start_date.slice(0, 10);
   const { getCoachWorkouts } = require("./coachPlan");
   type CWExercise = { name: string; sets: number; reps: number; weight: number };
-  type CW = { id: string; date: string; category?: string; exercises: CWExercise[] };
+  type CW = { id: string; date: string; category: import("./types").FitnessCategory; exercises: CWExercise[] };
   const coachWorkout = (getCoachWorkouts() as CW[]).find((w) => w.date === dateStr);
+  if (!coachWorkout) return null;
 
-  // Pre-populate exercises from coach plan so notes can be added later
-  const exercises = coachWorkout
-    ? coachWorkout.exercises.map((ex) => ({
-        id: generateId(),
-        name: ex.name,
-        sets: ex.sets,
-        reps: ex.reps,
-        weight: ex.weight,
-        comment: "",
-      }))
-    : [];
+  const exercises = coachWorkout.exercises.map((ex) => ({
+    id: generateId(),
+    name: ex.name,
+    sets: ex.sets,
+    reps: ex.reps,
+    weight: ex.weight,
+    comment: "",
+  }));
 
   return {
     id: generateId(),
     type: "fitness",
     date: activity.start_date,
-    category: (coachWorkout?.category as import("./types").FitnessCategory | undefined) ?? guessFitnessCategory(activity.name),
+    category: coachWorkout.category,
     exercises,
     comment: "",
-    coachWorkoutId: coachWorkout?.id,
+    coachWorkoutId: coachWorkout.id,
     stravaActivityId: activity.id,
     importedFromStrava: true,
   };

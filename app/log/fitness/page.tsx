@@ -9,7 +9,7 @@ import { addSession, generateId } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
 import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
-import type { Exercise, FitnessCategory, FitnessSession, SetLog } from "@/lib/types";
+import type { Exercise, FitnessSession, SetLog } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
@@ -39,7 +39,6 @@ export default function LogFitness() {
   const [sessionDate, setSessionDate] = useState<string | null>(null);
   const [coachWorkout, setCoachWorkout] = useState<CoachWorkout | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [category, setCategory] = useState<FitnessCategory>("upper");
   const [activeExIdx, setActiveExIdx] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,7 +57,6 @@ export default function LogFitness() {
     const plan = allWorkouts.find((w) => w.date === targetDate) ?? null;
     if (plan) {
       setCoachWorkout(plan);
-      setCategory(plan.category);
       setExercises(plan.exercises.map(coachToExercise));
     }
   }, []);
@@ -123,7 +121,8 @@ export default function LogFitness() {
   );
 
   const handleSave = useCallback(async () => {
-    if (exercises.length === 0 && coachWorkout !== null) return;
+    // Coach plan is the source of truth for category. No plan → no save.
+    if (!coachWorkout || exercises.length === 0) return;
     setSaving(true);
 
     // Compute summary sets/reps/weight from setLogs for backward compat
@@ -140,10 +139,10 @@ export default function LogFitness() {
       id: generateId(),
       type: "fitness",
       date: sessionDate ? new Date(sessionDate + "T12:00:00").toISOString() : new Date().toISOString(),
-      category,
+      category: coachWorkout.category,
       comment: "",
       exercises: finalExercises,
-      ...(coachWorkout ? { coachWorkoutId: coachWorkout.id } : {}),
+      coachWorkoutId: coachWorkout.id,
     };
     addSession(session);
     autoSyncPush();
@@ -156,7 +155,17 @@ export default function LogFitness() {
       setCoachResult(result);
       setCoachState("done");
     });
-  }, [exercises, category, coachWorkout, sessionDate]);
+  }, [exercises, coachWorkout, sessionDate]);
+
+  // Auto-save when every set of every exercise is done
+  useEffect(() => {
+    if (saved || saving || !coachWorkout || exercises.length === 0) return;
+    const allDone = exercises.every(
+      (ex) => ex.setLogs && ex.setLogs.length > 0 && ex.setLogs.every((s) => s.done)
+    );
+    if (allDone) handleSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises, saved, saving, coachWorkout]);
 
   if (!mounted) return null;
 
@@ -392,8 +401,8 @@ export default function LogFitness() {
                 </div>
               )}
 
-              {/* Comment — shown only on active exercise */}
-              {isActive && (
+              {/* Comment — editable on any exercise during the live session */}
+              {!saved && (
                 <div style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
                   <textarea
                     value={ex.comment}
@@ -434,7 +443,7 @@ export default function LogFitness() {
         ) : (
           <button
             onClick={handleSave}
-            disabled={saving || (exercises.length === 0 && coachWorkout !== null)}
+            disabled={saving || !coachWorkout || exercises.length === 0}
             className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
             style={{
               background: "linear-gradient(135deg, #ff6b00, #7a3300)",
