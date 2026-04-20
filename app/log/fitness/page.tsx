@@ -5,10 +5,11 @@ import { useTimer } from "@/contexts/TimerContext";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
-import { addSession, generateId } from "@/lib/storage";
+import FitnessSessionResults from "@/components/FitnessSessionResults";
+import { addSession, deleteSession, generateId, getSessions } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
-import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import { analyzeSession, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import type { Exercise, FitnessSession, SetLog } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
@@ -44,6 +45,7 @@ export default function LogFitness() {
   const [saved, setSaved] = useState(false);
   const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
+  const [existingSession, setExistingSession] = useState<FitnessSession | null>(null);
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
   useEffect(() => {
@@ -53,6 +55,20 @@ export default function LogFitness() {
     if (d) setSessionDate(d);
 
     const targetDate = d ?? new Date().toISOString().slice(0, 10);
+
+    // Archive mode: a fitness session already exists for this date
+    const existing = getSessions().find(
+      (s): s is FitnessSession =>
+        s.type === "fitness" && s.date.slice(0, 10) === targetDate
+    );
+    if (existing) {
+      setExistingSession(existing);
+      setSaved(true);
+      setCoachState("done");
+      setCoachResult(getStoredCoachAnalysis(targetDate));
+      return;
+    }
+
     const allWorkouts = getCoachWorkouts();
     const plan = allWorkouts.find((w) => w.date === targetDate) ?? null;
     if (plan) {
@@ -60,6 +76,13 @@ export default function LogFitness() {
       setExercises(plan.exercises.map(coachToExercise));
     }
   }, []);
+
+  const handleDelete = useCallback(() => {
+    if (!existingSession) return;
+    deleteSession(existingSession.id);
+    autoSyncPush();
+    router.push("/");
+  }, [existingSession, router]);
 
   // Auto-advance to next exercise when all sets of the current one are done
   useEffect(() => {
@@ -179,13 +202,20 @@ export default function LogFitness() {
 
       <div className="px-5 space-y-4">
 
-        {!coachWorkout && (
+        {existingSession && (
+          <>
+            <FitnessSessionResults session={existingSession} />
+            <CoachFeedbackCard state={coachState} result={coachResult} />
+          </>
+        )}
+
+        {!existingSession && !coachWorkout && (
           <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
             <p className="text-sm text-muted">Aucun plan coach pour cette date.</p>
           </div>
         )}
 
-        {exercises.map((ex, exIdx) => {
+        {!existingSession && exercises.map((ex, exIdx) => {
           const coachEx = coachWorkout?.exercises[exIdx];
           const isActive = exIdx === activeExIdx && !saved;
           const allDone = ex.setLogs?.every((s) => s.done) ?? false;
@@ -419,16 +449,41 @@ export default function LogFitness() {
           );
         })}
 
-        {/* Coach feedback — appears after save */}
-        {saved && <CoachFeedbackCard state={coachState} result={coachResult} />}
+        {/* Coach feedback — appears after save during live session */}
+        {saved && !existingSession && <CoachFeedbackCard state={coachState} result={coachResult} />}
       </div>
 
       {/* Bottom action */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3"
+        className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3 space-y-2"
         style={{ background: "linear-gradient(to top, #0a0a0a 70%, transparent)" }}
       >
-        {saved ? (
+        {existingSession ? (
+          <>
+            <button
+              onClick={() => router.push("/")}
+              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+              style={{
+                background: "rgba(57,255,20,0.1)",
+                color: "#39ff14",
+                border: "1px solid rgba(57,255,20,0.4)",
+              }}
+            >
+              CONTINUER →
+            </button>
+            <button
+              onClick={handleDelete}
+              className="w-full py-3 rounded-2xl font-medium text-xs tracking-widest press-effect"
+              style={{
+                background: "transparent",
+                color: "#555",
+                border: "1px solid #1f1f1f",
+              }}
+            >
+              SUPPRIMER LA SÉANCE
+            </button>
+          </>
+        ) : saved ? (
           <button
             onClick={() => router.push("/")}
             className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"

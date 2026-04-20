@@ -234,6 +234,11 @@ export default function PlanPage() {
             }[s.status];
 
             const isClickable = s.hasPlan || !!s.session;
+            const isFitnessDay =
+              s.planType === "fitness" || s.session?.type === "fitness";
+            const href = isFitnessDay
+              ? `/log/fitness?date=${dateStr}`
+              : `/day?date=${dateStr}`;
 
             const inner = day.isToday ? (
               <div className="p-5">
@@ -330,7 +335,7 @@ export default function PlanPage() {
             );
 
             return isClickable ? (
-              <Link key={dateStr} href={`/day?date=${dateStr}`}
+              <Link key={dateStr} href={href}
                 className="block rounded-2xl overflow-hidden press-effect"
                 style={{ border: `1px solid ${sc.border}`, background: sc.bg,
                   boxShadow: day.isToday ? "0 0 20px rgba(57,255,20,0.06)" : "none",
@@ -368,6 +373,11 @@ export default function PlanPage() {
               const s          = getDayStatus(dateStr);
               const isClickable = s.hasPlan || !!s.session;
               const color      = statusColor(s);
+              const isFitnessDay =
+                s.planType === "fitness" || s.session?.type === "fitness";
+              const href = isFitnessDay
+                ? `/log/fitness?date=${dateStr}`
+                : `/day?date=${dateStr}`;
 
               // Dot indicator color
               const dotColor =
@@ -396,7 +406,7 @@ export default function PlanPage() {
               );
 
               return isClickable ? (
-                <Link key={dateStr} href={`/day?date=${dateStr}`} className="press-effect">
+                <Link key={dateStr} href={href} className="press-effect">
                   {cell}
                 </Link>
               ) : (

@@ -179,7 +179,15 @@ export default function HomePage() {
         {hasActivity ? (
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
-            onClick={() => router.push(`/day?date=${todayStr}`)}
+            onClick={() => {
+              const isFitnessDay =
+                !!todayCoachWorkout || todaySession?.type === "fitness";
+              router.push(
+                isFitnessDay
+                  ? `/log/fitness?date=${todayStr}`
+                  : `/day?date=${todayStr}`
+              );
+            }}
             style={{
               background: "rgba(15,15,15,0.3)",
               backdropFilter: "blur(40px) saturate(1.5)",
