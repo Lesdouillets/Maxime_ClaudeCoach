@@ -237,12 +237,21 @@ export function autoImportActivity(
   // Strava confirme qu'une séance a eu lieu, mais ne porte aucune information :
   // la catégorie et le contenu d'une séance de salle viennent du coach uniquement.
   // Sans plan coach pour ce jour, pas de FitnessSession importée.
+  // Si une séance fitness existe déjà pour ce jour (loguée à la main), on ne
+  // recrée pas — dédup strict sur la date pour éviter les doublons.
   const dateStr = activity.start_date.slice(0, 10);
   const { getCoachWorkouts } = require("./coachPlan");
+  const { getSessions } = require("./storage");
   type CWExercise = { name: string; sets: number; reps: number; weight: number };
   type CW = { id: string; date: string; category: import("./types").FitnessCategory; exercises: CWExercise[] };
   const coachWorkout = (getCoachWorkouts() as CW[]).find((w) => w.date === dateStr);
   if (!coachWorkout) return null;
+
+  const sessionsList = getSessions() as import("./types").WorkoutSession[];
+  const existingFitness = sessionsList.find(
+    (s) => s.type === "fitness" && s.date.slice(0, 10) === dateStr
+  );
+  if (existingFitness) return null;
 
   const exercises = coachWorkout.exercises.map((ex) => ({
     id: generateId(),

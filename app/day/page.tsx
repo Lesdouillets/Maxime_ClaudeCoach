@@ -41,7 +41,6 @@ export default function DayPage() {
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState<"run" | "workout">("run");
-  const [activeExIdx, setActiveExIdx] = useState(0);
 
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
@@ -99,12 +98,6 @@ export default function DayPage() {
     load(d);
     return () => {};
   }, []);
-
-  const handleNoteChange = (index: number, value: string) => {
-    const updated = { ...exerciseNotes, [index]: value };
-    setExerciseNotes(updated);
-    try { localStorage.setItem(`cc_ex_notes_${date}`, JSON.stringify(updated)); } catch {}
-  };
 
   const handleValidateFitness = () => {
     router.push(`/log/fitness?date=${date}`);
@@ -285,14 +278,13 @@ export default function DayPage() {
                 key={ex.index}
                 ex={ex}
                 isDone={isDone}
-                isActive={!isDone && ex.index === activeExIdx}
-                isInteractive={!isDone}
+                isActive={false}
+                isInteractive={false}
                 timerExIndex={timerExIndex}
                 timerSec={timerSec}
                 onStartTimer={startTimer}
                 onStopTimer={stopTimer}
-                onNoteChange={handleNoteChange}
-                onAllSetsDone={() => setActiveExIdx(ex.index + 1)}
+                onNoteChange={() => {}}
               />
             ))}
           </div>
