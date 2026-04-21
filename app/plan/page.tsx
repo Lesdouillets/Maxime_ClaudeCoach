@@ -117,8 +117,8 @@ export default function PlanPage() {
     const reschFromW   = reschHere ? coachWorkouts.find((w) => w.date === reschHere.from) ?? null : null;
     const reschFromR   = reschHere ? coachRuns.find((r)     => r.date === reschHere.from) ?? null : null;
 
-    const effectiveWorkout = reschedule ? reschFromW : (coachWorkout ?? reschFromW);
-    const effectiveRun     = reschedule ? reschFromR : (coachRun     ?? reschFromR);
+    const effectiveWorkout = isCancelled ? null : reschedule ? reschFromW : (coachWorkout ?? reschFromW);
+    const effectiveRun     = isCancelled ? null : reschedule ? reschFromR : (coachRun     ?? reschFromR);
     const hasPlan          = !!(effectiveWorkout || effectiveRun);
     const planType         = effectiveRun ? "run" : effectiveWorkout ? "fitness" : null;
 

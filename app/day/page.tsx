@@ -103,6 +103,8 @@ export default function DayPage() {
 
   const handleCancel = (reason: string) => {
     cancelDay(date, reason);
+    if (coachRun) deleteCoachRun(coachRun.id);
+    if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
     load(date);
     autoSyncPush();
   };
