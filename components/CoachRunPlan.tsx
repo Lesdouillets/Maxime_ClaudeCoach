@@ -11,7 +11,7 @@ export default function CoachRunPlan({ coachRun }: Props) {
   return (
     <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
       <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>PLAN COACH</p>
-      {(coachRun.intervals?.length ?? 0) > 0 ? (
+      {coachRun.intervals && coachRun.intervals.length > 0 ? (
         <div className="space-y-2.5">
           {coachRun.intervals.map((seg, i) => (
             <div key={i} className="flex items-center justify-between">
