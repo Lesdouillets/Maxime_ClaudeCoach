@@ -335,7 +335,7 @@ export default function LogFitness() {
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
-                            value={set.weight}
+                            value={set.weight === 0 ? "" : set.weight}
                             onChange={(e) =>
                               updateSetLog(ex.id, setIdx, "weight", parseFloat(e.target.value) || 0)
                             }
@@ -355,7 +355,7 @@ export default function LogFitness() {
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
-                            value={set.reps}
+                            value={set.reps === 0 ? "" : set.reps}
                             onChange={(e) =>
                               updateSetLog(ex.id, setIdx, "reps", parseInt(e.target.value) || 0)
                             }
