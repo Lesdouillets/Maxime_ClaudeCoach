@@ -197,7 +197,7 @@ export default function LogFitness() {
     : "Aujourd'hui";
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in pb-28">
+    <div className="max-w-md mx-auto animate-fade-in pb-52">
       <PageHeader title="SÉANCE SALLE" subtitle={dateLabel} accent="orange" />
 
       <div className="px-5 space-y-4">
@@ -455,8 +455,11 @@ export default function LogFitness() {
 
       {/* Bottom action */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3 space-y-2"
-        style={{ background: "linear-gradient(to top, #0a0a0a 70%, transparent)" }}
+        className="fixed bottom-0 left-0 right-0 px-5 pt-3 space-y-2"
+        style={{
+          background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 76px)",
+        }}
       >
         {existingSession ? (
           <>
