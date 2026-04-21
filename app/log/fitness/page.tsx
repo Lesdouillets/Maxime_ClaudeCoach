@@ -204,8 +204,8 @@ export default function LogFitness() {
 
         {existingSession && (
           <>
-            <FitnessSessionResults session={existingSession} />
             <CoachFeedbackCard state={coachState} result={coachResult} />
+            <FitnessSessionResults session={existingSession} />
           </>
         )}
 
@@ -461,32 +461,7 @@ export default function LogFitness() {
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 76px)",
         }}
       >
-        {existingSession ? (
-          <>
-            <button
-              onClick={() => router.push("/")}
-              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
-              style={{
-                background: "rgba(57,255,20,0.1)",
-                color: "#39ff14",
-                border: "1px solid rgba(57,255,20,0.4)",
-              }}
-            >
-              CONTINUER →
-            </button>
-            <button
-              onClick={handleDelete}
-              className="w-full py-3 rounded-2xl font-medium text-xs tracking-widest press-effect"
-              style={{
-                background: "transparent",
-                color: "#555",
-                border: "1px solid #1f1f1f",
-              }}
-            >
-              SUPPRIMER LA SÉANCE
-            </button>
-          </>
-        ) : saved ? (
+        {existingSession ? null : saved ? (
           <button
             onClick={() => router.push("/")}
             className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
