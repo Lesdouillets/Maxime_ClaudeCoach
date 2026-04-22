@@ -72,3 +72,8 @@ jobs:
         run: supabase functions deploy analyze-session --project-ref mwjnryfudxfcwqbwlafe --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy chat-coach edge function
+        run: supabase functions deploy chat-coach --project-ref mwjnryfudxfcwqbwlafe --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
