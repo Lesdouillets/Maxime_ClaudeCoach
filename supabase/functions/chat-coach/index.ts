@@ -203,26 +203,57 @@ Deno.serve(async (req: Request) => {
     }
 
     const anthropicData = await anthropicResp.json();
+    const stopReason = anthropicData.stop_reason as string | undefined;
+    const truncated = stopReason === "max_tokens";
 
-    // Guard against truncated responses
-    if (anthropicData.stop_reason === "max_tokens") {
-      throw new Error("Response truncated — plan too large. Try a shorter request.");
+    // Find the first text block (skip thinking blocks or tool_use)
+    const textBlock = Array.isArray(anthropicData.content)
+      ? anthropicData.content.find((b: { type?: string }) => b?.type === "text")
+      : null;
+    const text: string = textBlock?.text ?? "";
+
+    if (anthropicData.usage) {
+      console.log("[chat-coach] usage:", JSON.stringify(anthropicData.usage), "stop:", stopReason, "textLen:", text.length);
     }
 
-    const text = anthropicData.content?.[0]?.type === "text" ? anthropicData.content[0].text : "";
+    const truncSuffix = "\n\n⚠️ Réponse tronquée — demande plus courte stp.";
+    const emptyShape = { pending_plans: [], pending_delete_ids: [], modified_plans: [], delete_plan_ids: [] };
 
-    // Find the outermost JSON object (first { to its matching })
+    // Try to extract outermost JSON object. Use lastIndexOf for robustness against
+    // accolades embedded in string values, then fall back to depth-counting if parse fails.
     const start = text.indexOf("{");
-    if (start === -1) throw new Error("Response is not valid JSON");
-    let depth = 0;
-    let end = -1;
-    for (let i = start; i < text.length; i++) {
-      if (text[i] === "{") depth++;
-      else if (text[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
-    }
-    if (end === -1) throw new Error("Unbalanced JSON in response");
+    const lastEnd = text.lastIndexOf("}");
 
-    const result = JSON.parse(text.slice(start, end + 1));
+    let result: Record<string, unknown> | null = null;
+    if (start !== -1 && lastEnd > start) {
+      const candidate = text.slice(start, lastEnd + 1);
+      try {
+        result = JSON.parse(candidate);
+      } catch {
+        // Depth-counting fallback (naive but works when JSON is followed by garbage text)
+        let depth = 0;
+        let end = -1;
+        for (let i = start; i < text.length; i++) {
+          if (text[i] === "{") depth++;
+          else if (text[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+        }
+        if (end !== -1) {
+          try { result = JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+        }
+      }
+    }
+
+    if (!result) {
+      // No parseable JSON — surface the raw text as the coach's response so the UI
+      // still shows something useful instead of the generic error banner.
+      console.warn("[chat-coach] no JSON parsed, falling back to raw text. Preview:", text.slice(0, 200));
+      const fallbackMsg = text.trim() || "Désolé, je n'ai pas pu formuler de réponse cette fois-ci.";
+      result = { response: fallbackMsg + (truncated ? truncSuffix : ""), ...emptyShape };
+    } else if (truncated) {
+      // Parsed OK but hit max_tokens — plans may be incomplete, drop them
+      console.warn("[chat-coach] stop_reason=max_tokens, dropping plans");
+      result = { response: String(result.response ?? "") + truncSuffix, ...emptyShape };
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", ...CORS },
