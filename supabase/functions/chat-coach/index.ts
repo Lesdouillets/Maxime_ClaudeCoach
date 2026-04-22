@@ -136,12 +136,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // J0-3: full JSON (stripped), J4-21: compact text
+    // J0-3: full JSON (stripped). J4+: compact text — all remaining future plans,
+    // no far cutoff so the coach can reason about the whole program.
     const nearCutoff = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const farCutoff = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const allPlans = coachPlans as Record<string, unknown>[];
     const nearPlans = allPlans.filter((p) => (p.date as string) <= nearCutoff);
-    const farPlans = allPlans.filter((p) => (p.date as string) > nearCutoff && (p.date as string) <= farCutoff);
+    const farPlans = allPlans.filter((p) => (p.date as string) > nearCutoff);
 
     if (nearPlans.length > 0) {
       contextParts.push(`\n## Programme J0-3\n${JSON.stringify(stripCoachNotes(nearPlans))}`);
@@ -151,7 +151,7 @@ Deno.serve(async (req: Request) => {
         if (p.type === "run") return `${p.date}:Run ${p.label} ${p.distanceKm}km`;
         return `${p.date}:${p.category === "lower" ? "Lower" : "Upper"}(${(p.exercises as unknown[])?.length ?? 0}ex)`;
       }).join(" | ");
-      contextParts.push(`\n## Programme J4-21\n${compact}`);
+      contextParts.push(`\n## Programme J4+\n${compact}`);
     }
 
     // Only keep last 6 messages for API call

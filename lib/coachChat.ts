@@ -103,12 +103,12 @@ export async function clearChatHistory(): Promise<void> {
 
 // ─── Context builders ─────────────────────────────────────────────────────────
 
-/** Get coach plans from today up to `days` ahead, split into near (full JSON) and far (compact) */
-function getCoachPlansForChat(days: number): CoachPlan[] {
+/** Get all future coach plans (from today onwards). The Edge Function handles
+ * the near/far split (J0-3 full JSON vs J4+ compact) to keep token usage in check. */
+function getCoachPlansForChat(): CoachPlan[] {
   const today = new Date().toISOString().slice(0, 10);
-  const end = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const workouts = getCoachWorkouts().filter((w) => w.date >= today && w.date <= end);
-  const runs = getCoachRuns().filter((r) => r.date >= today && r.date <= end);
+  const workouts = getCoachWorkouts().filter((w) => w.date >= today);
+  const runs = getCoachRuns().filter((r) => r.date >= today);
   return [...workouts, ...runs].sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -124,7 +124,7 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
 
   // Build context
   const recentSessions = getSessions().slice(0, 5).map(compactSession);
-  const coachPlans = getCoachPlansForChat(21);
+  const coachPlans = getCoachPlansForChat();
   const previousAnalyses = getRecentCoachAnalyses(3);
 
   // Append the new user message to history

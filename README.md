@@ -79,7 +79,7 @@ Toute la logique IA passe par **deux Edge Functions Supabase** distinctes. Les d
 
 **Flow** :
 1. `app/coach/page.tsx` appelle `sendMessage()` (lib/coachChat.ts)
-2. `sendMessage()` construit le contexte (plans J0-21, 5 dernières séances, 3 dernières analyses)
+2. `sendMessage()` construit le contexte (tous les plans futurs, 5 dernières séances, 3 dernières analyses)
 3. `supabase.functions.invoke("chat-coach", { body })`
 4. L'Edge Function construit le prompt final et appelle l'API Anthropic
 5. Réponse renvoyée en **JSON strict** avec 4 tableaux : `pending_plans`, `pending_delete_ids`, `modified_plans`, `delete_plan_ids`
@@ -95,7 +95,7 @@ Toute la logique IA passe par **deux Edge Functions Supabase** distinctes. Les d
 
 **Stratégie de contexte** (tokens-frugal) :
 - Plans J0-3 : JSON complet (sans `coachNote` pour économiser)
-- Plans J4-21 : une ligne compacte par séance
+- Plans J4+ : une ligne compacte par séance (tout le programme futur, sans borne haute)
 - Séances récentes : ligne compacte via `compactSession()`
 - Analyses précédentes : 2 dernières, tronquées à 400 chars
 - Historique chat : **6 derniers messages seulement** (contexte conversationnel)
