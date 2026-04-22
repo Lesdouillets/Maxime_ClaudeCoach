@@ -155,7 +155,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // Only keep last 6 messages for API call
-    const recentMessages = messages.slice(-6);
+    let recentMessages = messages.slice(-6);
+
+    // Context injection prepends a user+assistant pair before recentMessages.
+    // If recentMessages starts with an assistant message, the API would receive
+    // two consecutive assistant messages → 400 error. Drop the leading assistant.
+    if (recentMessages.length > 0 && recentMessages[0].role === "assistant") {
+      recentMessages = recentMessages.slice(1);
+    }
 
     // Prepend context as first user message if there's context
     const apiMessages = contextParts.length > 0
