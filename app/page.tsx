@@ -20,17 +20,17 @@ const BG_IMAGES: Record<BgType, string> = {
 };
 
 const BG_FALLBACK: Record<BgType, string> = {
-  upper: "linear-gradient(160deg, #1a0a00 0%, #0d0d0d 50%, #000 100%)",
-  lower: "linear-gradient(160deg, #0a0a1a 0%, #0d0d0d 50%, #000 100%)",
+  upper: "linear-gradient(160deg, #1a0800 0%, #0d0d0d 50%, #000 100%)",
+  lower: "linear-gradient(160deg, #000a1a 0%, #0d0d0d 50%, #000 100%)",
   run:   "linear-gradient(160deg, #001020 0%, #0d0d0d 50%, #000 100%)",
-  rest:  "linear-gradient(160deg, #111 0%, #0a0a0a 50%, #000 100%)",
+  rest:  "linear-gradient(160deg, #0d0d0d 0%, #000 100%)",
 };
 
 const ACCENT: Record<BgType, string> = {
-  upper: "#ff6b00",
-  lower: "#ff6b00",
-  run:   "#4f9cf9",
-  rest:  "#444",
+  upper: "#FF9F0A",
+  lower: "#FF9F0A",
+  run:   "#0A84FF",
+  rest:  "rgba(235,235,245,0.25)",
 };
 
 export default function HomePage() {
@@ -63,8 +63,6 @@ export default function HomePage() {
           if (s) {
             addSession(s);
             count++;
-            // Fire coach analysis in background for runs — result stored in localStorage,
-            // visible next time the user opens the day view for that date.
             if (s.type === "run" && !getStoredCoachAnalysis(s.date.slice(0, 10))) {
               analyzeSession(s).catch(() => {});
             }
@@ -98,7 +96,6 @@ export default function HomePage() {
     ?? null;
   const todaySession = sessions.find((s) => s.date.slice(0, 10) === todayStr);
 
-  // Background type
   let bgType: BgType = "rest";
   if (todaySession) {
     bgType = todaySession.type === "run" ? "run"
@@ -113,18 +110,17 @@ export default function HomePage() {
   const isDone = !!todaySession;
   const hasActivity = isDone || !!todayCoachWorkout || !!todayCoachRun;
 
-  // Label for the card title
-  const sessionLabel = todayCoachRun?.label?.toUpperCase()
-    ?? todayCoachWorkout?.label?.toUpperCase()
-    ?? (todaySession?.type === "run" ? "RUN"
-      : todaySession?.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS");
+  const sessionLabel = todayCoachRun?.label
+    ?? todayCoachWorkout?.label
+    ?? (todaySession?.type === "run" ? "Run"
+      : todaySession?.category === "upper" ? "Haut du corps" : "Bas du corps");
 
   return (
     <div
       className="fixed inset-0"
       style={{ zIndex: 0, background: BG_FALLBACK[bgType] }}
     >
-      {/* Full-screen background image */}
+      {/* Background image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${BG_IMAGES[bgType]}`}
@@ -141,40 +137,40 @@ export default function HomePage() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.6) 75%, rgba(0,0,0,0.75) 100%)",
+            "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.65) 75%, rgba(0,0,0,0.82) 100%)",
         }}
       />
 
-      {/* Top header — matches PageHeader style */}
+      {/* Header */}
       <div
         className="absolute left-0 right-0 px-5 z-10"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
       >
-        <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1" style={{ color: "#39ff14" }}>
+        <p className="text-xs font-semibold tracking-wider uppercase mb-1" style={{ color: accent === "rgba(235,235,245,0.25)" ? "rgba(235,235,245,0.5)" : accent }}>
           {dateLabel}
         </p>
-        <h1 className="font-display text-5xl leading-none">CLAUDE COACH</h1>
+        <h1 className="font-display text-5xl leading-none tracking-tight">Claude Coach</h1>
       </div>
 
-      {/* Strava import toast */}
+      {/* Toast import Strava */}
       {importedCount > 0 && (
         <div
           className="absolute left-4 right-4 rounded-2xl p-3 flex items-center gap-3 z-10"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 80px)", background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)", backdropFilter: "blur(16px)" }}
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 80px)", background: "rgba(48,209,88,0.12)", border: "1px solid rgba(48,209,88,0.35)", backdropFilter: "blur(16px)" }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M5 13L9 17L19 7" stroke="#30D158" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <p className="text-sm font-semibold" style={{ color: "#39ff14" }}>
+          <p className="text-sm font-semibold" style={{ color: "#30D158" }}>
             {importedCount} activité{importedCount > 1 ? "s" : ""} importée{importedCount > 1 ? "s" : ""} depuis Strava
           </p>
         </div>
       )}
 
-      {/* Bottom card — above floating nav */}
+      {/* Carte du bas */}
       <div
         className="absolute left-0 right-0 px-4 pb-2"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
       >
         {hasActivity ? (
           <button
@@ -189,54 +185,52 @@ export default function HomePage() {
               );
             }}
             style={{
-              background: "rgba(15,15,15,0.3)",
-              backdropFilter: "blur(40px) saturate(1.5)",
-              WebkitBackdropFilter: "blur(40px) saturate(1.5)",
+              background: "rgba(10,10,10,0.35)",
+              backdropFilter: "blur(40px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(40px) saturate(1.4)",
               border: isDone
-                ? "1px solid rgba(57,255,20,0.35)"
-                : `1px solid ${accent}40`,
-              boxShadow: isDone
-                ? "0 -4px 32px rgba(57,255,20,0.06)"
-                : `0 -4px 32px ${accent}12`,
+                ? "1px solid rgba(48,209,88,0.3)"
+                : `1px solid ${accent}55`,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
             }}
           >
-            {/* Badge + arrow */}
+            {/* Badge + chevron */}
             <div className="flex items-center justify-between mb-3">
               <span
-                className="text-[10px] px-2.5 py-0.5 rounded-full font-bold tracking-widest"
+                className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold tracking-wide"
                 style={isDone
-                  ? { background: "rgba(57,255,20,0.15)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.35)" }
-                  : { background: `${accent}18`, color: accent, border: `1px solid ${accent}45` }
+                  ? { background: "rgba(48,209,88,0.15)", color: "#30D158", border: "1px solid rgba(48,209,88,0.3)" }
+                  : { background: `${accent === "rgba(235,235,245,0.25)" ? "rgba(235,235,245,0.08)" : accent + "18"}`, color: accent === "rgba(235,235,245,0.25)" ? "rgba(235,235,245,0.5)" : accent, border: `1px solid ${accent === "rgba(235,235,245,0.25)" ? "rgba(255,255,255,0.12)" : accent + "40"}` }
                 }
               >
                 {isDone ? "FAIT ✓" : "AUJOURD'HUI"}
               </span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="#444" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M9 18L15 12L9 6" stroke="rgba(235,235,245,0.3)" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </div>
 
-            {/* Title */}
+            {/* Titre */}
             <h2
-              className="font-display text-4xl leading-none mb-1"
-              style={{ color: isDone ? "#39ff14" : "#fff" }}
+              className="font-display text-4xl leading-none mb-1 tracking-tight"
+              style={{ color: isDone ? "#30D158" : "#fff" }}
             >
               {sessionLabel}
             </h2>
 
-            {/* Plan stats (not yet done) */}
+            {/* Stats plan (pas encore fait) */}
             {!isDone && todayCoachRun && (
               <div className="flex gap-4 mt-2 items-end">
                 {todayCoachRun.distanceKm && (
                   <span className="font-display text-xl" style={{ color: accent }}>
-                    {todayCoachRun.distanceKm} <span className="text-sm font-body font-normal text-muted">km</span>
+                    {todayCoachRun.distanceKm} <span className="text-sm font-body font-normal" style={{ color: "rgba(235,235,245,0.4)" }}>km</span>
                   </span>
                 )}
                 {todayCoachRun.pace && (
                   <span className="font-display text-lg" style={{ color: accent }}>{todayCoachRun.pace}/km</span>
                 )}
                 {todayCoachRun.targetZone && (
-                  <span className="text-xs font-bold self-center px-2 py-0.5 rounded-lg"
+                  <span className="text-xs font-semibold self-center px-2 py-0.5 rounded-lg"
                     style={{ background: `${accent}20`, color: accent }}>
                     {todayCoachRun.targetZone}
                   </span>
@@ -244,44 +238,45 @@ export default function HomePage() {
               </div>
             )}
             {!isDone && todayCoachWorkout && (
-              <p className="text-sm mt-1" style={{ color: "#888" }}>
+              <p className="text-sm mt-1" style={{ color: "rgba(235,235,245,0.5)" }}>
                 {todayCoachWorkout.exercises.length} exercices
                 {todayCoachWorkout.coachNote ? ` · ${todayCoachWorkout.coachNote}` : ""}
               </p>
             )}
 
-            {/* Session stats (done) */}
+            {/* Stats session (fait) */}
             {isDone && todaySession?.type === "run" && (
               <div className="flex gap-4 mt-2 items-end">
-                <span className="font-display text-xl" style={{ color: "#39ff14" }}>
-                  {todaySession.distanceKm.toFixed(1)} <span className="text-sm font-body font-normal text-muted">km</span>
+                <span className="font-display text-xl" style={{ color: "#30D158" }}>
+                  {todaySession.distanceKm.toFixed(1)} <span className="text-sm font-body font-normal" style={{ color: "rgba(235,235,245,0.4)" }}>km</span>
                 </span>
                 {todaySession.avgPaceSecPerKm > 0 && (
-                  <span className="font-display text-xl" style={{ color: "#39ff14" }}>
-                    {formatPace(todaySession.avgPaceSecPerKm).replace("/km", "")} <span className="text-sm font-body font-normal text-muted">/km</span>
+                  <span className="font-display text-xl" style={{ color: "#30D158" }}>
+                    {formatPace(todaySession.avgPaceSecPerKm).replace("/km", "")} <span className="text-sm font-body font-normal" style={{ color: "rgba(235,235,245,0.4)" }}>/km</span>
                   </span>
                 )}
               </div>
             )}
             {isDone && todaySession?.type === "fitness" && (
-              <p className="text-sm mt-1 text-muted">
+              <p className="text-sm mt-1" style={{ color: "rgba(235,235,245,0.5)" }}>
                 {todaySession.exercises.length > 0 ? `${todaySession.exercises.length} exercices` : "Séance validée"}
               </p>
             )}
           </button>
         ) : (
-          // Rest day
+          // Jour de repos
           <div
             className="w-full p-5 rounded-2xl"
             style={{
-              background: "rgba(15,15,15,0.3)",
-              backdropFilter: "blur(40px) saturate(1.5)",
-              WebkitBackdropFilter: "blur(40px) saturate(1.5)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(10,10,10,0.35)",
+              backdropFilter: "blur(40px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(40px) saturate(1.4)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
             }}
           >
-            <p className="font-display text-4xl leading-none mb-1" style={{ color: "#444" }}>REPOS</p>
-            <p className="text-sm text-muted">Récupération — profite bien.</p>
+            <p className="font-display text-4xl leading-none mb-1 tracking-tight" style={{ color: "rgba(235,235,245,0.3)" }}>Repos</p>
+            <p className="text-sm" style={{ color: "rgba(235,235,245,0.35)" }}>Récupération — profite bien.</p>
           </div>
         )}
       </div>

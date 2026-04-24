@@ -8,29 +8,39 @@ interface Props {
 
 export default function FitnessSessionResults({ session }: Props) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
       {session.exercises.length > 0 ? (
         <>
-          <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#555" }}>EXERCICES</p>
-          <div className="space-y-2">
+          <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(235,235,245,0.3)" }}>
+              Exercices
+            </p>
+          </div>
+          <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
             {session.exercises.map((ex) => (
-              <div key={ex.id} className="text-sm">
+              <div key={ex.id} className="px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <span>{ex.name}</span>
-                  <span className="font-mono text-muted">{ex.sets}×{ex.reps}{ex.weight > 0 ? ` · ${ex.weight}kg` : ""}</span>
+                  <span className="text-sm font-medium" style={{ color: "rgba(235,235,245,0.85)" }}>{ex.name}</span>
+                  <span className="text-sm font-mono" style={{ color: "rgba(235,235,245,0.4)" }}>
+                    {ex.sets}×{ex.reps}{ex.weight > 0 ? ` · ${ex.weight}kg` : ""}
+                  </span>
                 </div>
                 {ex.comment && (
-                  <p className="text-[11px] italic mt-0.5" style={{ color: "#888" }}>↳ {ex.comment}</p>
+                  <p className="text-xs italic mt-1" style={{ color: "rgba(235,235,245,0.3)" }}>{ex.comment}</p>
                 )}
               </div>
             ))}
           </div>
         </>
       ) : (
-        <p className="text-sm text-muted">Activité enregistrée via Strava.</p>
+        <div className="px-4 py-3">
+          <p className="text-sm" style={{ color: "rgba(235,235,245,0.35)" }}>Activité enregistrée via Strava.</p>
+        </div>
       )}
       {session.comment && (
-        <p className="text-xs italic mt-3" style={{ color: "#888" }}>"{session.comment}"</p>
+        <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <p className="text-xs italic" style={{ color: "rgba(235,235,245,0.4)" }}>"{session.comment}"</p>
+        </div>
       )}
     </div>
   );

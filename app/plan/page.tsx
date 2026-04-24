@@ -141,14 +141,14 @@ export default function PlanPage() {
              planHR: effectiveRun?.targetHR ?? null };
   }
 
-  const planColor  = (type: string | null) => type === "run" ? "#4f9cf9" : "#ff6b00";
-  const planBorder = (type: string | null) => type === "run" ? "rgba(79,156,249,0.35)" : "rgba(255,107,0,0.35)";
-  const planBg     = (type: string | null) => type === "run" ? "rgba(79,156,249,0.03)" : "rgba(255,107,0,0.03)";
+  const planColor  = (type: string | null) => type === "run" ? "#0A84FF" : "#FF9F0A";
+  const planBorder = (type: string | null) => type === "run" ? "rgba(10,132,255,0.3)" : "rgba(255,159,10,0.3)";
+  const planBg     = (type: string | null) => type === "run" ? "rgba(10,132,255,0.03)" : "rgba(255,159,10,0.03)";
 
   const statusColor = (s: ReturnType<typeof getDayStatus>) => {
-    if (s.status === "done")                                    return "#39ff14";
-    if (s.status === "missed")                                  return "#ff6b00";
-    if (s.status === "today-rest" || s.status === "rest")       return "#555";
+    if (s.status === "done")                                    return "#30D158";
+    if (s.status === "missed")                                  return "#FF9F0A";
+    if (s.status === "today-rest" || s.status === "rest")       return "rgba(235,235,245,0.25)";
     return planColor(s.planType);
   };
 
@@ -163,20 +163,20 @@ export default function PlanPage() {
 
   return (
     <div className="max-w-md mx-auto animate-fade-in">
-      <PageHeader title="PLAN" subtitle={subtitle} accent="neon" />
+      <PageHeader title="Plan" subtitle={subtitle} accent="primary" />
 
       {/* ── View toggle ── */}
       <div className="px-5 mb-4 flex items-center justify-between gap-3">
-        <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid #222" }}>
+        <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
           {(["week", "month"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setViewMode(v)}
-              className="px-4 py-1.5 text-xs font-bold press-effect"
+              className="px-4 py-1.5 text-xs font-semibold press-effect"
               style={{
-                background: view === v ? "#1a1a1a" : "transparent",
-                color:      view === v ? "#eee"    : "#444",
-                borderRight: v === "week" ? "1px solid #222" : "none",
+                background: view === v ? "#2C2C2E" : "transparent",
+                color:      view === v ? "#fff" : "rgba(235,235,245,0.35)",
+                borderRight: v === "week" ? "1px solid rgba(255,255,255,0.1)" : "none",
               }}
             >
               {v === "week" ? "Hebdo" : "Mensuel"}
@@ -188,7 +188,7 @@ export default function PlanPage() {
           <button
             onClick={handlePrev}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs press-effect"
-            style={{ background: "#111", border: "1px solid #222", color: "#555" }}
+            style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(235,235,245,0.4)" }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -198,7 +198,7 @@ export default function PlanPage() {
             <button
               onClick={handleToday}
               className="text-xs press-effect px-2 py-1 rounded-lg"
-              style={{ color: "#39ff14", background: "rgba(57,255,20,0.08)", border: "1px solid rgba(57,255,20,0.2)" }}
+              style={{ color: "#0A84FF", background: "rgba(10,132,255,0.1)", border: "1px solid rgba(10,132,255,0.25)" }}
             >
               Auj.
             </button>
@@ -206,7 +206,7 @@ export default function PlanPage() {
           <button
             onClick={handleNext}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs press-effect"
-            style={{ background: "#111", border: "1px solid #222", color: "#555" }}
+            style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(235,235,245,0.4)" }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -225,12 +225,12 @@ export default function PlanPage() {
             const s = getDayStatus(dateStr);
 
             const sc = {
-              done:            { color: "#39ff14", label: "Fait ✓",      border: "rgba(57,255,20,0.3)",  bg: "rgba(57,255,20,0.04)" },
-              missed:          { color: "#ff6b00", label: "Manqué",      border: "rgba(255,107,0,0.25)", bg: "rgba(255,107,0,0.03)" },
-              upcoming:        { color: planColor(s.planType), label: "À venir",     border: planBorder(s.planType), bg: "#111" },
+              done:            { color: "#30D158", label: "Fait ✓",      border: "rgba(48,209,88,0.25)",  bg: "rgba(48,209,88,0.04)" },
+              missed:          { color: "#FF9F0A", label: "Manqué",      border: "rgba(255,159,10,0.25)", bg: "rgba(255,159,10,0.03)" },
+              upcoming:        { color: planColor(s.planType), label: "À venir",     border: planBorder(s.planType), bg: "#1C1C1E" },
               "today-planned": { color: planColor(s.planType), label: "Aujourd'hui", border: planBorder(s.planType), bg: planBg(s.planType) },
-              "today-rest":    { color: "#555",    label: "Repos",       border: "#333",                 bg: "#111" },
-              rest:            { color: "#2a2a2a", label: "Repos",       border: "#1a1a1a",              bg: "#0d0d0d" },
+              "today-rest":    { color: "rgba(235,235,245,0.3)", label: "Repos", border: "rgba(255,255,255,0.1)", bg: "#1C1C1E" },
+              rest:            { color: "rgba(235,235,245,0.15)", label: "Repos", border: "rgba(255,255,255,0.06)", bg: "transparent" },
             }[s.status];
 
             const isClickable = s.hasPlan || !!s.session;
@@ -245,12 +245,12 @@ export default function PlanPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="font-display text-2xl" style={{ color: sc.color }}>
-                      {DAY_FULL_FR[day.dow].toUpperCase()}
+                      {DAY_FULL_FR[day.dow]}
                     </span>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest"
+                    <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold tracking-widest"
                       style={s.hasPlan
-                        ? { background: `${planColor(s.planType)}20`, color: planColor(s.planType), border: `1px solid ${planColor(s.planType)}50` }
-                        : { background: "rgba(85,85,85,0.15)", color: "#555", border: "1px solid rgba(85,85,85,0.3)" }
+                        ? { background: `${planColor(s.planType)}18`, color: planColor(s.planType), border: `1px solid ${planColor(s.planType)}40` }
+                        : { background: "rgba(255,255,255,0.05)", color: "rgba(235,235,245,0.3)", border: "1px solid rgba(255,255,255,0.08)" }
                       }>
                       TODAY
                     </span>
@@ -272,12 +272,12 @@ export default function PlanPage() {
                       <div className="flex gap-4 flex-wrap items-end mt-2">
                         {s.planDistanceKm && (
                           <div className="flex items-end gap-1">
-                            <span className="font-display text-3xl" style={{ color: "#39ff14" }}>{s.planDistanceKm}</span>
-                            <span className="text-sm text-muted mb-1">km</span>
+                            <span className="font-display text-3xl" style={{ color: "#30D158" }}>{s.planDistanceKm}</span>
+                            <span className="text-sm mb-1" style={{ color: "rgba(235,235,245,0.4)" }}>km</span>
                           </div>
                         )}
-                        {s.planPaceStr && <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{s.planPaceStr}/km</span>}
-                        {s.planHR      && <span className="text-sm self-end mb-0.5" style={{ color: "#ff6b00" }}>♥ {s.planHR}</span>}
+                        {s.planPaceStr && <span className="font-display text-2xl" style={{ color: "#30D158" }}>{s.planPaceStr}/km</span>}
+                        {s.planHR      && <span className="text-sm self-end mb-0.5" style={{ color: "#FF9F0A" }}>♥ {s.planHR}</span>}
                         {s.planZone    && <Badge label={s.planZone} variant="neon" />}
                       </div>
                     )}
@@ -285,21 +285,21 @@ export default function PlanPage() {
                       <span className="text-xs text-muted">{s.effectiveWorkout.exercises.length} exercices</span>
                     )}
                     {s.session && (
-                      <div className="mt-4 pt-4" style={{ borderTop: "1px solid #1a1a1a" }}>
+                      <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                         {s.session.type === "run" ? (
                           <div className="flex gap-4 text-sm">
-                            <span style={{ color: "#39ff14" }}>
+                            <span style={{ color: "#30D158" }}>
                               <span className="font-display text-xl">{s.session.distanceKm.toFixed(1)}</span>
-                              <span className="text-xs text-muted ml-1">km</span>
+                              <span className="text-xs ml-1" style={{ color: "rgba(235,235,245,0.4)" }}>km</span>
                             </span>
                             {s.session.avgPaceSecPerKm > 0 && (
-                              <span className="text-muted self-end text-xs mb-0.5">
+                              <span className="self-end text-xs mb-0.5" style={{ color: "rgba(235,235,245,0.4)" }}>
                                 {Math.floor(s.session.avgPaceSecPerKm / 60)}:{String(Math.round(s.session.avgPaceSecPerKm % 60)).padStart(2, "0")}/km
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm" style={{ color: "#ff6b00" }}>
+                          <span className="text-sm" style={{ color: "#FF9F0A" }}>
                             {s.session.exercises.length > 0 ? `${s.session.exercises.length} exercices` : "Activité Strava"}
                           </span>
                         )}
@@ -314,20 +314,20 @@ export default function PlanPage() {
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="font-display text-base w-8 flex-shrink-0" style={{ color: sc.color }}>
-                    {DAY_FULL_FR[day.dow].slice(0, 3).toUpperCase()}
+                    {DAY_FULL_FR[day.dow].slice(0, 3)}
                   </span>
-                  <span className="text-[11px] flex-shrink-0" style={{ color: "#333" }}>
+                  <span className="text-[11px] flex-shrink-0" style={{ color: "rgba(235,235,245,0.2)" }}>
                     {day.date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                   </span>
                   {s.hasPlan
                     ? <span className="text-sm font-medium truncate">{s.planLabel}</span>
-                    : <span className="text-xs" style={{ color: "#2a2a2a" }}>Repos</span>}
+                    : <span className="text-xs" style={{ color: "rgba(235,235,245,0.15)" }}>Repos</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                   <span className="text-xs" style={{ color: sc.color }}>{sc.label}</span>
                   {isClickable && (
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 18L15 12L9 6" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M9 18L15 12L9 6" stroke="rgba(235,235,245,0.2)" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   )}
                 </div>
@@ -338,7 +338,7 @@ export default function PlanPage() {
               <Link key={dateStr} href={href}
                 className="block rounded-2xl overflow-hidden press-effect"
                 style={{ border: `1px solid ${sc.border}`, background: sc.bg,
-                  boxShadow: day.isToday ? "0 0 20px rgba(57,255,20,0.06)" : "none",
+                  boxShadow: day.isToday ? "0 4px 16px rgba(0,0,0,0.4)" : "none",
                   opacity: s.isCancelled ? 0.55 : 1 }}
               >{inner}</Link>
             ) : (
@@ -360,7 +360,7 @@ export default function PlanPage() {
           {/* En-têtes colonnes */}
           <div className="grid grid-cols-7 mb-1">
             {GRID_HEADERS.map((h, i) => (
-              <div key={i} className="text-center text-[10px] font-bold py-1" style={{ color: "#333" }}>{h}</div>
+              <div key={i} className="text-center text-[10px] font-semibold py-1" style={{ color: "rgba(235,235,245,0.2)" }}>{h}</div>
             ))}
           </div>
 
@@ -381,8 +381,8 @@ export default function PlanPage() {
 
               // Dot indicator color
               const dotColor =
-                s.status === "done"            ? "#39ff14" :
-                s.status === "missed"          ? "rgba(255,107,0,0.5)" :
+                s.status === "done"            ? "#30D158" :
+                s.status === "missed"          ? "rgba(255,159,10,0.6)" :
                 s.status === "upcoming"        ? planColor(s.planType) :
                 s.status === "today-planned"   ? planColor(s.planType) :
                 null;
@@ -391,8 +391,8 @@ export default function PlanPage() {
                 <div
                   className="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-xl relative"
                   style={{
-                    background: s.isToday ? "#1c1c1c" : "transparent",
-                    border:     s.isToday ? "1px solid #333" : "1px solid transparent",
+                    background: s.isToday ? "#1C1C1E" : "transparent",
+                    border:     s.isToday ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                     opacity:    s.isCancelled ? 0.4 : 1,
                   }}
                 >
@@ -418,14 +418,14 @@ export default function PlanPage() {
           {/* Légende */}
           <div className="flex items-center gap-4 mt-5 px-1 flex-wrap">
             {[
-              { color: "#39ff14",               label: "Fait" },
-              { color: "#4f9cf9",               label: "Run prévu" },
-              { color: "#ff6b00",               label: "Muscu prévue" },
-              { color: "rgba(255,107,0,0.5)",   label: "Manqué" },
+              { color: "#30D158",                   label: "Fait" },
+              { color: "#0A84FF",                   label: "Run prévu" },
+              { color: "#FF9F0A",                   label: "Muscu prévue" },
+              { color: "rgba(255,159,10,0.6)",       label: "Manqué" },
             ].map(({ color, label }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                <span className="text-[10px]" style={{ color: "#444" }}>{label}</span>
+                <span className="text-[10px]" style={{ color: "rgba(235,235,245,0.35)" }}>{label}</span>
               </div>
             ))}
           </div>

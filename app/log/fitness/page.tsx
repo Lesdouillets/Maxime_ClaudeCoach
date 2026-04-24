@@ -14,8 +14,6 @@ import type { Exercise, FitnessSession, SetLog } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
-  // If the coach plan specifies per-set variations, use them.
-  // Otherwise generate N identical sets from the flat sets/reps/weight.
   const setLogs: SetLog[] = ce.setPlans && ce.setPlans.length > 0
     ? ce.setPlans.map((sp) => ({ weight: sp.weight, reps: sp.reps, done: false }))
     : Array.from({ length: ce.sets }, () => ({
@@ -56,7 +54,6 @@ export default function LogFitness() {
 
     const targetDate = d ?? new Date().toISOString().slice(0, 10);
 
-    // Archive mode: a fitness session already exists for this date
     const existing = getSessions().find(
       (s): s is FitnessSession =>
         s.type === "fitness" && s.date.slice(0, 10) === targetDate
@@ -84,7 +81,6 @@ export default function LogFitness() {
     router.push("/");
   }, [existingSession, router]);
 
-  // Auto-advance to next exercise when all sets of the current one are done
   useEffect(() => {
     if (saved || exercises.length === 0) return;
     const currentEx = exercises[activeExIdx];
@@ -126,7 +122,6 @@ export default function LogFitness() {
         })
       );
 
-      // Start rest timer from coach plan
       const exIdx = exercises.findIndex((e) => e.id === exId);
       const restSecs = coachWorkout?.exercises[exIdx]?.restSeconds ?? 90;
       startTimer(exId + "-set-" + setIdx, restSecs);
@@ -144,11 +139,9 @@ export default function LogFitness() {
   );
 
   const handleSave = useCallback(async () => {
-    // Coach plan is the source of truth for category. No plan → no save.
     if (!coachWorkout || exercises.length === 0) return;
     setSaving(true);
 
-    // Compute summary sets/reps/weight from setLogs for backward compat
     const finalExercises = exercises.map((ex) => {
       if (!ex.setLogs?.length) return ex;
       const done = ex.setLogs.filter((s) => s.done);
@@ -180,7 +173,6 @@ export default function LogFitness() {
     });
   }, [exercises, coachWorkout, sessionDate]);
 
-  // Auto-save when every set of every exercise is done
   useEffect(() => {
     if (saved || saving || !coachWorkout || exercises.length === 0) return;
     const allDone = exercises.every(
@@ -198,9 +190,9 @@ export default function LogFitness() {
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-52">
-      <PageHeader title="SÉANCE SALLE" subtitle={dateLabel} accent="orange" />
+      <PageHeader title="Séance Salle" subtitle={dateLabel} accent="orange" />
 
-      <div className="px-5 space-y-4">
+      <div className="px-4 space-y-3">
 
         {existingSession && (
           <>
@@ -210,8 +202,8 @@ export default function LogFitness() {
         )}
 
         {!existingSession && !coachWorkout && (
-          <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
-            <p className="text-sm text-muted">Aucun plan coach pour cette date.</p>
+          <div className="rounded-2xl p-4" style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <p className="text-sm" style={{ color: "rgba(235,235,245,0.4)" }}>Aucun plan coach pour cette date.</p>
           </div>
         )}
 
@@ -225,82 +217,100 @@ export default function LogFitness() {
               key={ex.id}
               className="rounded-2xl overflow-hidden"
               style={{
+                background: "#1C1C1E",
                 border: isActive
-                  ? "1px solid rgba(255,107,0,0.6)"
+                  ? "1px solid rgba(255,159,10,0.5)"
                   : allDone
-                  ? "1px solid rgba(57,255,20,0.25)"
-                  : "1px solid #1a1a1a",
-                boxShadow: isActive ? "0 0 24px rgba(255,107,0,0.12)" : "none",
+                  ? "1px solid rgba(48,209,88,0.25)"
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: isActive
+                  ? "0 4px 20px rgba(255,159,10,0.08)"
+                  : "0 2px 8px rgba(0,0,0,0.3)",
               }}
               onClick={() => !saved && setActiveExIdx(exIdx)}
             >
-              {/* Exercise header */}
+              {/* Exercise header — nom + numéro + statut */}
               <div
                 className="px-4 py-3 flex items-center gap-3"
-                style={{ background: isActive ? "rgba(255,107,0,0.07)" : "#111" }}
+                style={{
+                  background: isActive
+                    ? "rgba(255,159,10,0.06)"
+                    : allDone
+                    ? "rgba(48,209,88,0.04)"
+                    : "transparent",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                }}
               >
+                {/* Numéro d'exercice */}
                 <span
-                  className="font-display text-2xl leading-none w-7 text-center flex-shrink-0"
-                  style={{ color: isActive ? "#ff6b00" : allDone ? "#39ff14" : "#555" }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                  style={{
+                    background: isActive
+                      ? "rgba(255,159,10,0.15)"
+                      : allDone
+                      ? "rgba(48,209,88,0.15)"
+                      : "rgba(255,255,255,0.08)",
+                    color: isActive ? "#FF9F0A" : allDone ? "#30D158" : "rgba(235,235,245,0.4)",
+                  }}
                 >
-                  {exIdx + 1}
+                  {allDone ? "✓" : exIdx + 1}
                 </span>
-                <span className="flex-1 font-bold text-xs tracking-widest">
-                  {ex.name.toUpperCase()}
+
+                {/* Nom de l'exercice */}
+                <span className="flex-1 font-semibold text-sm" style={{ color: isActive ? "#fff" : allDone ? "rgba(235,235,245,0.6)" : "rgba(235,235,245,0.85)" }}>
+                  {ex.name}
                 </span>
+
+                {/* Badge EN COURS */}
                 {isActive && (
                   <span
-                    className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                     style={{
-                      background: "rgba(255,107,0,0.15)",
-                      color: "#ff6b00",
-                      border: "1px solid rgba(255,107,0,0.35)",
+                      background: "rgba(255,159,10,0.15)",
+                      color: "#FF9F0A",
+                      border: "1px solid rgba(255,159,10,0.3)",
                     }}
                   >
-                    EN COURS
+                    En cours
                   </span>
-                )}
-                {allDone && !isActive && (
-                  <span className="text-base flex-shrink-0" style={{ color: "#39ff14" }}>✓</span>
                 )}
               </div>
 
-              {/* Coach note */}
+              {/* Note du coach */}
               {coachEx?.coachNote && (
                 <div
                   className="px-4 py-2"
-                  style={{ background: "rgba(57,255,20,0.02)", borderTop: "1px solid #1a1a1a" }}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
                 >
-                  <p className="text-xs italic" style={{ color: "#555" }}>
-                    ↳ {coachEx.coachNote}
+                  <p className="text-xs italic" style={{ color: "rgba(235,235,245,0.35)" }}>
+                    {coachEx.coachNote}
                   </p>
                 </div>
               )}
 
-              {/* Per-set table */}
+              {/* Tableau des séries */}
               {ex.setLogs && ex.setLogs.length > 0 && (
-                <div style={{ borderTop: "1px solid #1a1a1a" }}>
-                  {/* Column headers */}
+                <div>
+                  {/* En-têtes colonnes */}
                   <div
-                    className="grid px-4 py-1.5"
+                    className="grid px-4 py-2"
                     style={{
-                      gridTemplateColumns: "32px 1fr 1fr 52px",
-                      background: "#0a0a0a",
-                      borderBottom: "1px solid #1a1a1a",
+                      gridTemplateColumns: "28px 1fr 1fr 52px",
+                      borderBottom: "1px solid rgba(255,255,255,0.05)",
                     }}
                   >
                     {["SÉR.", "KG", "REPS", ""].map((h, i) => (
                       <span
                         key={i}
-                        className="text-[9px] font-bold tracking-widest text-center"
-                        style={{ color: "#3a3a3a" }}
+                        className="text-[9px] font-semibold tracking-widest text-center"
+                        style={{ color: "rgba(235,235,245,0.2)" }}
                       >
                         {h}
                       </span>
                     ))}
                   </div>
 
-                  {/* Set rows */}
+                  {/* Lignes de séries */}
                   {ex.setLogs.map((set, setIdx) => {
                     const setTimerKey = ex.id + "-set-" + setIdx;
                     const isTimerActive = timerKey === setTimerKey;
@@ -310,28 +320,26 @@ export default function LogFitness() {
                         key={setIdx}
                         className="grid px-4 py-2.5 items-center"
                         style={{
-                          gridTemplateColumns: "32px 1fr 1fr 52px",
+                          gridTemplateColumns: "28px 1fr 1fr 52px",
                           background: set.done
-                            ? "rgba(57,255,20,0.03)"
-                            : isActive
-                            ? "rgba(255,107,0,0.02)"
-                            : "#0f0f0f",
+                            ? "rgba(48,209,88,0.03)"
+                            : "transparent",
                           borderBottom:
                             setIdx < (ex.setLogs?.length ?? 0) - 1
-                              ? "1px solid #151515"
+                              ? "1px solid rgba(255,255,255,0.04)"
                               : "none",
-                          opacity: set.done && !isTimerActive ? 0.65 : 1,
+                          opacity: set.done && !isTimerActive ? 0.6 : 1,
                         }}
                       >
-                        {/* Set number */}
+                        {/* Numéro de série */}
                         <span
-                          className="font-display text-xl leading-none text-center"
-                          style={{ color: set.done ? "#39ff14" : "#444" }}
+                          className="font-display text-lg leading-none text-center"
+                          style={{ color: set.done ? "#30D158" : "rgba(235,235,245,0.3)" }}
                         >
                           {setIdx + 1}
                         </span>
 
-                        {/* KG input */}
+                        {/* Input KG */}
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
@@ -342,16 +350,16 @@ export default function LogFitness() {
                             disabled={set.done || saved}
                             onClick={(e) => e.stopPropagation()}
                             className="w-14 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                            style={{ color: set.done ? "#39ff14" : "white" }}
+                            style={{ color: set.done ? "#30D158" : "white", boxShadow: "none" }}
                             min="0"
                             step="0.5"
                           />
-                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
+                          <span className="text-[9px] pb-1" style={{ color: "rgba(235,235,245,0.2)" }}>
                             kg
                           </span>
                         </div>
 
-                        {/* REPS input */}
+                        {/* Input REPS */}
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
@@ -362,16 +370,16 @@ export default function LogFitness() {
                             disabled={set.done || saved}
                             onClick={(e) => e.stopPropagation()}
                             className="w-10 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                            style={{ color: set.done ? "#39ff14" : "white" }}
+                            style={{ color: set.done ? "#30D158" : "white", boxShadow: "none" }}
                             min="0"
                             step="1"
                           />
-                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
+                          <span className="text-[9px] pb-1" style={{ color: "rgba(235,235,245,0.2)" }}>
                             ×
                           </span>
                         </div>
 
-                        {/* Validate / Timer */}
+                        {/* Bouton valider / Timer */}
                         <div className="flex justify-center">
                           {isTimerActive ? (
                             <button
@@ -381,35 +389,28 @@ export default function LogFitness() {
                               <span
                                 className="font-display text-xl leading-none"
                                 style={{
-                                  color:
-                                    timerSec > 10
-                                      ? "#39ff14"
-                                      : timerSec > 3
-                                      ? "#ff6b00"
-                                      : "#ff4444",
+                                  color: timerSec > 10 ? "#30D158" : timerSec > 3 ? "#FF9F0A" : "#FF453A",
                                 }}
                               >
                                 {timerSec}s
                               </span>
-                              <span className="text-[8px]" style={{ color: "#555" }}>
-                                ■
+                              <span className="text-[8px]" style={{ color: "rgba(235,235,245,0.3)" }}>
+                                stop
                               </span>
                             </button>
                           ) : set.done ? (
-                            <span className="text-base" style={{ color: "#39ff14" }}>
-                              ✓
-                            </span>
+                            <span className="text-base" style={{ color: "#30D158" }}>✓</span>
                           ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); validateSet(ex.id, setIdx); }}
                               disabled={saved}
                               className="w-9 h-9 rounded-xl flex items-center justify-center press-effect disabled:opacity-30"
                               style={{
-                                background: "rgba(255,107,0,0.12)",
-                                border: "1px solid rgba(255,107,0,0.4)",
+                                background: "rgba(10,132,255,0.12)",
+                                border: "1px solid rgba(10,132,255,0.35)",
                               }}
                             >
-                              <span className="text-sm" style={{ color: "#ff6b00" }}>✓</span>
+                              <span className="text-sm" style={{ color: "#0A84FF" }}>✓</span>
                             </button>
                           )}
                         </div>
@@ -419,21 +420,21 @@ export default function LogFitness() {
                 </div>
               )}
 
-              {/* Rest time label */}
+              {/* Temps de récup */}
               {coachEx?.restSeconds && (
                 <div
-                  className="px-4 py-1.5 flex items-center gap-2"
-                  style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }}
+                  className="px-4 py-2 flex items-center gap-2"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  <span className="text-[9px] font-bold tracking-widest" style={{ color: "#2a2a2a" }}>
-                    ⏱ RÉCUP {coachEx.restSeconds}s
+                  <span className="text-[10px] font-medium" style={{ color: "rgba(235,235,245,0.2)" }}>
+                    ⏱ Récup {coachEx.restSeconds}s
                   </span>
                 </div>
               )}
 
-              {/* Comment — editable on any exercise during the live session */}
+              {/* Commentaire */}
               {!saved && (
-                <div style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                   <textarea
                     value={ex.comment}
                     onChange={(e) => updateComment(ex.id, e.target.value)}
@@ -441,7 +442,7 @@ export default function LogFitness() {
                     rows={2}
                     onClick={(e) => e.stopPropagation()}
                     className="w-full bg-transparent border-none px-4 py-3 text-xs resize-none focus:outline-none"
-                    style={{ color: "#888" }}
+                    style={{ color: "rgba(235,235,245,0.5)", boxShadow: "none" }}
                   />
                 </div>
               )}
@@ -449,41 +450,41 @@ export default function LogFitness() {
           );
         })}
 
-        {/* Coach feedback — appears after save during live session */}
+        {/* Coach feedback post-save */}
         {saved && !existingSession && <CoachFeedbackCard state={coachState} result={coachResult} />}
       </div>
 
-      {/* Bottom action */}
+      {/* Action bas de page */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-5 pt-3 space-y-2"
+        className="fixed bottom-0 left-0 right-0 px-4 pt-4"
         style={{
-          background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 76px)",
+          background: "linear-gradient(to top, #000 65%, transparent)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
         }}
       >
         {existingSession ? null : saved ? (
           <button
             onClick={() => router.push("/")}
-            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+            className="w-full py-4 rounded-2xl font-semibold text-base press-effect"
             style={{
-              background: "rgba(57,255,20,0.1)",
-              color: "#39ff14",
-              border: "1px solid rgba(57,255,20,0.4)",
+              background: "rgba(48,209,88,0.12)",
+              color: "#30D158",
+              border: "1px solid rgba(48,209,88,0.3)",
             }}
           >
-            CONTINUER →
+            Continuer →
           </button>
         ) : (
           <button
             onClick={handleSave}
             disabled={saving || !coachWorkout || exercises.length === 0}
-            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
+            className="w-full py-4 rounded-2xl font-semibold text-base press-effect disabled:opacity-40"
             style={{
-              background: "linear-gradient(135deg, #ff6b00, #7a3300)",
-              color: "white",
+              background: "#FF9F0A",
+              color: "#000",
             }}
           >
-            {saving ? "Sauvegarde…" : "FINALISER LA SÉANCE"}
+            {saving ? "Sauvegarde…" : "Finaliser la séance"}
           </button>
         )}
       </div>

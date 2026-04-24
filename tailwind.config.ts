@@ -9,42 +9,42 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a",
-        surface: "#111111",
-        "surface-2": "#1a1a1a",
-        "surface-3": "#222222",
-        neon: "#39ff14",
-        "neon-dim": "#1a7a09",
-        orange: "#ff6b00",
-        "orange-dim": "#7a3300",
-        muted: "#555555",
-        subtle: "#333333",
+        background: "#000000",
+        surface: "#1C1C1E",
+        "surface-2": "#2C2C2E",
+        "surface-3": "#3A3A3C",
+        primary: "#0A84FF",
+        success: "#30D158",
+        warning: "#FF9F0A",
+        danger: "#FF453A",
+        muted: "rgba(235,235,245,0.3)",
+        subtle: "rgba(255,255,255,0.08)",
+        // Legacy aliases kept for gradual migration
+        neon: "#30D158",
+        "neon-dim": "#1D6535",
+        orange: "#FF9F0A",
+        "orange-dim": "#7A4F00",
       },
       fontFamily: {
-        display: ["var(--font-bebas)", "Anton", "Impact", "sans-serif"],
+        display: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
         body: ["var(--font-outfit)", "DM Sans", "system-ui", "sans-serif"],
       },
       fontSize: {
-        "display-xl": ["6rem", { lineHeight: "1", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "display-lg": ["4rem", { lineHeight: "1", letterSpacing: "-0.01em", fontWeight: "700" }],
-        "display-md": ["2.5rem", { lineHeight: "1.1", fontWeight: "700" }],
+        "display-xl": ["6rem", { lineHeight: "1", letterSpacing: "-0.03em", fontWeight: "800" }],
+        "display-lg": ["4rem", { lineHeight: "1", letterSpacing: "-0.02em", fontWeight: "800" }],
+        "display-md": ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.01em", fontWeight: "700" }],
       },
       boxShadow: {
-        neon: "0 0 20px rgba(57, 255, 20, 0.3)",
-        "neon-sm": "0 0 10px rgba(57, 255, 20, 0.2)",
-        orange: "0 0 20px rgba(255, 107, 0, 0.3)",
-        "orange-sm": "0 0 10px rgba(255, 107, 0, 0.2)",
+        card: "0 2px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+        elevated: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
+        "inset-highlight": "inset 0 1px 0 rgba(255,255,255,0.08)",
       },
       animation: {
-        "pulse-neon": "pulse-neon 2s ease-in-out infinite",
         "slide-up": "slide-up 0.3s ease-out",
         "fade-in": "fade-in 0.4s ease-out",
+        "spring-in": "spring-in 0.4s cubic-bezier(0.34,1.56,0.64,1)",
       },
       keyframes: {
-        "pulse-neon": {
-          "0%, 100%": { boxShadow: "0 0 10px rgba(57,255,20,0.2)" },
-          "50%": { boxShadow: "0 0 25px rgba(57,255,20,0.5)" },
-        },
         "slide-up": {
           "0%": { transform: "translateY(10px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
@@ -52,6 +52,10 @@ const config: Config = {
         "fade-in": {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
+        },
+        "spring-in": {
+          "0%": { transform: "scale(0.9)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
       },
     },
