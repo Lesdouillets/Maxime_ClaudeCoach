@@ -196,7 +196,7 @@ export default function DayActions({
           ) : (
             <button onClick={() => { setShowCancel(true); setShowReschedule(false); }}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
-              style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(235,235,245,0.2)" }}>
+              style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(235,235,245,0.4)" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>

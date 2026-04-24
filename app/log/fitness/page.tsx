@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
-import { addSession, deleteSession, generateId, getSessions } from "@/lib/storage";
+import { addSession, deleteSession, generateId, getSessions, cancelDay } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
 import { analyzeSession, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
@@ -80,6 +80,14 @@ export default function LogFitness() {
     autoSyncPush();
     router.push("/");
   }, [existingSession, router]);
+
+  const handleCancel = useCallback(() => {
+    const date = sessionDate ?? new Date().toISOString().slice(0, 10);
+    cancelDay(date, "");
+    if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
+    autoSyncPush();
+    router.back();
+  }, [sessionDate, coachWorkout, router]);
 
   useEffect(() => {
     if (saved || exercises.length === 0) return;
@@ -475,17 +483,30 @@ export default function LogFitness() {
             Continuer →
           </button>
         ) : (
-          <button
-            onClick={handleSave}
-            disabled={saving || !coachWorkout || exercises.length === 0}
-            className="w-full py-4 rounded-2xl font-semibold text-base press-effect disabled:opacity-40"
-            style={{
-              background: "#FF9F0A",
-              color: "#000",
-            }}
-          >
-            {saving ? "Sauvegarde…" : "Finaliser la séance"}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={handleSave}
+              disabled={saving || !coachWorkout || exercises.length === 0}
+              className="w-full py-4 rounded-2xl font-semibold text-base press-effect disabled:opacity-40"
+              style={{
+                background: "#FF9F0A",
+                color: "#000",
+              }}
+            >
+              {saving ? "Sauvegarde…" : "Finaliser la séance"}
+            </button>
+            <button
+              onClick={handleCancel}
+              className="w-full py-2.5 rounded-xl text-sm press-effect"
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "rgba(235,235,245,0.4)",
+              }}
+            >
+              Annuler la séance
+            </button>
+          </div>
         )}
       </div>
     </div>
