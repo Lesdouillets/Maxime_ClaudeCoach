@@ -137,8 +137,22 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
   const history = [...getChatHistory(), userMsg];
   _saveChatLocal(history); // optimistic local save before API call
 
-  // Format for API: only role + content
-  const apiMessages = history.map((m) => ({ role: m.role, content: m.content }));
+  // Format for API: role + content. For assistant messages with pending plans/deletes,
+  // embed the JSON inline so the model retains the proposal data across turns and can
+  // accurately move it to modified_plans / delete_plan_ids on user confirmation.
+  const apiMessages = history.map((m) => {
+    if (m.role === "assistant" && (m.pendingPlans?.length || m.pendingDeleteIds?.length)) {
+      const parts: string[] = [m.content];
+      if (m.pendingPlans?.length) {
+        parts.push(`[pending_plans=${JSON.stringify(m.pendingPlans)}]`);
+      }
+      if (m.pendingDeleteIds?.length) {
+        parts.push(`[pending_delete_ids=${JSON.stringify(m.pendingDeleteIds)}]`);
+      }
+      return { role: m.role, content: parts.join("\n\n") };
+    }
+    return { role: m.role, content: m.content };
+  });
 
   try {
     const { data, error } = await supabase.functions.invoke("chat-coach", {
