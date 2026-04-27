@@ -184,9 +184,7 @@ Deno.serve(async (req: Request) => {
 
     const systemPrompt = buildSystemPrompt(profileName);
 
-    // Prefill the assistant response with "{" to force JSON output.
-    // The model continues from this character, so we prepend it back when parsing.
-    const messagesForApi = [...apiMessages, { role: "assistant", content: "{" }];
+    const messagesForApi = apiMessages;
 
     const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -223,9 +221,8 @@ Deno.serve(async (req: Request) => {
     const textBlock = Array.isArray(anthropicData.content)
       ? anthropicData.content.find((b: { type?: string }) => b?.type === "text")
       : null;
-    // Prepend the prefill character — the API response does not include it
     const rawText: string = textBlock?.text ?? "";
-    const text = "{" + rawText;
+    const text = rawText;
 
     if (anthropicData.usage) {
       console.log("[chat-coach] usage:", JSON.stringify(anthropicData.usage), "stop:", stopReason, "textLen:", text.length);
