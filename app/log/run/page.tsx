@@ -28,6 +28,7 @@ export default function LogRun() {
   const [sessionDate, setSessionDate] = useState<string | null>(null); // null = today
   const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
+  const [savedSession, setSavedSession] = useState<RunSession | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +82,8 @@ export default function LogRun() {
       targetZone: todayPlan?.targetZone,
     };
     addSession(session);
-    autoSyncPush(); // was missing before
+    setSavedSession(session);
+    autoSyncPush();
     setSaving(false);
     setSaved(true);
     setCoachState("analyzing");
@@ -91,6 +93,15 @@ export default function LogRun() {
       setCoachState("done");
     });
   }, [distanceKm, minutes, seconds, avgHr, elevGain, comment, pace, todayPlan]);
+
+  const handleRetry = useCallback(() => {
+    if (!savedSession) return;
+    setCoachState("analyzing");
+    analyzeSession(savedSession).then((result) => {
+      setCoachResult(result);
+      setCoachState("done");
+    });
+  }, [savedSession]);
 
   if (!mounted) return null;
 
@@ -376,7 +387,7 @@ export default function LogRun() {
         {/* Save */}
         {saved ? (
           <>
-            <CoachFeedbackCard state={coachState} result={coachResult} />
+            <CoachFeedbackCard state={coachState} result={coachResult} onRetry={handleRetry} />
             <button
               onClick={() => router.push("/")}
               className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"

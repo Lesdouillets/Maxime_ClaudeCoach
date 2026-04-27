@@ -5,9 +5,10 @@ import type { CoachAnalysisResult } from "@/lib/coachAnalyzer";
 interface Props {
   state: "analyzing" | "done";
   result: CoachAnalysisResult | null;
+  onRetry?: () => void;
 }
 
-export default function CoachFeedbackCard({ state, result }: Props) {
+export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
   return (
     <div
       className="rounded-2xl p-4 animate-fade-in"
@@ -54,9 +55,24 @@ export default function CoachFeedbackCard({ state, result }: Props) {
           {result.analysis}
         </p>
       ) : (
-        <p className="text-sm" style={{ color: "#444" }}>
-          Analyse temporairement indisponible.
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm" style={{ color: "#444" }}>
+            Analyse temporairement indisponible.
+          </p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="flex-shrink-0 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-xl press-effect"
+              style={{
+                background: "rgba(57,255,20,0.08)",
+                color: "#39ff14",
+                border: "1px solid rgba(57,255,20,0.25)",
+              }}
+            >
+              RÉESSAYER
+            </button>
+          )}
+        </div>
       )}
 
       <style>{`
