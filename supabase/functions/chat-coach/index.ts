@@ -178,6 +178,10 @@ Deno.serve(async (req: Request) => {
 
     const systemPrompt = buildSystemPrompt(profileName);
 
+    // Prefill the assistant response with "{" to force JSON output.
+    // The model continues from this character, so we prepend it back when parsing.
+    const messagesForApi = [...apiMessages, { role: "assistant", content: "{" }];
+
     const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -196,7 +200,7 @@ Deno.serve(async (req: Request) => {
             cache_control: { type: "ephemeral" },
           },
         ],
-        messages: apiMessages,
+        messages: messagesForApi,
       }),
     });
 
@@ -213,7 +217,9 @@ Deno.serve(async (req: Request) => {
     const textBlock = Array.isArray(anthropicData.content)
       ? anthropicData.content.find((b: { type?: string }) => b?.type === "text")
       : null;
-    const text: string = textBlock?.text ?? "";
+    // Prepend the prefill character — the API response does not include it
+    const rawText: string = textBlock?.text ?? "";
+    const text = "{" + rawText;
 
     if (anthropicData.usage) {
       console.log("[chat-coach] usage:", JSON.stringify(anthropicData.usage), "stop:", stopReason, "textLen:", text.length);
@@ -251,7 +257,8 @@ Deno.serve(async (req: Request) => {
       // Try to salvage the response field from truncated JSON via regex
       const responseMatch = text.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
       const salvaged = responseMatch ? responseMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
-      const fallbackMsg = salvaged || "Désolé, je n'ai pas pu formuler de réponse. Réessaie avec une demande plus courte.";
+      // Fall back to raw model output (without the prepended "{") so the user still sees the coach's message
+      const fallbackMsg = salvaged || rawText.trim() || "Désolé, je n'ai pas pu formuler de réponse. Réessaie.";
       result = { response: fallbackMsg + (truncated ? truncSuffix : ""), ...emptyShape };
     } else if (truncated) {
       // Parsed OK but hit max_tokens — plans may be incomplete, drop them
