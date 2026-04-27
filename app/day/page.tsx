@@ -130,9 +130,9 @@ export default function DayPage() {
   const hasDouble = !!(coachRun && coachWorkout);
   const isRunDay = !!(coachRun || genericPlan?.type === "run");
 
-  let titleLine = "Repos";
+  let titleLine = "REPOS";
   if (session) {
-    titleLine = session.type === "run" ? "Run" : session.category === "upper" ? "Haut du corps" : "Bas du corps";
+    titleLine = session.type === "run" ? "RUN" : session.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS";
   } else if (hasDouble) {
     titleLine = `${coachRun!.label} · ${coachWorkout!.label}`;
   } else if (coachRun) { titleLine = coachRun.label; }
@@ -171,20 +171,20 @@ export default function DayPage() {
                 if (result?.programChanged) load(date);
               });
             }}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold press-effect"
-            style={{ background: "rgba(10,132,255,0.06)", border: "1px solid rgba(10,132,255,0.2)", color: "#0A84FF" }}
+            className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
+            style={{ background: "rgba(57,255,20,0.06)", border: "1px solid rgba(57,255,20,0.2)", color: "#39ff14" }}
           >
-            Relancer l'analyse coach →
+            RELANCER L'ANALYSE COACH →
           </button>
         )}
 
         {isCancelled && (
           <div className="flex items-center justify-between rounded-xl px-3 py-2.5"
-            style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <p className="text-xs" style={{ color: "rgba(235,235,245,0.3)" }}>
+            style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
+            <p className="text-xs" style={{ color: "#333" }}>
               Annulé{cancelledDay?.reason ? ` · ${cancelledDay.reason}` : ""}
             </p>
-            <button onClick={handleUncancel} className="text-xs press-effect" style={{ color: "rgba(235,235,245,0.4)" }}>
+            <button onClick={handleUncancel} className="text-xs press-effect" style={{ color: "#555" }}>
               Rétablir →
             </button>
           </div>
@@ -195,20 +195,20 @@ export default function DayPage() {
         <div className="space-y-4">
 
         {session?.importedFromStrava && (
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#FF9F0A" }}>
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
             <StravaIcon /> Importé depuis Strava
           </div>
         )}
 
         {/* Tab bar — double days only */}
         {hasDouble && (
-          <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
             {(["run", "workout"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className="flex-1 py-2 text-xs font-semibold press-effect"
+                className="flex-1 py-2 text-xs font-bold tracking-wide uppercase press-effect"
                 style={{
-                  background: activeTab === tab ? "#2C2C2E" : "transparent",
-                  color: activeTab === tab ? "#0A84FF" : "rgba(235,235,245,0.35)",
+                  background: activeTab === tab ? "#1a1a1a" : "transparent",
+                  color: activeTab === tab ? "#39ff14" : "#444",
                 }}>
                 {tab === "run" ? "Run" : "Muscu"}
               </button>
@@ -223,20 +223,20 @@ export default function DayPage() {
 
         {/* No coach data — generic plan */}
         {!coachRun && !coachWorkout && genericPlan && !session && (
-          <div className="rounded-2xl p-4" style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <p className="text-xs mb-2" style={{ color: "rgba(235,235,245,0.4)" }}>{genericPlan.targetDescription}</p>
+          <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+            <p className="text-xs text-muted mb-2">{genericPlan.targetDescription}</p>
             {genericPlan.type === "run" && (
               <div className="flex gap-4 mt-2">
                 {genericPlan.targetDistanceKm && (
                   <div>
-                    <span className="font-display text-2xl" style={{ color: "#30D158" }}>{genericPlan.targetDistanceKm}</span>
-                    <span className="text-xs ml-1" style={{ color: "rgba(235,235,245,0.4)" }}>km</span>
+                    <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{genericPlan.targetDistanceKm}</span>
+                    <span className="text-xs text-muted ml-1">km</span>
                   </div>
                 )}
                 {genericPlan.targetPaceSecPerKm && (
-                  <span className="font-display text-2xl" style={{ color: "#30D158" }}>{formatPace(genericPlan.targetPaceSecPerKm)}</span>
+                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{formatPace(genericPlan.targetPaceSecPerKm)}</span>
                 )}
-                {genericPlan.targetZone && <Badge label={genericPlan.targetZone} variant="success" />}
+                {genericPlan.targetZone && <Badge label={genericPlan.targetZone} variant="neon" />}
               </div>
             )}
           </div>
@@ -254,7 +254,7 @@ export default function DayPage() {
 
         {/* Rest day */}
         {!hasPlan && !session && (
-          <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: "#1C1C1E" }}>
+          <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: "#111" }}>
             <span className="text-2xl">😴</span>
             <p className="text-sm text-muted">Jour de repos — récupération active.</p>
           </div>
@@ -286,7 +286,7 @@ export default function DayPage() {
           <button
             onClick={() => { if (session) { deleteSession(session.id); load(date); } }}
             className="w-full py-2 rounded-xl text-xs press-effect"
-            style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.06)", color: "rgba(235,235,245,0.2)" }}
+            style={{ background: "transparent", border: "1px solid #111", color: "#2a2a2a" }}
           >
             Supprimer la séance
           </button>

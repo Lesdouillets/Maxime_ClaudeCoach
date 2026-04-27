@@ -41,6 +41,7 @@ export default function CoachPage() {
     setInput("");
     setSending(true);
 
+    // Optimistic: show user message immediately
     const optimisticUser: ChatMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
@@ -50,9 +51,11 @@ export default function CoachPage() {
     setMessages((prev) => [...prev, optimisticUser]);
 
     const result = await sendMessage(trimmed);
+    // Replace optimistic with persisted history
     setMessages(getChatHistory());
 
     if (!result) {
+      // Show error as system message
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== optimisticUser.id),
         {
@@ -74,7 +77,7 @@ export default function CoachPage() {
     setClearing(false);
   };
 
-  const [applying, setApplying] = useState<string | null>(null);
+  const [applying, setApplying] = useState<string | null>(null); // msgId being applied
 
   const handleApply = async (msgId: string) => {
     if (applying) return;
@@ -104,12 +107,12 @@ export default function CoachPage() {
     <div className="flex flex-col" style={{ height: "100dvh" }}>
       {/* Header */}
       <div
-        className="flex items-center justify-between px-5"
+        className="flex items-center justify-between px-5 pt-safe-top"
         style={{
           paddingTop: `calc(env(safe-area-inset-top, 0px) + 16px)`,
           paddingBottom: "12px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(0,0,0,0.92)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(10,10,10,0.9)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           position: "sticky",
@@ -119,12 +122,12 @@ export default function CoachPage() {
       >
         <div>
           <h1
-            className="font-display tracking-tight"
-            style={{ fontSize: "22px", color: "#fff", fontWeight: 800 }}
+            className="font-display tracking-widest"
+            style={{ fontSize: "22px", color: "#39ff14", letterSpacing: "0.12em" }}
           >
-            Coach
+            COACH
           </h1>
-          <p className="text-xs font-medium" style={{ color: "rgba(235,235,245,0.35)" }}>
+          <p className="text-xs font-medium" style={{ color: "#444", letterSpacing: "0.08em" }}>
             Alex · Coach personnel
           </p>
         </div>
@@ -138,7 +141,7 @@ export default function CoachPage() {
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                stroke="rgba(235,235,245,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         )}
@@ -150,18 +153,19 @@ export default function CoachPage() {
         style={{ paddingBottom: "8px" }}
       >
         {isEmpty ? (
+          /* Welcome state with suggestion chips */
           <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
             <div className="text-center">
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ background: "rgba(10,132,255,0.1)", border: "1px solid rgba(10,132,255,0.2)" }}
+                style={{ background: "rgba(57,255,20,0.08)", border: "1px solid rgba(57,255,20,0.2)" }}
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                    stroke="#0A84FF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    stroke="#39ff14" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <p className="text-sm font-medium" style={{ color: "rgba(235,235,245,0.45)" }}>
+              <p className="text-sm font-medium" style={{ color: "#888" }}>
                 Dis-moi ce que tu veux travailler
               </p>
             </div>
@@ -172,9 +176,9 @@ export default function CoachPage() {
                   onClick={() => handleSend(s)}
                   className="press-effect text-left rounded-2xl px-4 py-3 text-sm"
                   style={{
-                    background: "rgba(10,132,255,0.06)",
-                    border: "1px solid rgba(10,132,255,0.2)",
-                    color: "rgba(235,235,245,0.7)",
+                    background: "#0a130a",
+                    border: "1px solid rgba(57,255,20,0.2)",
+                    color: "#aaa",
                   }}
                 >
                   {s}
@@ -195,23 +199,23 @@ export default function CoachPage() {
                     maxWidth: "82%",
                     ...(msg.role === "user"
                       ? {
-                          background: "rgba(10,132,255,0.1)",
-                          border: "1px solid rgba(10,132,255,0.2)",
-                          color: "rgba(235,235,245,0.9)",
+                          background: "rgba(57,255,20,0.06)",
+                          border: "1px solid rgba(57,255,20,0.18)",
+                          color: "#ddd",
                           borderBottomRightRadius: "6px",
                         }
                       : {
-                          background: "rgba(10,20,40,0.7)",
-                          border: "1px solid rgba(10,132,255,0.15)",
-                          color: "rgba(235,235,245,0.7)",
+                          background: "#0a130a",
+                          border: "1px solid rgba(57,255,20,0.2)",
+                          color: "#aaa",
                           borderBottomLeftRadius: "6px",
                         }),
                   }}
                 >
                   {msg.role === "assistant" && (
                     <p
-                      className="text-[10px] font-semibold tracking-widest mb-1"
-                      style={{ color: "#0A84FF" }}
+                      className="text-[10px] font-bold tracking-widest mb-1"
+                      style={{ color: "#39ff14" }}
                     >
                       ALEX
                     </p>
@@ -221,11 +225,11 @@ export default function CoachPage() {
                     <button
                       onClick={() => handleApply(msg.id)}
                       disabled={applying === msg.id}
-                      className="press-effect flex items-center gap-1.5 mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-xl"
+                      className="press-effect flex items-center gap-1.5 mt-2 text-[11px] font-bold px-3 py-1.5 rounded-xl"
                       style={{
-                        background: applying === msg.id ? "rgba(10,132,255,0.05)" : "rgba(10,132,255,0.12)",
-                        color: applying === msg.id ? "rgba(235,235,245,0.3)" : "#0A84FF",
-                        border: "1px solid rgba(10,132,255,0.3)",
+                        background: applying === msg.id ? "rgba(57,255,20,0.05)" : "rgba(57,255,20,0.12)",
+                        color: applying === msg.id ? "#555" : "#39ff14",
+                        border: "1px solid rgba(57,255,20,0.3)",
                         transition: "all 0.2s",
                       }}
                     >
@@ -239,11 +243,11 @@ export default function CoachPage() {
                   ) : null}
                   {(msg.modifiedCount || msg.deletedCount) ? (
                     <span
-                      className="inline-block mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{
-                        background: "rgba(48,209,88,0.12)",
-                        color: "#30D158",
-                        border: "1px solid rgba(48,209,88,0.25)",
+                        background: "rgba(57,255,20,0.1)",
+                        color: "#39ff14",
+                        border: "1px solid rgba(57,255,20,0.25)",
                       }}
                     >
                       {[
@@ -256,18 +260,18 @@ export default function CoachPage() {
               </div>
             ))}
 
-            {/* Indicateur de frappe */}
+            {/* Typing indicator */}
             {sending && (
               <div className="flex justify-start">
                 <div
                   className="rounded-2xl px-4 py-3"
                   style={{
-                    background: "rgba(10,20,40,0.7)",
-                    border: "1px solid rgba(10,132,255,0.15)",
+                    background: "#0a130a",
+                    border: "1px solid rgba(57,255,20,0.2)",
                     borderBottomLeftRadius: "6px",
                   }}
                 >
-                  <p className="text-[10px] font-semibold tracking-widest mb-2" style={{ color: "#0A84FF" }}>
+                  <p className="text-[10px] font-bold tracking-widest mb-2" style={{ color: "#39ff14" }}>
                     ALEX
                   </p>
                   <span className="flex gap-1 items-center">
@@ -276,7 +280,7 @@ export default function CoachPage() {
                         key={i}
                         className="w-1.5 h-1.5 rounded-full inline-block"
                         style={{
-                          background: "#0A84FF",
+                          background: "#39ff14",
                           animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
                         }}
                       />
@@ -290,20 +294,20 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Barre de saisie */}
+      {/* Input bar */}
       <div
         style={{
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(0,0,0,0.95)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(10,10,10,0.95)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           padding: "12px 16px",
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 88px)`,
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 80px)`,
         }}
       >
         <div
           className="flex items-end gap-2 rounded-2xl px-3 py-2"
-          style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.1)" }}
+          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           <textarea
             ref={textareaRef}
@@ -317,12 +321,9 @@ export default function CoachPage() {
             rows={1}
             className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
             style={{
-              color: "rgba(235,235,245,0.9)",
-              caretColor: "#0A84FF",
+              color: "#ddd",
+              caretColor: "#39ff14",
               maxHeight: "120px",
-              boxShadow: "none",
-              border: "none",
-              padding: 0,
             }}
           />
           <button
@@ -330,13 +331,14 @@ export default function CoachPage() {
             disabled={!input.trim() || sending}
             className="press-effect flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
             style={{
-              background: input.trim() && !sending ? "#0A84FF" : "rgba(255,255,255,0.06)",
+              background: input.trim() && !sending ? "rgba(57,255,20,0.15)" : "transparent",
+              border: `1px solid ${input.trim() && !sending ? "rgba(57,255,20,0.4)" : "rgba(255,255,255,0.08)"}`,
               transition: "all 0.2s",
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                stroke={input.trim() && !sending ? "#fff" : "rgba(235,235,245,0.25)"}
+                stroke={input.trim() && !sending ? "#39ff14" : "#444"}
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>

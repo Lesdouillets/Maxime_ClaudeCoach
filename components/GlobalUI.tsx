@@ -29,17 +29,15 @@ function FloatingTimer() {
   const pathname = usePathname();
   const isTimerPage = pathname === "/day" || pathname === "/log/fitness";
   if (!timerKey || timerSec <= 0 || isTimerPage) return null;
-
-  const color = timerSec > 10 ? "#30D158" : timerSec > 3 ? "#FF9F0A" : "#FF453A";
-
+  const color = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
   return (
     <button
       onClick={stopTimer}
       className="fixed top-12 right-5 z-50 w-12 h-12 rounded-full flex items-center justify-center press-effect"
       style={{
-        background: "#1C1C1E",
-        border: `1.5px solid ${color}`,
-        boxShadow: `0 4px 16px rgba(0,0,0,0.5)`,
+        background: "#111",
+        border: `2px solid ${color}`,
+        boxShadow: `0 0 16px ${color}33`,
       }}
     >
       <span className="font-display text-sm leading-none" style={{ color }}>{timerSec}</span>
@@ -56,3 +54,4 @@ export default function GlobalUI({ children }: { children: React.ReactNode }) {
     </TimerProvider>
   );
 }
+

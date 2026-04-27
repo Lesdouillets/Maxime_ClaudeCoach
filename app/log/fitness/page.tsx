@@ -14,6 +14,8 @@ import type { Exercise, FitnessSession, SetLog } from "@/lib/types";
 import type { CoachWorkout } from "@/lib/coachPlan";
 
 function coachToExercise(ce: CoachWorkout["exercises"][0]): Exercise {
+  // If the coach plan specifies per-set variations, use them.
+  // Otherwise generate N identical sets from the flat sets/reps/weight.
   const setLogs: SetLog[] = ce.setPlans && ce.setPlans.length > 0
     ? ce.setPlans.map((sp) => ({ weight: sp.weight, reps: sp.reps, done: false }))
     : Array.from({ length: ce.sets }, () => ({
@@ -54,6 +56,7 @@ export default function LogFitness() {
 
     const targetDate = d ?? new Date().toISOString().slice(0, 10);
 
+    // Archive mode: a fitness session already exists for this date
     const existing = getSessions().find(
       (s): s is FitnessSession =>
         s.type === "fitness" && s.date.slice(0, 10) === targetDate
@@ -88,6 +91,7 @@ export default function LogFitness() {
     autoSyncPush();
     router.back();
   }, [sessionDate, coachWorkout, router]);
+
 
   useEffect(() => {
     if (saved || exercises.length === 0) return;
@@ -130,6 +134,7 @@ export default function LogFitness() {
         })
       );
 
+      // Start rest timer from coach plan
       const exIdx = exercises.findIndex((e) => e.id === exId);
       const restSecs = coachWorkout?.exercises[exIdx]?.restSeconds ?? 90;
       startTimer(exId + "-set-" + setIdx, restSecs);
@@ -147,9 +152,11 @@ export default function LogFitness() {
   );
 
   const handleSave = useCallback(async () => {
+    // Coach plan is the source of truth for category. No plan → no save.
     if (!coachWorkout || exercises.length === 0) return;
     setSaving(true);
 
+    // Compute summary sets/reps/weight from setLogs for backward compat
     const finalExercises = exercises.map((ex) => {
       if (!ex.setLogs?.length) return ex;
       const done = ex.setLogs.filter((s) => s.done);
@@ -181,6 +188,7 @@ export default function LogFitness() {
     });
   }, [exercises, coachWorkout, sessionDate]);
 
+  // Auto-save when every set of every exercise is done
   useEffect(() => {
     if (saved || saving || !coachWorkout || exercises.length === 0) return;
     const allDone = exercises.every(
@@ -198,9 +206,9 @@ export default function LogFitness() {
 
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-52">
-      <PageHeader title="Séance Salle" subtitle={dateLabel} accent="orange" />
+      <PageHeader title="SÉANCE SALLE" subtitle={dateLabel} accent="orange" />
 
-      <div className="px-4 space-y-3">
+      <div className="px-5 space-y-4">
 
         {existingSession && (
           <>
@@ -210,8 +218,8 @@ export default function LogFitness() {
         )}
 
         {!existingSession && !coachWorkout && (
-          <div className="rounded-2xl p-4" style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <p className="text-sm" style={{ color: "rgba(235,235,245,0.4)" }}>Aucun plan coach pour cette date.</p>
+          <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+            <p className="text-sm text-muted">Aucun plan coach pour cette date.</p>
           </div>
         )}
 
@@ -225,100 +233,82 @@ export default function LogFitness() {
               key={ex.id}
               className="rounded-2xl overflow-hidden"
               style={{
-                background: "#1C1C1E",
                 border: isActive
-                  ? "1px solid rgba(255,159,10,0.5)"
+                  ? "1px solid rgba(255,107,0,0.6)"
                   : allDone
-                  ? "1px solid rgba(48,209,88,0.25)"
-                  : "1px solid rgba(255,255,255,0.08)",
-                boxShadow: isActive
-                  ? "0 4px 20px rgba(255,159,10,0.08)"
-                  : "0 2px 8px rgba(0,0,0,0.3)",
+                  ? "1px solid rgba(57,255,20,0.25)"
+                  : "1px solid #1a1a1a",
+                boxShadow: isActive ? "0 0 24px rgba(255,107,0,0.12)" : "none",
               }}
               onClick={() => !saved && setActiveExIdx(exIdx)}
             >
-              {/* Exercise header — nom + numéro + statut */}
+              {/* Exercise header */}
               <div
                 className="px-4 py-3 flex items-center gap-3"
-                style={{
-                  background: isActive
-                    ? "rgba(255,159,10,0.06)"
-                    : allDone
-                    ? "rgba(48,209,88,0.04)"
-                    : "transparent",
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                }}
+                style={{ background: isActive ? "rgba(255,107,0,0.07)" : "#111" }}
               >
-                {/* Numéro d'exercice */}
                 <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                  style={{
-                    background: isActive
-                      ? "rgba(255,159,10,0.15)"
-                      : allDone
-                      ? "rgba(48,209,88,0.15)"
-                      : "rgba(255,255,255,0.08)",
-                    color: isActive ? "#FF9F0A" : allDone ? "#30D158" : "rgba(235,235,245,0.4)",
-                  }}
+                  className="font-display text-2xl leading-none w-7 text-center flex-shrink-0"
+                  style={{ color: isActive ? "#ff6b00" : allDone ? "#39ff14" : "#555" }}
                 >
-                  {allDone ? "✓" : exIdx + 1}
+                  {exIdx + 1}
                 </span>
-
-                {/* Nom de l'exercice */}
-                <span className="flex-1 font-semibold text-sm" style={{ color: isActive ? "#fff" : allDone ? "rgba(235,235,245,0.6)" : "rgba(235,235,245,0.85)" }}>
-                  {ex.name}
+                <span className="flex-1 font-bold text-xs tracking-widest">
+                  {ex.name.toUpperCase()}
                 </span>
-
-                {/* Badge EN COURS */}
                 {isActive && (
                   <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                    className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full flex-shrink-0"
                     style={{
-                      background: "rgba(255,159,10,0.15)",
-                      color: "#FF9F0A",
-                      border: "1px solid rgba(255,159,10,0.3)",
+                      background: "rgba(255,107,0,0.15)",
+                      color: "#ff6b00",
+                      border: "1px solid rgba(255,107,0,0.35)",
                     }}
                   >
-                    En cours
+                    EN COURS
                   </span>
+                )}
+                {allDone && !isActive && (
+                  <span className="text-base flex-shrink-0" style={{ color: "#39ff14" }}>✓</span>
                 )}
               </div>
 
-              {/* Note du coach */}
+              {/* Coach note */}
               {coachEx?.coachNote && (
                 <div
                   className="px-4 py-2"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                  style={{ background: "rgba(57,255,20,0.02)", borderTop: "1px solid #1a1a1a" }}
                 >
-                  <p className="text-xs italic" style={{ color: "rgba(235,235,245,0.35)" }}>
-                    {coachEx.coachNote}
+                  <p className="text-xs italic" style={{ color: "#555" }}>
+                    ↳ {coachEx.coachNote}
                   </p>
                 </div>
               )}
 
-              {/* Tableau des séries */}
+              {/* Per-set table */}
               {ex.setLogs && ex.setLogs.length > 0 && (
-                <div>
-                  {/* En-têtes colonnes */}
+                <div style={{ borderTop: "1px solid #1a1a1a" }}>
+                  {/* Column headers */}
                   <div
-                    className="grid px-4 py-2"
+                    className="grid px-4 py-1.5"
                     style={{
-                      gridTemplateColumns: "28px 1fr 1fr 52px",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      gridTemplateColumns: "32px 1fr 1fr 52px",
+                      background: "#0a0a0a",
+                      borderBottom: "1px solid #1a1a1a",
                     }}
                   >
                     {["SÉR.", "KG", "REPS", ""].map((h, i) => (
                       <span
                         key={i}
-                        className="text-[9px] font-semibold tracking-widest text-center"
-                        style={{ color: "rgba(235,235,245,0.2)" }}
+                        className="text-[9px] font-bold tracking-widest text-center"
+                        style={{ color: "#3a3a3a" }}
                       >
                         {h}
                       </span>
                     ))}
                   </div>
 
-                  {/* Lignes de séries */}
+                  {/* Set rows */}
                   {ex.setLogs.map((set, setIdx) => {
                     const setTimerKey = ex.id + "-set-" + setIdx;
                     const isTimerActive = timerKey === setTimerKey;
@@ -328,26 +318,28 @@ export default function LogFitness() {
                         key={setIdx}
                         className="grid px-4 py-2.5 items-center"
                         style={{
-                          gridTemplateColumns: "28px 1fr 1fr 52px",
+                          gridTemplateColumns: "32px 1fr 1fr 52px",
                           background: set.done
-                            ? "rgba(48,209,88,0.03)"
-                            : "transparent",
+                            ? "rgba(57,255,20,0.03)"
+                            : isActive
+                            ? "rgba(255,107,0,0.02)"
+                            : "#0f0f0f",
                           borderBottom:
                             setIdx < (ex.setLogs?.length ?? 0) - 1
-                              ? "1px solid rgba(255,255,255,0.04)"
+                              ? "1px solid #151515"
                               : "none",
-                          opacity: set.done && !isTimerActive ? 0.6 : 1,
+                          opacity: set.done && !isTimerActive ? 0.65 : 1,
                         }}
                       >
-                        {/* Numéro de série */}
+                        {/* Set number */}
                         <span
-                          className="font-display text-lg leading-none text-center"
-                          style={{ color: set.done ? "#30D158" : "rgba(235,235,245,0.3)" }}
+                          className="font-display text-xl leading-none text-center"
+                          style={{ color: set.done ? "#39ff14" : "#444" }}
                         >
                           {setIdx + 1}
                         </span>
 
-                        {/* Input KG */}
+                        {/* KG input */}
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
@@ -358,16 +350,16 @@ export default function LogFitness() {
                             disabled={set.done || saved}
                             onClick={(e) => e.stopPropagation()}
                             className="w-14 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                            style={{ color: set.done ? "#30D158" : "white", boxShadow: "none" }}
+                            style={{ color: set.done ? "#39ff14" : "white" }}
                             min="0"
                             step="0.5"
                           />
-                          <span className="text-[9px] pb-1" style={{ color: "rgba(235,235,245,0.2)" }}>
+                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
                             kg
                           </span>
                         </div>
 
-                        {/* Input REPS */}
+                        {/* REPS input */}
                         <div className="flex items-end justify-center gap-0.5">
                           <input
                             type="number"
@@ -378,16 +370,16 @@ export default function LogFitness() {
                             disabled={set.done || saved}
                             onClick={(e) => e.stopPropagation()}
                             className="w-10 text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                            style={{ color: set.done ? "#30D158" : "white", boxShadow: "none" }}
+                            style={{ color: set.done ? "#39ff14" : "white" }}
                             min="0"
                             step="1"
                           />
-                          <span className="text-[9px] pb-1" style={{ color: "rgba(235,235,245,0.2)" }}>
+                          <span className="text-[9px] pb-1" style={{ color: "#3a3a3a" }}>
                             ×
                           </span>
                         </div>
 
-                        {/* Bouton valider / Timer */}
+                        {/* Validate / Timer */}
                         <div className="flex justify-center">
                           {isTimerActive ? (
                             <button
@@ -397,28 +389,35 @@ export default function LogFitness() {
                               <span
                                 className="font-display text-xl leading-none"
                                 style={{
-                                  color: timerSec > 10 ? "#30D158" : timerSec > 3 ? "#FF9F0A" : "#FF453A",
+                                  color:
+                                    timerSec > 10
+                                      ? "#39ff14"
+                                      : timerSec > 3
+                                      ? "#ff6b00"
+                                      : "#ff4444",
                                 }}
                               >
                                 {timerSec}s
                               </span>
-                              <span className="text-[8px]" style={{ color: "rgba(235,235,245,0.3)" }}>
-                                stop
+                              <span className="text-[8px]" style={{ color: "#555" }}>
+                                ■
                               </span>
                             </button>
                           ) : set.done ? (
-                            <span className="text-base" style={{ color: "#30D158" }}>✓</span>
+                            <span className="text-base" style={{ color: "#39ff14" }}>
+                              ✓
+                            </span>
                           ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); validateSet(ex.id, setIdx); }}
                               disabled={saved}
                               className="w-9 h-9 rounded-xl flex items-center justify-center press-effect disabled:opacity-30"
                               style={{
-                                background: "rgba(10,132,255,0.12)",
-                                border: "1px solid rgba(10,132,255,0.35)",
+                                background: "rgba(255,107,0,0.12)",
+                                border: "1px solid rgba(255,107,0,0.4)",
                               }}
                             >
-                              <span className="text-sm" style={{ color: "#0A84FF" }}>✓</span>
+                              <span className="text-sm" style={{ color: "#ff6b00" }}>✓</span>
                             </button>
                           )}
                         </div>
@@ -428,21 +427,21 @@ export default function LogFitness() {
                 </div>
               )}
 
-              {/* Temps de récup */}
+              {/* Rest time label */}
               {coachEx?.restSeconds && (
                 <div
-                  className="px-4 py-2 flex items-center gap-2"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                  className="px-4 py-1.5 flex items-center gap-2"
+                  style={{ background: "#0a0a0a", borderTop: "1px solid #1a1a1a" }}
                 >
-                  <span className="text-[10px] font-medium" style={{ color: "rgba(235,235,245,0.2)" }}>
-                    ⏱ Récup {coachEx.restSeconds}s
+                  <span className="text-[9px] font-bold tracking-widest" style={{ color: "#2a2a2a" }}>
+                    ⏱ RÉCUP {coachEx.restSeconds}s
                   </span>
                 </div>
               )}
 
-              {/* Commentaire */}
+              {/* Comment — editable on any exercise during the live session */}
               {!saved && (
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ background: "#0f0f0f", borderTop: "1px solid #1a1a1a" }}>
                   <textarea
                     value={ex.comment}
                     onChange={(e) => updateComment(ex.id, e.target.value)}
@@ -450,7 +449,7 @@ export default function LogFitness() {
                     rows={2}
                     onClick={(e) => e.stopPropagation()}
                     className="w-full bg-transparent border-none px-4 py-3 text-xs resize-none focus:outline-none"
-                    style={{ color: "rgba(235,235,245,0.5)", boxShadow: "none" }}
+                    style={{ color: "#888" }}
                   />
                 </div>
               )}
@@ -458,50 +457,50 @@ export default function LogFitness() {
           );
         })}
 
-        {/* Coach feedback post-save */}
+        {/* Coach feedback — appears after save during live session */}
         {saved && !existingSession && <CoachFeedbackCard state={coachState} result={coachResult} />}
       </div>
 
-      {/* Action bas de page */}
+      {/* Bottom action */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-4 pt-4"
+        className="fixed bottom-0 left-0 right-0 px-5 pt-3 space-y-2"
         style={{
-          background: "linear-gradient(to top, #000 65%, transparent)",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+          background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 76px)",
         }}
       >
         {existingSession ? null : saved ? (
           <button
             onClick={() => router.push("/")}
-            className="w-full py-4 rounded-2xl font-semibold text-base press-effect"
+            className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
             style={{
-              background: "rgba(48,209,88,0.12)",
-              color: "#30D158",
-              border: "1px solid rgba(48,209,88,0.3)",
+              background: "rgba(57,255,20,0.1)",
+              color: "#39ff14",
+              border: "1px solid rgba(57,255,20,0.4)",
             }}
           >
-            Continuer →
+            CONTINUER →
           </button>
         ) : (
           <div className="space-y-2">
             <button
               onClick={handleSave}
               disabled={saving || !coachWorkout || exercises.length === 0}
-              className="w-full py-4 rounded-2xl font-semibold text-base press-effect disabled:opacity-40"
+              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
               style={{
-                background: "#FF9F0A",
-                color: "#000",
+                background: "linear-gradient(135deg, #ff6b00, #7a3300)",
+                color: "white",
               }}
             >
-              {saving ? "Sauvegarde…" : "Finaliser la séance"}
+              {saving ? "Sauvegarde…" : "FINALISER LA SÉANCE"}
             </button>
             <button
               onClick={handleCancel}
               className="w-full py-2.5 rounded-xl text-sm press-effect"
               style={{
                 background: "transparent",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(235,235,245,0.4)",
+                border: "1px solid #1a1a1a",
+                color: "#555",
               }}
             >
               Annuler la séance

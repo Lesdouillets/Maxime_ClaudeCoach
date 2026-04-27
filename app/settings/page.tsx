@@ -35,7 +35,7 @@ function AvatarFemale() {
 }
 
 function Divider() {
-  return <div className="ml-[68px] mr-4 h-px" style={{ background: "rgba(255,255,255,0.05)" }}/>;
+  return <div className="ml-[68px] mr-4 h-px" style={{ background: "#161616" }}/>;
 }
 
 export default function SettingsPage() {
@@ -180,7 +180,7 @@ export default function SettingsPage() {
       <div className="flex flex-col items-center pb-8">
         {/* Cercle — pas d'overflow-hidden pour éviter le crop */}
         <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-          style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={{ background: "#111", border: "2px solid #1e1e1e" }}>
           {isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
@@ -195,30 +195,30 @@ export default function SettingsPage() {
             {isSwitching && (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="spinner">
                 <circle cx="12" cy="12" r="9" stroke="#222" strokeWidth="2"/>
-                <path d="M12 3a9 9 0 0 1 9 9" stroke="#0A84FF" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 3a9 9 0 0 1 9 9" stroke="#39ff14" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             )}
-            <span className="text-xl font-semibold" style={{ color: "#30D158" }}>{profileName}</span>
+            <span className="text-xl font-semibold" style={{ color: "#39ff14" }}>{profileName}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9l6 6 6-6" stroke="rgba(235,235,245,0.2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 9l6 6 6-6" stroke="#2a2a2a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
 
           {/* Carte — top:0 pour que le nom soit au même endroit que le bouton */}
           {showSwitch && (
             <div className="absolute top-0 z-50 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.1)", minWidth: 160 }}>
+              style={{ background: "#131313", border: "1px solid #222", minWidth: 160 }}>
               {/* En-tête = le nom actif (remplace le bouton) */}
               <button
                 onClick={() => setShowSwitch(false)}
                 className="w-full flex items-center justify-center gap-1.5 px-6 pt-4 pb-2 press-effect"
               >
-                <span className="text-xl font-semibold" style={{ color: "#30D158" }}>{profileName}</span>
+                <span className="text-xl font-semibold" style={{ color: "#39ff14" }}>{profileName}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}>
-                  <path d="M6 9l6 6 6-6" stroke="#30D158" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 9l6 6 6-6" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <div className="mx-4 h-px" style={{ background: "rgba(255,255,255,0.06)" }}/>
+              <div className="mx-4 h-px" style={{ background: "#1e1e1e" }}/>
               {/* Autre profil */}
               <div className="px-6 pt-2 pb-4 flex items-center justify-center gap-2">
                 {editingOther ? (
@@ -229,7 +229,7 @@ export default function SettingsPage() {
                     onBlur={handleRenameOther}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRenameOther(); if (e.key === "Escape") setEditingOther(false); }}
                     className="text-center bg-transparent outline-none text-base font-semibold w-28"
-                    style={{ color: "#eee", borderBottom: "1px solid rgba(255,255,255,0.15)" }}
+                    style={{ color: "#eee", borderBottom: "1px solid #333" }}
                     maxLength={20}
                   />
                 ) : (
@@ -255,26 +255,26 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Actions ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
 
         {/* Strava */}
         <button onClick={handleStravaAction} disabled={stravaResyncing}
           className="w-full flex items-center gap-4 px-4 py-4 press-effect disabled:opacity-40">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.08)" }}>
+            style={{ background: "#131313", border: "1px solid #1e1e1e" }}>
             <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={20} height={20} alt="Strava"
               style={{ opacity: isStravaConnected ? 1 : 0.3 }}/>
           </div>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: isStravaConnected ? "rgba(235,235,245,0.85)" : "rgba(235,235,245,0.35)" }}>
+            <p className="text-sm font-medium" style={{ color: isStravaConnected ? "#ccc" : "#555" }}>
               {stravaResyncing ? "Synchronisation…" : "Strava"}
             </p>
-            <p className="text-[11px]" style={{ color: stravaMsg ? "#FF9F0A" : "rgba(235,235,245,0.2)" }}>
+            <p className="text-[11px]" style={{ color: stravaMsg ? "#ff6b00" : "#333" }}>
               {stravaMsg || (isStravaConnected ? "Connecté" : "Non connecté")}
             </p>
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="rgba(235,235,245,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
 
@@ -283,20 +283,20 @@ export default function SettingsPage() {
         {/* Import */}
         <label className="w-full flex items-center gap-4 px-4 py-4 cursor-pointer press-effect">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.08)" }}>
+            style={{ background: "#131313", border: "1px solid #1e1e1e" }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15V3M7 8l5-5 5 5" stroke="rgba(235,235,245,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M20 21H4" stroke="rgba(235,235,245,0.4)" strokeWidth="1.8" strokeLinecap="round"/>
+              <path d="M12 15V3M7 8l5-5 5 5" stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 21H4" stroke="#555" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           </div>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: "rgba(235,235,245,0.85)" }}>Import programme</p>
+            <p className="text-sm font-medium" style={{ color: "#ccc" }}>Import programme</p>
             {importMsg && (
-              <p className="text-[11px]" style={{ color: importMsg.ok ? "#30D158" : "#FF453A" }}>{importMsg.text}</p>
+              <p className="text-[11px]" style={{ color: importMsg.ok ? "#39ff14" : "#ff4444" }}>{importMsg.text}</p>
             )}
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="rgba(235,235,245,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile}/>
         </label>
@@ -308,34 +308,34 @@ export default function SettingsPage() {
           <button onClick={() => setShowExport((v) => !v)}
             className="w-full flex items-center gap-4 px-4 py-4 press-effect">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{ background: "#131313", border: "1px solid #1e1e1e" }}>
               {copied
                 ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 13L9 17L19 7" stroke="#30D158" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 : <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 9v12M7 16l5 5 5-5" stroke="rgba(235,235,245,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M20 3H4" stroke="rgba(235,235,245,0.4)" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M12 9v12M7 16l5 5 5-5" stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 3H4" stroke="#555" strokeWidth="1.8" strokeLinecap="round"/>
                   </svg>}
             </div>
-            <p className="flex-1 text-left text-sm font-medium" style={{ color: copied ? "#30D158" : "rgba(235,235,245,0.85)" }}>
+            <p className="flex-1 text-left text-sm font-medium" style={{ color: copied ? "#39ff14" : "#ccc" }}>
               {copied ? "Copié !" : "Export programme"}
             </p>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               style={{ transform: showExport ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>
-              <path d="M9 6l6 6-6 6" stroke="rgba(235,235,245,0.15)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {showExport && (
             <div className="flex gap-2 px-4 pb-4">
               <button onClick={handleCopy}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold press-effect"
-                style={{ background: "rgba(48,209,88,0.08)", border: "1px solid rgba(48,209,88,0.2)", color: "#30D158" }}>
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold press-effect"
+                style={{ background: "rgba(57,255,20,0.06)", border: "1px solid rgba(57,255,20,0.12)", color: "#39ff14" }}>
                 Copier JSON
               </button>
               <button onClick={handleDownload}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold press-effect"
-                style={{ background: "#2C2C2E", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(235,235,245,0.4)" }}>
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold press-effect"
+                style={{ background: "#111", border: "1px solid #1e1e1e", color: "#444" }}>
                 Télécharger
               </button>
             </div>
@@ -345,17 +345,17 @@ export default function SettingsPage() {
 
       {/* ── GitHub footer ── */}
       <div className="mt-3 px-4 py-3.5 rounded-2xl flex items-center justify-between"
-        style={{ background: "#1C1C1E", border: "1px solid rgba(255,255,255,0.08)" }}>
+        style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
         <div>
-          <p className="text-sm font-medium" style={{ color: user ? "rgba(235,235,245,0.5)" : "rgba(235,235,245,0.15)" }}>{ghName}</p>
-          <p className="text-[11px]" style={{ color: "rgba(235,235,245,0.15)" }}>Sync {syncLabel}</p>
+          <p className="text-sm font-medium" style={{ color: user ? "#555" : "#252525" }}>{ghName}</p>
+          <p className="text-[11px]" style={{ color: "#252525" }}>Sync {syncLabel}</p>
         </div>
         <button onClick={user ? signOut : signInWithGitHub} className="flex items-center gap-2 press-effect">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "rgba(235,235,245,0.4)" : "rgba(235,235,245,0.12)"}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "#555" : "#222"}>
             <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
           </svg>
           <span className="w-2 h-2 rounded-full"
-            style={{ background: user ? "#30D158" : "rgba(255,255,255,0.08)" }}/>
+            style={{ background: user ? "#39ff14" : "#1e1e1e", boxShadow: user ? "0 0 5px #39ff14" : "none" }}/>
         </button>
       </div>
 
