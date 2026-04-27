@@ -6,7 +6,16 @@ import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
-import { addSession, deleteSession, generateId, getSessions, cancelDay } from "@/lib/storage";
+import {
+  addSession,
+  deleteSession,
+  generateId,
+  getSessions,
+  cancelDay,
+  getInProgressFitness,
+  setInProgressFitness,
+  clearInProgressFitness,
+} from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
 import { analyzeSession, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
@@ -74,9 +83,24 @@ export default function LogFitness() {
     const plan = allWorkouts.find((w) => w.date === targetDate) ?? null;
     if (plan) {
       setCoachWorkout(plan);
-      setExercises(plan.exercises.map(coachToExercise));
+      // Restore in-progress state if the user navigated away and came back mid-session
+      const inProgress = getInProgressFitness(targetDate);
+      if (inProgress && inProgress.exercises.length > 0) {
+        setExercises(inProgress.exercises);
+        setActiveExIdx(inProgress.activeExIdx);
+      } else {
+        setExercises(plan.exercises.map(coachToExercise));
+      }
     }
   }, []);
+
+  // Persist live workout state on every change so navigation doesn't lose progress
+  useEffect(() => {
+    if (!mounted || saved || existingSession) return;
+    if (exercises.length === 0) return;
+    const date = sessionDate ?? new Date().toISOString().slice(0, 10);
+    setInProgressFitness(date, { exercises, activeExIdx });
+  }, [exercises, activeExIdx, mounted, saved, existingSession, sessionDate]);
 
   const handleDelete = useCallback(() => {
     if (!existingSession) return;
@@ -89,6 +113,7 @@ export default function LogFitness() {
     const date = sessionDate ?? new Date().toISOString().slice(0, 10);
     cancelDay(date, "");
     if (coachWorkout) deleteCoachWorkout(coachWorkout.id);
+    clearInProgressFitness(date);
     autoSyncPush();
     router.back();
   }, [sessionDate, coachWorkout, router]);
@@ -188,6 +213,7 @@ export default function LogFitness() {
     };
     addSession(session);
     setSavedSession(session);
+    clearInProgressFitness(session.date.slice(0, 10));
     autoSyncPush();
     setSaving(false);
     setSaved(true);
@@ -200,15 +226,13 @@ export default function LogFitness() {
     });
   }, [exercises, coachWorkout, sessionDate]);
 
-  // Auto-save when every set of every exercise is done
-  useEffect(() => {
-    if (saved || saving || !coachWorkout || exercises.length === 0) return;
-    const allDone = exercises.every(
-      (ex) => ex.setLogs && ex.setLogs.length > 0 && ex.setLogs.every((s) => s.done)
+  // Validation is manual to avoid misclicks closing the session prematurely.
+  const allSetsDone =
+    !!coachWorkout &&
+    exercises.length > 0 &&
+    exercises.every(
+      (ex) => !!ex.setLogs && ex.setLogs.length > 0 && ex.setLogs.every((s) => s.done)
     );
-    if (allDone) handleSave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exercises, saved, saving, coachWorkout]);
 
   if (!mounted) return null;
 
@@ -495,17 +519,19 @@ export default function LogFitness() {
           </button>
         ) : (
           <div className="space-y-2">
-            <button
-              onClick={handleSave}
-              disabled={saving || !coachWorkout || exercises.length === 0}
-              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40"
-              style={{
-                background: "linear-gradient(135deg, #ff6b00, #7a3300)",
-                color: "white",
-              }}
-            >
-              {saving ? "Sauvegarde…" : "FINALISER LA SÉANCE"}
-            </button>
+            {allSetsDone && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect disabled:opacity-40 animate-fade-in"
+                style={{
+                  background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                  color: "#0a0a0a",
+                }}
+              >
+                {saving ? "Sauvegarde…" : "VALIDER LA SÉANCE"}
+              </button>
+            )}
             <button
               onClick={handleCancel}
               className="w-full py-2.5 rounded-xl text-sm press-effect"
