@@ -161,8 +161,8 @@ Deno.serve(async (req: Request) => {
     }
     if (farPlans.length > 0) {
       const compact = farPlans.map((p) => {
-        if (p.type === "run") return `${p.date}:Run ${p.label} ${p.distanceKm}km`;
-        return `${p.date}:${p.category === "lower" ? "Lower" : "Upper"}(${(p.exercises as unknown[])?.length ?? 0}ex)`;
+        if (p.type === "run") return `${p.id}|${p.date}:Run ${p.label} ${p.distanceKm}km`;
+        return `${p.id}|${p.date}:${p.category === "lower" ? "Lower" : "Upper"}(${(p.exercises as unknown[])?.length ?? 0}ex)`;
       }).join(" | ");
       contextParts.push(`\n## Programme J4+\n${compact}`);
     }
