@@ -154,9 +154,13 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     return { role: m.role, content: m.content };
   });
 
+  // Compute today in the user's local timezone to avoid UTC date drift
+  const _d = new Date();
+  const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
+
   try {
     const { data, error } = await supabase.functions.invoke("chat-coach", {
-      body: { messages: apiMessages, coachPlans, recentSessions, profileName, previousAnalyses },
+      body: { messages: apiMessages, coachPlans, recentSessions, profileName, previousAnalyses, today },
     });
 
     if (error || !data) {
