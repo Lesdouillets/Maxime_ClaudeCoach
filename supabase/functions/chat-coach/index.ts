@@ -85,7 +85,13 @@ RÈGLE IMPORTANTE — CONFIRMATION OBLIGATOIRE :
 - Si l'utilisateur confirme, déplace les plans dans "modified_plans" et les IDs dans "delete_plan_ids", vide les pending.
 - Si tu réponds juste à une question sans modifier le programme, les quatre tableaux sont vides.
 Pour les plans existants modifiés : conserve leur ID d'origine. Pour les nouveaux : utilise "coach-chat-{date}-{n}".
-Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.`;
+Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.
+
+CONTINUITÉ ENTRE LES TOURS :
+- Tes messages assistant précédents peuvent contenir des blocs `[pending_plans=...]` et `[pending_delete_ids=...]`. Ce sont les propositions que TU as faites au tour précédent.
+- Quand l'utilisateur confirme, tu DOIS reprendre EXACTEMENT le contenu de `[pending_plans=...]` du dernier tour et le placer tel quel dans "modified_plans" (mêmes IDs, mêmes exercices, mêmes valeurs). Ne ré-invente rien.
+- De même pour `[pending_delete_ids=...]` → "delete_plan_ids".
+- Si tu confirmes une application sans rien mettre dans "modified_plans"/"delete_plan_ids", aucune séance ne sera modifiée — c'est une erreur grave.`;
 }
 
 Deno.serve(async (req: Request) => {
