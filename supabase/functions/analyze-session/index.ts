@@ -291,13 +291,13 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        // 2500 was too tight: a full modified fitness plan (~500 tokens each)
-        // plus the analysis easily breaches it, truncating the JSON. 6000 gives
-        // headroom for 4-5 adjusted plans without losing the response.
-        max_tokens: 6000,
+        // 6000 was tight when plans include setPlans arrays. 8000 gives
+        // comfortable headroom even if Claude modifies 5+ plans with per-set detail.
+        max_tokens: 8000,
         system: [
           {
             type: "text",

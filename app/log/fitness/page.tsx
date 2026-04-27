@@ -46,6 +46,7 @@ export default function LogFitness() {
   const [coachState, setCoachState] = useState<"analyzing" | "done">("analyzing");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [existingSession, setExistingSession] = useState<FitnessSession | null>(null);
+  const [savedSession, setSavedSession] = useState<FitnessSession | null>(null);
   const { timerKey, timerSec, startTimer, stopTimer } = useTimer();
 
   useEffect(() => {
@@ -91,6 +92,16 @@ export default function LogFitness() {
     autoSyncPush();
     router.back();
   }, [sessionDate, coachWorkout, router]);
+
+  const handleRetry = useCallback(() => {
+    const session = existingSession ?? savedSession;
+    if (!session) return;
+    setCoachState("analyzing");
+    analyzeSession(session).then((result) => {
+      setCoachResult(result);
+      setCoachState("done");
+    });
+  }, [existingSession, savedSession]);
 
 
   useEffect(() => {
@@ -176,6 +187,7 @@ export default function LogFitness() {
       coachWorkoutId: coachWorkout.id,
     };
     addSession(session);
+    setSavedSession(session);
     autoSyncPush();
     setSaving(false);
     setSaved(true);
@@ -212,7 +224,7 @@ export default function LogFitness() {
 
         {existingSession && (
           <>
-            <CoachFeedbackCard state={coachState} result={coachResult} />
+            <CoachFeedbackCard state={coachState} result={coachResult} onRetry={handleRetry} />
             <FitnessSessionResults session={existingSession} />
           </>
         )}
@@ -458,7 +470,7 @@ export default function LogFitness() {
         })}
 
         {/* Coach feedback — appears after save during live session */}
-        {saved && !existingSession && <CoachFeedbackCard state={coachState} result={coachResult} />}
+        {saved && !existingSession && <CoachFeedbackCard state={coachState} result={coachResult} onRetry={handleRetry} />}
       </div>
 
       {/* Bottom action */}
