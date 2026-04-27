@@ -88,9 +88,9 @@ Pour les plans existants modifiés : conserve leur ID d'origine. Pour les nouvea
 Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.
 
 CONTINUITÉ ENTRE LES TOURS :
-- Tes messages assistant précédents peuvent contenir des blocs `[pending_plans=...]` et `[pending_delete_ids=...]`. Ce sont les propositions que TU as faites au tour précédent.
-- Quand l'utilisateur confirme, tu DOIS reprendre EXACTEMENT le contenu de `[pending_plans=...]` du dernier tour et le placer tel quel dans "modified_plans" (mêmes IDs, mêmes exercices, mêmes valeurs). Ne ré-invente rien.
-- De même pour `[pending_delete_ids=...]` → "delete_plan_ids".
+- Tes messages assistant précédents peuvent contenir des blocs \`[pending_plans=...]\` et \`[pending_delete_ids=...]\`. Ce sont les propositions que TU as faites au tour précédent.
+- Quand l'utilisateur confirme, tu DOIS reprendre EXACTEMENT le contenu de \`[pending_plans=...]\` du dernier tour et le placer tel quel dans "modified_plans" (mêmes IDs, mêmes exercices, mêmes valeurs). Ne ré-invente rien.
+- De même pour \`[pending_delete_ids=...]\` → "delete_plan_ids".
 - Si tu confirmes une application sans rien mettre dans "modified_plans"/"delete_plan_ids", aucune séance ne sera modifiée — c'est une erreur grave.`;
 }
 
