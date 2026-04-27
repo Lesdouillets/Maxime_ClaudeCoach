@@ -65,6 +65,8 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 **Séance fitness**
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
 
+IMPORTANT : N'inclus JAMAIS le champ "setPlans" dans tes réponses. Utilise uniquement sets/reps/weight.
+
 ## FORMAT DE RÉPONSE — STRICT JSON UNIQUEMENT
 Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdown :
 {
@@ -108,11 +110,11 @@ Deno.serve(async (req: Request) => {
     const today = new Date().toISOString().slice(0, 10);
     const contextParts: string[] = [`## Date du jour : ${today}`];
 
-    // Max 2 analyses, truncated to 400 chars each
+    // Last 3 analyses, truncated to 600 chars each
     if (previousAnalyses.length > 0) {
       const trimmed = previousAnalyses
-        .slice(0, 2)
-        .map((a: { date: string; analysis: string }) => `${a.date}: ${a.analysis.slice(0, 400)}`);
+        .slice(0, 3)
+        .map((a: { date: string; analysis: string }) => `${a.date}: ${a.analysis.slice(0, 600)}`);
       contextParts.push(`\n## Analyses récentes\n${trimmed.join("\n")}`);
     }
 
@@ -120,7 +122,8 @@ Deno.serve(async (req: Request) => {
       contextParts.push(`\n## Séances récentes\n${recentSessions.join("\n")}`);
     }
 
-    // Strip coachNote fields to save tokens, keep only what the coach needs
+    // Strip coachNote + setPlans to reduce tokens and avoid coach echoing setPlans back.
+    // The client auto-migrates setPlans from sets/reps/weight so we never need them in responses.
     function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
       return plans.map((p) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -128,7 +131,7 @@ Deno.serve(async (req: Request) => {
         if (Array.isArray(rest.exercises)) {
           rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { coachNote: _ecn, ...exRest } = ex;
+            const { coachNote: _ecn, setPlans: _sp, ...exRest } = ex;
             return exRest;
           });
         }
@@ -154,8 +157,8 @@ Deno.serve(async (req: Request) => {
       contextParts.push(`\n## Programme J4+\n${compact}`);
     }
 
-    // Only keep last 6 messages for API call
-    let recentMessages = messages.slice(-6);
+    // Only keep last 16 messages for API call (8 exchanges — enough to follow conversation thread)
+    let recentMessages = messages.slice(-16);
 
     // Context injection prepends a user+assistant pair before recentMessages.
     // If recentMessages starts with an assistant message, the API would receive
@@ -185,7 +188,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 8192,
+        max_tokens: 32000,
         system: [
           {
             type: "text",
@@ -244,10 +247,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!result) {
-      // No parseable JSON — surface the raw text as the coach's response so the UI
-      // still shows something useful instead of the generic error banner.
       console.warn("[chat-coach] no JSON parsed, falling back to raw text. Preview:", text.slice(0, 200));
-      const fallbackMsg = text.trim() || "Désolé, je n'ai pas pu formuler de réponse cette fois-ci.";
+      // Try to salvage the response field from truncated JSON via regex
+      const responseMatch = text.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const salvaged = responseMatch ? responseMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
+      const fallbackMsg = salvaged || "Désolé, je n'ai pas pu formuler de réponse. Réessaie avec une demande plus courte.";
       result = { response: fallbackMsg + (truncated ? truncSuffix : ""), ...emptyShape };
     } else if (truncated) {
       // Parsed OK but hit max_tokens — plans may be incomplete, drop them
