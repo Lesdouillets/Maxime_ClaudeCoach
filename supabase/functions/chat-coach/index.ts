@@ -107,13 +107,17 @@ Deno.serve(async (req: Request) => {
       recentSessions = [],
       profileName = "Maxime",
       previousAnalyses = [],
+      today: clientToday,
     } = body;
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    // Prefer the client-supplied date (local timezone) to avoid UTC drift
+    const today = typeof clientToday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientToday)
+      ? clientToday
+      : new Date().toISOString().slice(0, 10);
     const contextParts: string[] = [`## Date du jour : ${today}`];
 
     // Last 3 analyses, truncated to 600 chars each
