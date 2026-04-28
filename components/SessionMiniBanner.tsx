@@ -40,12 +40,24 @@ export default function SessionMiniBanner() {
   const ex = session.state.exercises[session.state.activeExIdx];
   if (!ex) return null;
 
+  const finishingStatus = session.finishing.status;
+  const isAnalyzing = finishingStatus === "saving" || finishingStatus === "analyzing";
+  const isAnalysisDone = finishingStatus === "done";
+  const isAnalysisError = finishingStatus === "error";
+
   const nextSet = ex.setLogs?.find((s) => !s.done);
-  const isResting = !!timerKey && timerSec > 0;
+  const isResting = !!timerKey && timerSec > 0 && !isAnalyzing && !isAnalysisDone && !isAnalysisError;
   const restProgress = timerTotalSec > 0
     ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
     : 0;
   const timerColor = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
+
+  let subtitle: string;
+  if (isAnalyzing) subtitle = "Analyse du coach en cours…";
+  else if (isAnalysisDone) subtitle = "Analyse terminée — touche pour voir";
+  else if (isAnalysisError) subtitle = "Analyse indisponible — touche pour réessayer";
+  else if (nextSet) subtitle = `Next: ${nextSet.reps || ex.reps} × ${nextSet.weight || ex.weight} kg`;
+  else subtitle = "Toutes les séries faites";
 
   return (
     <div
@@ -57,7 +69,11 @@ export default function SessionMiniBanner() {
         className="w-full pointer-events-auto rounded-2xl flex items-center gap-3 p-2.5 press-effect"
         style={{
           background: "rgba(20,20,20,0.92)",
-          border: "1px solid #232323",
+          border: isAnalysisError
+            ? "1px solid rgba(255,107,0,0.4)"
+            : isAnalysisDone
+              ? "1px solid rgba(57,255,20,0.4)"
+              : "1px solid #232323",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
@@ -66,10 +82,19 @@ export default function SessionMiniBanner() {
         <ExerciseThumb name={ex.name} />
         <div className="flex-1 text-left min-w-0">
           <p className="font-bold text-sm truncate">{ex.name}</p>
-          <p className="text-[11px] truncate" style={{ color: "#777" }}>
-            {nextSet
-              ? `Next: ${nextSet.reps || ex.reps} × ${nextSet.weight || ex.weight} kg`
-              : "Toutes les séries faites"}
+          <p
+            className="text-[11px] truncate"
+            style={{
+              color: isAnalysisError
+                ? "#ff9a3c"
+                : isAnalysisDone
+                  ? "#39ff14"
+                  : isAnalyzing
+                    ? "#39ff14"
+                    : "#777",
+            }}
+          >
+            {subtitle}
           </p>
         </div>
         {isResting ? (
@@ -88,6 +113,19 @@ export default function SessionMiniBanner() {
               />
             </div>
           </div>
+        ) : isAnalyzing ? (
+          <span className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1 h-1 rounded-full inline-block"
+                style={{
+                  background: "#39ff14",
+                  animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
+                }}
+              />
+            ))}
+          </span>
         ) : (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M6 15l6-6 6 6" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

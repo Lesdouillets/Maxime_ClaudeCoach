@@ -47,7 +47,7 @@ export default function LogFitness() {
 
     // No session yet → try to open the global session sheet via context.
     const result = session.open(d);
-    if (result === "ok") {
+    if (result === "ok" || result === "another-active") {
       setHandoff("redirecting");
       router.replace("/");
     } else {

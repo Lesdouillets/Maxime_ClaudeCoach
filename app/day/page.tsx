@@ -84,7 +84,7 @@ export default function DayPage() {
 
   const handleValidateFitness = () => {
     const result = sessionCtx.open(date);
-    if (result === "ok") return;
+    if (result === "ok" || result === "another-active") return;
     router.push(`/log/fitness?date=${date}`);
   };
 

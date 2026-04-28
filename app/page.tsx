@@ -185,7 +185,10 @@ export default function HomePage() {
               // Active workout (planned, not yet done) → open the global session sheet.
               if (todayCoachWorkout && !todaySession) {
                 const result = session.open(todayStr);
-                if (result === "ok") return;
+                // "ok" = sheet now shows today's plan.
+                // "another-active" = a different in-flight session was expanded instead;
+                // in both cases the sheet handles the UI, so don't fall through to navigation.
+                if (result === "ok" || result === "another-active") return;
               }
               // Done fitness session → archive view; runs (planned or done) → day view.
               const isFitnessDay =

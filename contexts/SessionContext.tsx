@@ -60,10 +60,11 @@ export interface SessionContextValue {
   finishing: FinishingState;
   elapsedSeconds: number;
 
-  open: (date: string) => "ok" | "no-plan" | "already-done";
+  open: (date: string) => "ok" | "no-plan" | "already-done" | "another-active";
   expand: () => void;
   minimize: () => void;
   close: () => void;
+  retryAnalysis: () => Promise<void>;
 
   setActiveIdx: (idx: number) => void;
   updateSet: (exId: string, idx: number, patch: Partial<SetLog>) => void;
@@ -186,6 +187,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   const open = useCallback<SessionContextValue["open"]>((date) => {
+    // If a session is already in flight, expand it. If it's for a different date,
+    // refuse — the user must finish or close the existing one before starting a new one.
+    const current = stateRef.current;
+    if (current) {
+      if (current.date === date) {
+        setView("expanded");
+        return "ok";
+      }
+      setView("expanded");
+      return "another-active";
+    }
+
     // If a session for this date already exists in storage, refuse: it's an archive view.
     const existing = getSessions().some(
       (s) => s.type === "fitness" && s.date.slice(0, 10) === date
@@ -412,11 +425,33 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await analyzeSession(session);
       if (state.coachWorkoutId) deleteCoachWorkout(state.coachWorkoutId);
-      setFinishing({ status: "done", session, result });
+      // analyzeSession returns null on failure (it never throws), so a null result
+      // is the error path, not a successful one.
+      if (result === null) {
+        setFinishing({ status: "error", session, result: null });
+      } else {
+        setFinishing({ status: "done", session, result });
+      }
     } catch {
       setFinishing({ status: "error", session, result: null });
     }
   }, [state, stopTimer]);
+
+  const retryAnalysis = useCallback(async () => {
+    const saved = finishing.session;
+    if (!saved) return;
+    setFinishing({ status: "analyzing", session: saved, result: null });
+    try {
+      const result = await analyzeSession(saved);
+      if (result === null) {
+        setFinishing({ status: "error", session: saved, result: null });
+      } else {
+        setFinishing({ status: "done", session: saved, result });
+      }
+    } catch {
+      setFinishing({ status: "error", session: saved, result: null });
+    }
+  }, [finishing.session]);
 
   const elapsedSeconds = state ? Math.max(0, Math.floor((now - state.startedAt) / 1000)) : 0;
 
@@ -443,6 +478,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         cancelFinish,
         confirmFinish,
         resetFinishing,
+        retryAnalysis,
       }}
     >
       {children}
