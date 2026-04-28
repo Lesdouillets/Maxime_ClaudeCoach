@@ -7,11 +7,13 @@ const STORAGE_KEY = "cc_timer";
 interface TimerStore {
   key: string;
   endTime: number;
+  totalSec: number;
 }
 
 interface TimerContextValue {
   timerKey: string | null;
   timerSec: number;
+  timerTotalSec: number;
   startTimer: (key: string, seconds: number) => void;
   stopTimer: () => void;
 }
@@ -19,6 +21,7 @@ interface TimerContextValue {
 const TimerContext = createContext<TimerContextValue>({
   timerKey: null,
   timerSec: 0,
+  timerTotalSec: 0,
   startTimer: () => {},
   stopTimer: () => {},
 });
@@ -26,6 +29,7 @@ const TimerContext = createContext<TimerContextValue>({
 export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [timerKey, setTimerKey] = useState<string | null>(null);
   const [timerSec, setTimerSec] = useState(0);
+  const [timerTotalSec, setTimerTotalSec] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const endTimeRef = useRef<number | null>(null);
 
@@ -41,6 +45,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     if (remaining <= 0) {
       clearTimer();
       setTimerKey(null);
+      setTimerTotalSec(0);
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
     }
   };
@@ -51,7 +56,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     endTimeRef.current = endTime;
     setTimerKey(key);
     setTimerSec(seconds);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ key, endTime } satisfies TimerStore)); } catch {}
+    setTimerTotalSec(seconds);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ key, endTime, totalSec: seconds } satisfies TimerStore)); } catch {}
     intervalRef.current = setInterval(tick, 500);
   };
 
@@ -59,6 +65,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     clearTimer();
     setTimerKey(null);
     setTimerSec(0);
+    setTimerTotalSec(0);
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
   };
 
@@ -66,11 +73,16 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const { key, endTime } = JSON.parse(raw) as TimerStore;
-        if (endTime > Date.now()) {
+        const parsed = JSON.parse(raw) as Partial<TimerStore>;
+        const key = parsed.key;
+        const endTime = parsed.endTime;
+        const totalSec = parsed.totalSec ?? 0;
+        if (key && endTime && endTime > Date.now()) {
           endTimeRef.current = endTime;
           setTimerKey(key);
-          setTimerSec(Math.ceil((endTime - Date.now()) / 1000));
+          const remaining = Math.ceil((endTime - Date.now()) / 1000);
+          setTimerSec(remaining);
+          setTimerTotalSec(totalSec || remaining);
           intervalRef.current = setInterval(tick, 500);
         } else {
           localStorage.removeItem(STORAGE_KEY);
@@ -82,7 +94,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <TimerContext.Provider value={{ timerKey, timerSec, startTimer, stopTimer }}>
+    <TimerContext.Provider value={{ timerKey, timerSec, timerTotalSec, startTimer, stopTimer }}>
       {children}
     </TimerContext.Provider>
   );

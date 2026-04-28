@@ -15,6 +15,7 @@ import {
 } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, deleteCoachWorkout, addCoachRun, deleteCoachRun } from "@/lib/coachPlan";
 import { autoSyncPush } from "@/lib/sync";
+import { useSession } from "@/contexts/SessionContext";
 import { analyzeSession, getStoredCoachAnalysis, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { WEEKLY_PLAN, toLocalDateStr, formatPace } from "@/lib/plan";
 import type { WorkoutSession, FitnessSession, RunSession, CancelledDay as CancelledDayType } from "@/lib/types";
@@ -27,6 +28,7 @@ const StravaIcon = () => (
 
 export default function DayPage() {
   const router = useRouter();
+  const sessionCtx = useSession();
   const [mounted, setMounted] = useState(false);
   const [date, setDate] = useState("");
   const [session, setSession] = useState<WorkoutSession | null>(null);
@@ -81,6 +83,8 @@ export default function DayPage() {
   }, []);
 
   const handleValidateFitness = () => {
+    const result = sessionCtx.open(date);
+    if (result === "ok" || result === "another-active") return;
     router.push(`/log/fitness?date=${date}`);
   };
 
