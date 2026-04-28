@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
+import { useSession } from "@/contexts/SessionContext";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
 import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
@@ -35,6 +36,7 @@ const ACCENT: Record<BgType, string> = {
 
 export default function HomePage() {
   const router = useRouter();
+  const session = useSession();
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
@@ -180,6 +182,12 @@ export default function HomePage() {
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => {
+              // Active workout (planned, not yet done) → open the global session sheet.
+              if (todayCoachWorkout && !todaySession) {
+                const result = session.open(todayStr);
+                if (result === "ok") return;
+              }
+              // Done fitness session → archive view; runs (planned or done) → day view.
               const isFitnessDay =
                 !!todayCoachWorkout || todaySession?.type === "fitness";
               router.push(

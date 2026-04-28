@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import BottomNav from "@/components/BottomNav";
 import SyncProvider from "@/components/SyncProvider";
 import GlobalUI from "@/components/GlobalUI";
 
@@ -61,7 +60,6 @@ export default function RootLayout({
             {children}
           </div>
         </GlobalUI>
-        <BottomNav />
       </body>
     </html>
   );

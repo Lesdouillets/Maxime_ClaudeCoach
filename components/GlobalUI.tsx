@@ -2,6 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { TimerProvider, useTimer } from "@/contexts/TimerContext";
+import { SessionProvider, useSession } from "@/contexts/SessionContext";
+import SessionSheet from "@/components/SessionSheet";
+import SessionMiniBanner from "@/components/SessionMiniBanner";
+import BottomNav from "@/components/BottomNav";
 
 function TimerHalo() {
   const { timerKey, timerSec } = useTimer();
@@ -26,9 +30,15 @@ function TimerHalo() {
 
 function FloatingTimer() {
   const { timerKey, timerSec, stopTimer } = useTimer();
+  const session = useSession();
   const pathname = usePathname();
-  const isTimerPage = pathname === "/day" || pathname === "/log/fitness";
-  if (!timerKey || timerSec <= 0 || isTimerPage) return null;
+  // Don't show floating timer when the session sheet is up (it has its own progress bar),
+  // nor on legacy fitness page or day page (they have inline timers).
+  const hidden =
+    session.view !== "hidden" ||
+    pathname === "/day" ||
+    pathname === "/log/fitness";
+  if (!timerKey || timerSec <= 0 || hidden) return null;
   const color = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
   return (
     <button
@@ -45,13 +55,23 @@ function FloatingTimer() {
   );
 }
 
+function BottomNavGate() {
+  const session = useSession();
+  if (session.view === "expanded") return null;
+  return <BottomNav />;
+}
+
 export default function GlobalUI({ children }: { children: React.ReactNode }) {
   return (
     <TimerProvider>
-      <TimerHalo />
-      <FloatingTimer />
-      {children}
+      <SessionProvider>
+        <TimerHalo />
+        <FloatingTimer />
+        {children}
+        <SessionMiniBanner />
+        <BottomNavGate />
+        <SessionSheet />
+      </SessionProvider>
     </TimerProvider>
   );
 }
-
