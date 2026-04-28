@@ -32,7 +32,8 @@ export interface LiveExercise extends Exercise {
 }
 
 interface SessionMeta {
-  startedAt: number;
+  /** ms timestamp of the first validated set, or null if the user hasn't started yet */
+  startedAt: number | null;
   category: FitnessCategory;
   coachWorkoutId: string | null;
 }
@@ -43,7 +44,8 @@ interface SessionState {
   coachWorkoutId: string | null;
   exercises: LiveExercise[];
   activeExIdx: number;
-  startedAt: number;
+  /** ms timestamp of the first validated set; null while no set has been validated yet */
+  startedAt: number | null;
 }
 
 export type SessionView = "hidden" | "expanded" | "minimized";
@@ -195,7 +197,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // Resume in-progress if present, else hydrate from coach plan
     const inProgress = getInProgressFitness(date);
     const meta = loadMeta(date);
-    const startedAt = meta?.startedAt ?? Date.now();
+    // The session timer only starts once the user validates their first set.
+    // If we're resuming a workout that was already underway, keep the existing
+    // startedAt; otherwise leave it null until validateSet flips it.
+    const startedAt = meta?.startedAt ?? null;
 
     const exercises: LiveExercise[] = inProgress && inProgress.exercises.length > 0
       ? (inProgress.exercises as LiveExercise[])
@@ -258,8 +263,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (!prev) return prev;
       const exIdx = prev.exercises.findIndex((e) => e.id === exId);
       if (exIdx < 0) return prev;
-      const next = {
+      const next: SessionState = {
         ...prev,
+        // Stamp the session start on the first validated set.
+        startedAt: prev.startedAt ?? Date.now(),
         exercises: prev.exercises.map((ex) => {
           if (ex.id !== exId || !ex.setLogs) return ex;
           return {
@@ -492,20 +499,20 @@ export function useSession(): SessionContextValue {
 
 /**
  * Subscribes to a 1Hz ticker that returns the seconds elapsed since the active
- * session started. Returns 0 when no session is active. Intentionally a separate
- * hook (not exposed via context value) so that consumers of `useSession()` are
- * not re-rendered every second.
+ * session started (i.e. since the user validated their first set). Returns null
+ * when no session is active or no set has been validated yet — callers can
+ * decide whether to show "00:00" or hide the display entirely.
  */
-export function useElapsedSeconds(): number {
+export function useElapsedSeconds(): number | null {
   const { state } = useSession();
   const startedAt = state?.startedAt ?? null;
-  const [elapsed, setElapsed] = useState(() =>
-    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0
+  const [elapsed, setElapsed] = useState<number | null>(() =>
+    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : null
   );
 
   useEffect(() => {
     if (startedAt === null) {
-      setElapsed(0);
+      setElapsed(null);
       return;
     }
     setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
