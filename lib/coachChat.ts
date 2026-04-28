@@ -173,8 +173,15 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     const confirmedPlans: unknown[] = Array.isArray(data.modified_plans) ? data.modified_plans : [];
     let modifiedCount = 0;
     if (confirmedPlans.length > 0) {
+      // The coach may regenerate exercises slightly differently from the proposal.
+      // Always apply the original pending_plans (what the user actually approved)
+      // rather than the potentially-mutated modified_plans from the API.
+      const lastPendingMsg = [...history].reverse().find(
+        (m) => m.role === "assistant" && m.pendingPlans && m.pendingPlans.length > 0
+      );
+      const plansToApply = lastPendingMsg?.pendingPlans ?? confirmedPlans;
       try {
-        const parsed = parseCoachWorkoutJSON(JSON.stringify(confirmedPlans));
+        const parsed = parseCoachWorkoutJSON(JSON.stringify(plansToApply));
         for (const plan of parsed) {
           if (plan.type === "fitness") addCoachWorkout(plan);
           else addCoachRun(plan);
