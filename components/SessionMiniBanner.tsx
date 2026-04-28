@@ -36,15 +36,13 @@ export default function SessionMiniBanner() {
   const { timerKey, timerSec, timerTotalSec } = useTimer();
 
   // The banner only surfaces the live workout (current exercise + rest timer).
-  // Once the user has hit "Finir", the analysis flow is owned by the sheet —
-  // no banner during/after finishing.
+  // Once the user has hit "Finir", the analysis flow is owned by the sheet.
   if (session.view !== "minimized" || !session.state) return null;
   if (session.finishing.status !== "idle") return null;
 
   const ex = session.state.exercises[session.state.activeExIdx];
   if (!ex) return null;
 
-  const nextSet = ex.setLogs?.find((s) => !s.done);
   const isResting = !!timerKey && timerSec > 0;
   const restProgress = timerTotalSec > 0
     ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
@@ -68,16 +66,9 @@ export default function SessionMiniBanner() {
         }}
       >
         <ExerciseThumb name={ex.name} />
-        <div className="flex-1 text-left min-w-0">
-          <p className="font-bold text-sm truncate">{ex.name}</p>
-          <p className="text-[11px] truncate" style={{ color: "#777" }}>
-            {nextSet
-              ? `Next: ${nextSet.reps || ex.reps} × ${nextSet.weight || ex.weight} kg`
-              : "Toutes les séries faites"}
-          </p>
-        </div>
-        {isResting ? (
-          <div className="flex flex-col items-end">
+        <p className="flex-1 text-left font-bold text-sm truncate">{ex.name}</p>
+        {isResting && (
+          <div className="flex flex-col items-end flex-shrink-0">
             <span className="font-display text-xl leading-none tabular-nums" style={{ color: timerColor }}>
               {formatMMSS(timerSec)}
             </span>
@@ -92,10 +83,6 @@ export default function SessionMiniBanner() {
               />
             </div>
           </div>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M6 15l6-6 6 6" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
         )}
       </button>
     </div>

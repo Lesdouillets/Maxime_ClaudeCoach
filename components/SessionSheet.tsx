@@ -461,6 +461,11 @@ const ActiveCard = memo(ActiveCardImpl);
 
 function ElapsedDisplay() {
   const elapsed = useElapsedSeconds();
+  // Render an empty placeholder of the same height before the first validated
+  // set so the header layout doesn't shift when the timer kicks in.
+  if (elapsed === null) {
+    return <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "transparent" }}>00:00</span>;
+  }
   return (
     <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "#eee" }}>
       {formatMMSS(elapsed)}
