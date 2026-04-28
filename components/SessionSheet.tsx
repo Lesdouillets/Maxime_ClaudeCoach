@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, type LiveExercise } from "@/contexts/SessionContext";
+import { useSession, useElapsedSeconds, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
@@ -156,21 +156,23 @@ function ProgressDots({ exercise }: { exercise: LiveExercise }) {
   );
 }
 
-function CollapsedCard({
-  exercise,
-  onTap,
-  onMenu,
-  menuOpen,
-  onMenuClose,
-  onAction,
-}: {
+interface CollapsedCardProps {
   exercise: LiveExercise;
   onTap: () => void;
   onMenu: () => void;
   menuOpen: boolean;
   onMenuClose: () => void;
   onAction: (kind: "swap" | "rest" | "note" | "more" | "delete") => void;
-}) {
+}
+
+function CollapsedCardImpl({
+  exercise,
+  onTap,
+  onMenu,
+  menuOpen,
+  onMenuClose,
+  onAction,
+}: CollapsedCardProps) {
   return (
     <div
       className="relative rounded-2xl p-3 flex items-center gap-3 press-effect"
@@ -211,13 +213,14 @@ function CollapsedCard({
   );
 }
 
-function ActiveCard({
-  exercise,
-  noteOpen,
-}: {
+const CollapsedCard = memo(CollapsedCardImpl);
+
+interface ActiveCardProps {
   exercise: LiveExercise;
   noteOpen: boolean;
-}) {
+}
+
+function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
   const session = useSession();
   const { timerKey, timerSec, stopTimer } = useTimer();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -454,21 +457,49 @@ function ActiveCard({
   );
 }
 
+const ActiveCard = memo(ActiveCardImpl);
+
+function ElapsedDisplay() {
+  const elapsed = useElapsedSeconds();
+  return (
+    <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "#eee" }}>
+      {formatMMSS(elapsed)}
+    </span>
+  );
+}
+
 export default function SessionSheet() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
   const router = useRouter();
   const [openMenuExId, setOpenMenuExId] = useState<string | null>(null);
   const [noteOpenExIds, setNoteOpenExIds] = useState<Set<string>>(new Set());
+  // Drives the slide-in animation: starts at translateY(100%) on first render,
+  // flips to translateY(0) on the next frame so CSS can interpolate.
+  const [hasEntered, setHasEntered] = useState(false);
 
   // Reset menu state on close
   useEffect(() => {
     if (session.view !== "expanded") setOpenMenuExId(null);
   }, [session.view]);
 
+  // Entrance animation: when state appears, start hidden, then expand on next frame.
+  useEffect(() => {
+    if (!session.state) {
+      setHasEntered(false);
+      return;
+    }
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => setHasEntered(true));
+      return () => cancelAnimationFrame(id2);
+    });
+    return () => cancelAnimationFrame(id1);
+  }, [session.state]);
+
   if (!session.state) return null;
 
-  const isExpanded = session.view === "expanded";
+  const isExpanded = session.view === "expanded" && hasEntered;
+  const backdropVisible = session.view === "expanded";
   const isFinishingRunning =
     session.finishing.status === "saving" ||
     session.finishing.status === "analyzing" ||
@@ -489,8 +520,8 @@ export default function SessionSheet() {
           position: "fixed",
           inset: 0,
           background: "#0a0a0a",
-          opacity: isExpanded ? 1 : 0,
-          pointerEvents: isExpanded ? "auto" : "none",
+          opacity: backdropVisible && hasEntered ? 1 : 0,
+          pointerEvents: backdropVisible ? "auto" : "none",
           transition: "opacity 220ms ease",
           zIndex: 55,
         }}
@@ -529,9 +560,7 @@ export default function SessionSheet() {
 
           <div className="flex flex-col items-center">
             <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a", marginBottom: 6 }} />
-            <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "#eee" }}>
-              {formatMMSS(session.elapsedSeconds)}
-            </span>
+            <ElapsedDisplay />
           </div>
 
           <button

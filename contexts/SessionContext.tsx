@@ -58,7 +58,6 @@ export interface SessionContextValue {
   state: SessionState | null;
   view: SessionView;
   finishing: FinishingState;
-  elapsedSeconds: number;
 
   open: (date: string) => "ok" | "no-plan" | "already-done" | "another-active";
   expand: () => void;
@@ -126,27 +125,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const stateRef = useRef<SessionState | null>(null);
   const [view, setView] = useState<SessionView>("hidden");
   const [finishing, setFinishing] = useState<FinishingState>({ status: "idle" });
-  const [now, setNow] = useState<number>(() => Date.now());
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { startTimer, stopTimer } = useTimer();
 
   // Keep a ref in sync with the latest state for callbacks that need to read it
   // without triggering re-creation via deps.
   useEffect(() => {
     stateRef.current = state;
-  }, [state]);
-
-  // Tick once a second when a session is active so the elapsed counter updates.
-  useEffect(() => {
-    if (!state) {
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-      return;
-    }
-    setNow(Date.now());
-    tickRef.current = setInterval(() => setNow(Date.now()), 1000);
-    return () => {
-      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
-    };
   }, [state]);
 
   // On mount, restore any in-progress session that was minimized when the user reloaded.
@@ -420,11 +404,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     clearMeta(state.date);
     try { localStorage.removeItem(ACTIVE_KEY); } catch {}
 
+    // Snapshot the coach plan BEFORE analysis: if the analyzer rewrites the same id
+    // in-place (addCoachWorkout dedup-by-id replaces it), we must NOT delete it
+    // afterwards, otherwise the just-applied modification is lost.
+    const planSnapshot = state.coachWorkoutId
+      ? JSON.stringify(getCoachWorkouts().find((w) => w.id === state.coachWorkoutId) ?? null)
+      : null;
+
     setFinishing({ status: "analyzing", session, result: null });
 
     try {
       const result = await analyzeSession(session);
-      if (state.coachWorkoutId) deleteCoachWorkout(state.coachWorkoutId);
+      if (state.coachWorkoutId) {
+        const currentPlan = getCoachWorkouts().find((w) => w.id === state.coachWorkoutId);
+        const currentJson = currentPlan ? JSON.stringify(currentPlan) : null;
+        // Only delete if the plan still exists AND is byte-identical to what we sent
+        // — i.e. the coach didn't rewrite it.
+        if (currentJson !== null && currentJson === planSnapshot) {
+          deleteCoachWorkout(state.coachWorkoutId);
+        }
+      }
       // analyzeSession returns null on failure (it never throws), so a null result
       // is the error path, not a successful one.
       if (result === null) {
@@ -453,15 +452,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [finishing.session]);
 
-  const elapsedSeconds = state ? Math.max(0, Math.floor((now - state.startedAt) / 1000)) : 0;
-
   return (
     <SessionCtx.Provider
       value={{
         state,
         view,
         finishing,
-        elapsedSeconds,
         open,
         expand,
         minimize,
@@ -492,4 +488,32 @@ export function useSession(): SessionContextValue {
     throw new Error("useSession must be used within a SessionProvider");
   }
   return ctx;
+}
+
+/**
+ * Subscribes to a 1Hz ticker that returns the seconds elapsed since the active
+ * session started. Returns 0 when no session is active. Intentionally a separate
+ * hook (not exposed via context value) so that consumers of `useSession()` are
+ * not re-rendered every second.
+ */
+export function useElapsedSeconds(): number {
+  const { state } = useSession();
+  const startedAt = state?.startedAt ?? null;
+  const [elapsed, setElapsed] = useState(() =>
+    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0
+  );
+
+  useEffect(() => {
+    if (startedAt === null) {
+      setElapsed(0);
+      return;
+    }
+    setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    const id = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+
+  return elapsed;
 }
