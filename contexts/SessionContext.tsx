@@ -32,8 +32,6 @@ export interface LiveExercise extends Exercise {
 }
 
 interface SessionMeta {
-  /** ms timestamp of the first validated set, or null if the user hasn't started yet */
-  startedAt: number | null;
   category: FitnessCategory;
   coachWorkoutId: string | null;
 }
@@ -44,8 +42,6 @@ interface SessionState {
   coachWorkoutId: string | null;
   exercises: LiveExercise[];
   activeExIdx: number;
-  /** ms timestamp of the first validated set; null while no set has been validated yet */
-  startedAt: number | null;
 }
 
 export type SessionView = "hidden" | "expanded" | "minimized";
@@ -65,6 +61,12 @@ export interface SessionContextValue {
   expand: () => void;
   minimize: () => void;
   close: () => void;
+  /**
+   * Throws away every set/note the user has logged for the active session
+   * without saving anything, and re-hydrates the sheet from the coach plan in
+   * its fresh state. If the coach plan no longer exists, the sheet is closed.
+   */
+  abandon: () => void;
   retryAnalysis: () => Promise<void>;
 
   setActiveIdx: (idx: number) => void;
@@ -152,7 +154,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       coachWorkoutId: meta.coachWorkoutId,
       exercises: inProgress.exercises as LiveExercise[],
       activeExIdx: inProgress.activeExIdx,
-      startedAt: meta.startedAt,
     });
     setView("minimized");
   }, []);
@@ -165,7 +166,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       activeExIdx: state.activeExIdx,
     });
     saveMeta(state.date, {
-      startedAt: state.startedAt,
       category: state.category,
       coachWorkoutId: state.coachWorkoutId,
     });
@@ -196,11 +196,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     // Resume in-progress if present, else hydrate from coach plan
     const inProgress = getInProgressFitness(date);
-    const meta = loadMeta(date);
-    // The session timer only starts once the user validates their first set.
-    // If we're resuming a workout that was already underway, keep the existing
-    // startedAt; otherwise leave it null until validateSet flips it.
-    const startedAt = meta?.startedAt ?? null;
 
     const exercises: LiveExercise[] = inProgress && inProgress.exercises.length > 0
       ? (inProgress.exercises as LiveExercise[])
@@ -212,7 +207,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       coachWorkoutId: plan.id,
       exercises,
       activeExIdx: inProgress?.activeExIdx ?? 0,
-      startedAt,
     });
     setView("expanded");
     setFinishing({ status: "idle" });
@@ -237,6 +231,32 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setView("hidden");
     setFinishing({ status: "idle" });
   }, [state]);
+
+  const abandon = useCallback(() => {
+    const current = stateRef.current;
+    if (!current) return;
+    // Wipe live state so nothing gets saved or analysed
+    clearInProgressFitness(current.date);
+    clearMeta(current.date);
+    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
+    setFinishing({ status: "idle" });
+
+    // Re-hydrate from the coach plan if it still exists, so the sheet shows
+    // the original exercises with all sets unvalidated.
+    const plan = getCoachWorkouts().find((w) => w.date === current.date) ?? null;
+    if (!plan) {
+      setState(null);
+      setView("hidden");
+      return;
+    }
+    setState({
+      date: current.date,
+      category: plan.category,
+      coachWorkoutId: plan.id,
+      exercises: plan.exercises.map(exerciseFromCoach),
+      activeExIdx: 0,
+    });
+  }, []);
 
   const setActiveIdx = useCallback((idx: number) => {
     setState((prev) => prev ? { ...prev, activeExIdx: idx } : prev);
@@ -265,8 +285,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (exIdx < 0) return prev;
       const next: SessionState = {
         ...prev,
-        // Stamp the session start on the first validated set.
-        startedAt: prev.startedAt ?? Date.now(),
         exercises: prev.exercises.map((ex) => {
           if (ex.id !== exId || !ex.setLogs) return ex;
           return {
@@ -469,6 +487,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         expand,
         minimize,
         close,
+        abandon,
         setActiveIdx,
         updateSet,
         validateSet,
@@ -495,32 +514,4 @@ export function useSession(): SessionContextValue {
     throw new Error("useSession must be used within a SessionProvider");
   }
   return ctx;
-}
-
-/**
- * Subscribes to a 1Hz ticker that returns the seconds elapsed since the active
- * session started (i.e. since the user validated their first set). Returns null
- * when no session is active or no set has been validated yet — callers can
- * decide whether to show "00:00" or hide the display entirely.
- */
-export function useElapsedSeconds(): number | null {
-  const { state } = useSession();
-  const startedAt = state?.startedAt ?? null;
-  const [elapsed, setElapsed] = useState<number | null>(() =>
-    startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : null
-  );
-
-  useEffect(() => {
-    if (startedAt === null) {
-      setElapsed(null);
-      return;
-    }
-    setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
-    const id = setInterval(() => {
-      setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-
-  return elapsed;
 }

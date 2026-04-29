@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, useElapsedSeconds, type LiveExercise } from "@/contexts/SessionContext";
+import { useSession, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
@@ -38,17 +38,11 @@ function ExerciseThumb({ name, size = 56 }: { name: string; size?: number }) {
 }
 
 function ExerciseMenu({
-  onSwap,
-  onRest,
   onNote,
-  onMore,
   onDelete,
   onClose,
 }: {
-  onSwap: () => void;
-  onRest: () => void;
   onNote: () => void;
-  onMore: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -71,27 +65,6 @@ function ExerciseMenu({
         }}
       >
         <button
-          onClick={() => { onSwap(); onClose(); }}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-          style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
-        >
-          <span>Exercice d&apos;échange</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M7 7h12l-3-3M17 17H5l3 3" stroke="#888" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <button
-          onClick={() => { onRest(); onClose(); }}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-          style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
-        >
-          <span>Temps de repos</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="13" r="8" stroke="#888" strokeWidth="1.6"/>
-            <path d="M12 9v4l3 2M9 3h6" stroke="#888" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <button
           onClick={() => { onNote(); onClose(); }}
           className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
           style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
@@ -100,16 +73,6 @@ function ExerciseMenu({
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <rect x="4" y="4" width="16" height="16" rx="2" stroke="#888" strokeWidth="1.6"/>
             <path d="M8 9h8M8 13h8M8 17h5" stroke="#888" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <button
-          onClick={() => { onMore(); onClose(); }}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-          style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
-        >
-          <span>Plus</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="#888" strokeWidth="1.6" strokeLinecap="round"/>
           </svg>
         </button>
         <button
@@ -162,7 +125,7 @@ interface CollapsedCardProps {
   onMenu: () => void;
   menuOpen: boolean;
   onMenuClose: () => void;
-  onAction: (kind: "swap" | "rest" | "note" | "more" | "delete") => void;
+  onAction: (kind: "note" | "delete") => void;
 }
 
 function CollapsedCardImpl({
@@ -201,10 +164,7 @@ function CollapsedCardImpl({
       </button>
       {menuOpen && (
         <ExerciseMenu
-          onSwap={() => onAction("swap")}
-          onRest={() => onAction("rest")}
           onNote={() => onAction("note")}
-          onMore={() => onAction("more")}
           onDelete={() => onAction("delete")}
           onClose={onMenuClose}
         />
@@ -222,28 +182,18 @@ interface ActiveCardProps {
 
 function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
   const session = useSession();
-  const { timerKey, timerSec, stopTimer } = useTimer();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const onAction = (kind: "swap" | "rest" | "note" | "more" | "delete") => {
+  const onAction = (kind: "note" | "delete") => {
     if (kind === "delete") {
       session.removeExercise(exercise.id);
       return;
     }
     if (kind === "note") {
-      // toggle inline note field by giving the comment a single space if empty
+      // Toggle the inline note field by giving the comment a single space if empty
       session.setNote(exercise.id, exercise.comment || " ");
       return;
     }
-    if (kind === "rest") {
-      const next = window.prompt("Temps de repos (secondes)", String(exercise.restSeconds ?? 90));
-      if (next != null) {
-        const n = parseInt(next, 10);
-        if (!isNaN(n) && n >= 0) session.setRest(exercise.id, n);
-      }
-      return;
-    }
-    // swap / more — stubs for now
   };
 
   return (
@@ -272,10 +222,7 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
         </button>
         {menuOpen && (
           <ExerciseMenu
-            onSwap={() => onAction("swap")}
-            onRest={() => onAction("rest")}
             onNote={() => onAction("note")}
-            onMore={() => onAction("more")}
             onDelete={() => onAction("delete")}
             onClose={() => setMenuOpen(false)}
           />
@@ -309,17 +256,11 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
         <div
           className="grid items-center px-2 py-2 text-[11px] tracking-wide"
           style={{
-            gridTemplateColumns: "44px 92px 1fr 1fr 44px",
+            gridTemplateColumns: "44px 1fr 1fr 44px",
             color: "#888",
           }}
         >
           <span className="text-center">Série</span>
-          <span className="flex items-center justify-center gap-1 rounded-full px-2 py-0.5" style={{ background: "#1d1d1d", color: "#bbb" }}>
-            Repos
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </span>
           <span className="text-center">Reps</span>
           <span className="text-center">kg <span style={{ color: "#666" }}>x2</span></span>
           <span className="text-center">
@@ -331,20 +272,12 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
 
         {/* Rows */}
         {(exercise.setLogs ?? []).map((set, idx) => {
-          const setKey = `${exercise.id}-set-${idx}`;
-          const isResting = timerKey === setKey && timerSec > 0;
-          const restLabel = isResting
-            ? formatMMSS(timerSec)
-            : exercise.restSeconds
-              ? formatMMSS(exercise.restSeconds)
-              : "—";
-
           return (
             <div
               key={idx}
               className="grid items-center px-2 py-2 my-1.5 rounded-xl"
               style={{
-                gridTemplateColumns: "44px 92px 1fr 1fr 44px",
+                gridTemplateColumns: "44px 1fr 1fr 44px",
                 background: set.done ? "rgba(57,255,20,0.06)" : "transparent",
                 border: set.done ? "1px solid rgba(57,255,20,0.18)" : "1px solid #1c1c1c",
                 opacity: set.done ? 0.95 : 1,
@@ -356,22 +289,6 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
               >
                 {idx + 1}
               </span>
-
-              <div className="flex items-center justify-center">
-                {isResting ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); stopTimer(); }}
-                    className="font-display text-lg leading-none press-effect"
-                    style={{ color: timerSec > 10 ? "#39ff14" : "#ff6b00" }}
-                  >
-                    {restLabel}
-                  </button>
-                ) : (
-                  <span className="text-base" style={{ color: "#888" }}>
-                    {restLabel === "—" ? "-" : restLabel}
-                  </span>
-                )}
-              </div>
 
               <input
                 type="number"
@@ -431,47 +348,22 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
         })}
 
         {/* Add set */}
-        <div className="mt-1 flex items-center gap-2">
-          <button
-            onClick={() => session.addSet(exercise.id)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 press-effect"
-            style={{ background: "#1a1a1a", border: "1px solid #232323", color: "#cfd2d6" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            <span className="text-sm font-medium">Ajouter une série</span>
-          </button>
-          <button
-            className="w-12 h-12 rounded-2xl flex items-center justify-center press-effect"
-            style={{ background: "#1a1a1a", border: "1px solid #232323", color: "#cfd2d6" }}
-            aria-label="Statistiques"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M5 19V12M10 19V8M15 19V14M20 19V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
+        <button
+          onClick={() => session.addSet(exercise.id)}
+          className="mt-1 w-full flex items-center justify-center gap-2 rounded-2xl py-3 press-effect"
+          style={{ background: "#1a1a1a", border: "1px solid #232323", color: "#cfd2d6" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-sm font-medium">Ajouter une série</span>
+        </button>
       </div>
     </div>
   );
 }
 
 const ActiveCard = memo(ActiveCardImpl);
-
-function ElapsedDisplay() {
-  const elapsed = useElapsedSeconds();
-  // Render an empty placeholder of the same height before the first validated
-  // set so the header layout doesn't shift when the timer kicks in.
-  if (elapsed === null) {
-    return <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "transparent" }}>00:00</span>;
-  }
-  return (
-    <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "#eee" }}>
-      {formatMMSS(elapsed)}
-    </span>
-  );
-}
 
 export default function SessionSheet() {
   const session = useSession();
@@ -563,10 +455,7 @@ export default function SessionSheet() {
             </svg>
           </button>
 
-          <div className="flex flex-col items-center">
-            <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a", marginBottom: 6 }} />
-            <ElapsedDisplay />
-          </div>
+          <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
 
           <button
             onClick={session.requestFinish}
@@ -611,15 +500,6 @@ export default function SessionSheet() {
                       return next;
                     });
                     session.setActiveIdx(i);
-                  } else if (kind === "rest") {
-                    const next = window.prompt(
-                      "Temps de repos (secondes)",
-                      String(ex.restSeconds ?? 90)
-                    );
-                    if (next != null) {
-                      const n = parseInt(next, 10);
-                      if (!isNaN(n) && n >= 0) session.setRest(ex.id, n);
-                    }
                   }
                 }}
               />
