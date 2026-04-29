@@ -46,6 +46,12 @@ interface SessionState {
   activeExIdx: number;
   /** True once the user has explicitly hit "Commencer la séance". */
   started: boolean;
+  /**
+   * Path the user was on when they opened the session. Used by minimize/drag
+   * to send the user back where they came from. Not persisted across reloads
+   * (defaults to "/" after a refresh).
+   */
+  originRoute: string;
 }
 
 export type SessionView = "hidden" | "expanded" | "minimized";
@@ -61,7 +67,7 @@ export interface SessionContextValue {
   view: SessionView;
   finishing: FinishingState;
 
-  open: (date: string) => "ok" | "no-plan" | "already-done" | "another-active";
+  open: (date: string, opts?: { originRoute?: string }) => "ok" | "no-plan" | "already-done" | "another-active";
   expand: () => void;
   minimize: () => void;
   close: () => void;
@@ -171,6 +177,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       exercises: inProgress.exercises as LiveExercise[],
       activeExIdx: inProgress.activeExIdx,
       started: inferredStarted,
+      // We don't know where the user originally opened the session from after
+      // a reload, so fall back to home.
+      originRoute: "/",
     });
     setView("minimized");
   }, []);
@@ -190,12 +199,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(ACTIVE_KEY, state.date); } catch {}
   }, [state]);
 
-  const open = useCallback<SessionContextValue["open"]>((date) => {
+  const open = useCallback<SessionContextValue["open"]>((date, opts) => {
+    // Capture where we came from so minimize/drag-down can navigate back.
+    // Falls back to the current URL if the caller didn't pass anything.
+    const originRoute =
+      opts?.originRoute ??
+      (typeof window !== "undefined"
+        ? window.location.pathname + window.location.search
+        : "/");
+
     // If a session is already in flight, expand it. If it's for a different date,
     // refuse — the user must finish or close the existing one before starting a new one.
     const current = stateRef.current;
     if (current) {
       if (current.date === date) {
+        // Refresh the origin so the user comes back to the page they just left,
+        // not to wherever they happened to open the session from originally.
+        setState({ ...current, originRoute });
         setView("expanded");
         return "ok";
       }
@@ -235,6 +255,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       exercises,
       activeExIdx: inProgress?.activeExIdx ?? 0,
       started,
+      originRoute,
     });
     setView("expanded");
     setFinishing({ status: "idle" });
@@ -288,6 +309,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       exercises: plan.exercises.map(exerciseFromCoach),
       activeExIdx: 0,
       started: false,
+      originRoute: current.originRoute,
     });
   }, []);
 

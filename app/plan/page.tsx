@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Badge from "@/components/Badge";
 import { getWeekDays, toLocalDateStr } from "@/lib/plan";
 import { getSessions, getCancelledDays, getRescheduledDays } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { syncFull } from "@/lib/sync";
+import { useSession } from "@/contexts/SessionContext";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
@@ -47,7 +49,26 @@ function getMonthCells(monthOffset: number): (Date | null)[] {
 }
 
 export default function PlanPage() {
+  const router = useRouter();
+  const sessionCtx = useSession();
   const [mounted, setMounted] = useState(false);
+
+  // Click handler for day cards: when the day has a coach plan and no
+  // completed session, hand off to the global session sheet directly so the
+  // origin (this plan page) is preserved for minimize/drag-down.
+  const handleDayClick = (
+    e: React.MouseEvent,
+    href: string,
+    canOpen: boolean,
+    dateStr: string
+  ) => {
+    if (!canOpen) return; // let the Link navigate
+    e.preventDefault();
+    const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
+    if (result === "no-plan" || result === "already-done") {
+      router.push(href);
+    }
+  };
 
   // ── View toggle ──
   const [view, setView] = useState<"week" | "month">(() => {
@@ -334,8 +355,11 @@ export default function PlanPage() {
               </div>
             );
 
+            const canOpenInSheet = isFitnessDay && s.hasPlan && !s.session;
+
             return isClickable ? (
               <Link key={dateStr} href={href}
+                onClick={(e) => handleDayClick(e, href, canOpenInSheet, dateStr)}
                 className="block rounded-2xl overflow-hidden press-effect"
                 style={{ border: `1px solid ${sc.border}`, background: sc.bg,
                   boxShadow: day.isToday ? "0 0 20px rgba(57,255,20,0.06)" : "none",
@@ -405,8 +429,15 @@ export default function PlanPage() {
                 </div>
               );
 
+              const canOpenInSheet = isFitnessDay && s.hasPlan && !s.session;
+
               return isClickable ? (
-                <Link key={dateStr} href={href} className="press-effect">
+                <Link
+                  key={dateStr}
+                  href={href}
+                  onClick={(e) => handleDayClick(e, href, canOpenInSheet, dateStr)}
+                  className="press-effect"
+                >
                   {cell}
                 </Link>
               ) : (
