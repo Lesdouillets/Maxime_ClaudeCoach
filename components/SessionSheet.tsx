@@ -402,6 +402,8 @@ export default function SessionSheet() {
     session.finishing.status === "analyzing" ||
     session.finishing.status === "done" ||
     session.finishing.status === "error";
+  const isStarted = session.state.started;
+  const showRestBar = isStarted && !!timerKey && timerSec > 0;
 
   const restProgress =
     timerKey && timerTotalSec > 0
@@ -457,23 +459,32 @@ export default function SessionSheet() {
 
           <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
 
-          <button
-            onClick={session.requestFinish}
-            disabled={isFinishingRunning}
-            className="w-10 h-10 rounded-full flex items-center justify-center press-effect disabled:opacity-50"
-            style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
-            aria-label="Finir la séance"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {isStarted ? (
+            <button
+              onClick={session.requestFinish}
+              disabled={isFinishingRunning}
+              className="w-10 h-10 rounded-full flex items-center justify-center press-effect disabled:opacity-50"
+              style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
+              aria-label="Finir la séance"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <span className="w-10 h-10" aria-hidden />
+          )}
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
+          {!isStarted && (
+            <p className="px-1 pb-1 text-[11px] tracking-widest font-bold" style={{ color: "#39ff14" }}>
+              À FAIRE · {session.state.exercises.length} exercice{session.state.exercises.length > 1 ? "s" : ""}
+            </p>
+          )}
           {session.state.exercises.map((ex, i) => {
-            const isActive = i === session.state!.activeExIdx;
+            const isActive = isStarted && i === session.state!.activeExIdx;
             if (isActive) {
               return (
                 <ActiveCard
@@ -489,7 +500,7 @@ export default function SessionSheet() {
                 exercise={ex}
                 menuOpen={openMenuExId === ex.id}
                 onMenuClose={() => setOpenMenuExId(null)}
-                onTap={() => session.setActiveIdx(i)}
+                onTap={() => { if (isStarted) session.setActiveIdx(i); }}
                 onMenu={() => setOpenMenuExId(ex.id)}
                 onAction={(kind) => {
                   if (kind === "delete") session.removeExercise(ex.id);
@@ -499,7 +510,7 @@ export default function SessionSheet() {
                       next.add(ex.id);
                       return next;
                     });
-                    session.setActiveIdx(i);
+                    if (isStarted) session.setActiveIdx(i);
                   }
                 }}
               />
@@ -526,8 +537,30 @@ export default function SessionSheet() {
           )}
         </div>
 
-        {/* Bottom rest progress */}
-        {timerKey && timerSec > 0 && (
+        {/* Bottom: "Commencer" CTA while not started, or rest progress while running */}
+        {!isStarted && !isFinishingRunning && (
+          <div
+            className="absolute left-0 right-0 px-4 pt-3"
+            style={{
+              bottom: 0,
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+            }}
+          >
+            <button
+              onClick={session.startSession}
+              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+              style={{
+                background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                color: "#0a0a0a",
+              }}
+            >
+              Commencer la séance
+            </button>
+          </div>
+        )}
+
+        {showRestBar && (
           <div
             className="absolute left-0 right-0 px-4 pt-3"
             style={{

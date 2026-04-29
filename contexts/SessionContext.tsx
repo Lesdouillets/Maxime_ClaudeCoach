@@ -34,6 +34,8 @@ export interface LiveExercise extends Exercise {
 interface SessionMeta {
   category: FitnessCategory;
   coachWorkoutId: string | null;
+  /** True once the user has hit "Commencer". Live UI gates on this. */
+  started: boolean;
 }
 
 interface SessionState {
@@ -42,6 +44,8 @@ interface SessionState {
   coachWorkoutId: string | null;
   exercises: LiveExercise[];
   activeExIdx: number;
+  /** True once the user has explicitly hit "Commencer la séance". */
+  started: boolean;
 }
 
 export type SessionView = "hidden" | "expanded" | "minimized";
@@ -61,6 +65,8 @@ export interface SessionContextValue {
   expand: () => void;
   minimize: () => void;
   close: () => void;
+  /** Flip the session from "not started" to "in progress". */
+  startSession: () => void;
   /**
    * Throws away every set/note the user has logged for the active session
    * without saving anything, and re-hydrates the sheet from the coach plan in
@@ -148,12 +154,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try { localStorage.removeItem(ACTIVE_KEY); } catch {}
       return;
     }
+    // Migration: if the persisted meta predates the started flag, infer it
+    // from the in-progress data — any validated set means the user was already
+    // logging, so treat as started.
+    const inferredStarted =
+      typeof meta.started === "boolean"
+        ? meta.started
+        : (inProgress.exercises as LiveExercise[]).some(
+            (ex) => ex.setLogs?.some((s) => s.done) ?? false
+          );
+
     setState({
       date: activeDate,
       category: meta.category,
       coachWorkoutId: meta.coachWorkoutId,
       exercises: inProgress.exercises as LiveExercise[],
       activeExIdx: inProgress.activeExIdx,
+      started: inferredStarted,
     });
     setView("minimized");
   }, []);
@@ -168,6 +185,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     saveMeta(state.date, {
       category: state.category,
       coachWorkoutId: state.coachWorkoutId,
+      started: state.started,
     });
     try { localStorage.setItem(ACTIVE_KEY, state.date); } catch {}
   }, [state]);
@@ -196,10 +214,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     // Resume in-progress if present, else hydrate from coach plan
     const inProgress = getInProgressFitness(date);
+    const meta = loadMeta(date);
 
     const exercises: LiveExercise[] = inProgress && inProgress.exercises.length > 0
       ? (inProgress.exercises as LiveExercise[])
       : plan.exercises.map(exerciseFromCoach);
+
+    // Resume "started" if the persisted meta says so, or if any set was
+    // validated previously. Fresh hydrations from the coach plan start as
+    // not-started.
+    const started =
+      typeof meta?.started === "boolean"
+        ? meta.started
+        : exercises.some((ex) => ex.setLogs?.some((s) => s.done) ?? false);
 
     setState({
       date,
@@ -207,6 +234,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       coachWorkoutId: plan.id,
       exercises,
       activeExIdx: inProgress?.activeExIdx ?? 0,
+      started,
     });
     setView("expanded");
     setFinishing({ status: "idle" });
@@ -232,6 +260,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setFinishing({ status: "idle" });
   }, [state]);
 
+  const startSession = useCallback(() => {
+    setState((prev) => prev ? { ...prev, started: true } : prev);
+  }, []);
+
   const abandon = useCallback(() => {
     const current = stateRef.current;
     if (!current) return;
@@ -242,7 +274,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setFinishing({ status: "idle" });
 
     // Re-hydrate from the coach plan if it still exists, so the sheet shows
-    // the original exercises with all sets unvalidated.
+    // the original exercises with all sets unvalidated and back to "not started".
     const plan = getCoachWorkouts().find((w) => w.date === current.date) ?? null;
     if (!plan) {
       setState(null);
@@ -255,6 +287,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       coachWorkoutId: plan.id,
       exercises: plan.exercises.map(exerciseFromCoach),
       activeExIdx: 0,
+      started: false,
     });
   }, []);
 
@@ -487,6 +520,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         expand,
         minimize,
         close,
+        startSession,
         abandon,
         setActiveIdx,
         updateSet,
