@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "@/contexts/SessionContext";
 
 export default function FinishSessionModal() {
   const session = useSession();
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
   if (session.finishing.status !== "confirm") return null;
 
   const exercises = session.state?.exercises ?? [];
@@ -13,6 +15,11 @@ export default function FinishSessionModal() {
     0
   );
   const allDone = totalSets > 0 && doneSets === totalSets;
+
+  const handleAbandon = () => {
+    session.abandon();
+    setConfirmAbandon(false);
+  };
 
   return (
     <div
@@ -30,7 +37,7 @@ export default function FinishSessionModal() {
         justifyContent: "center",
         padding: 20,
       }}
-      onClick={session.cancelFinish}
+      onClick={() => { setConfirmAbandon(false); session.cancelFinish(); }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -41,43 +48,90 @@ export default function FinishSessionModal() {
           boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
         }}
       >
-        <div className="px-6 pt-6 pb-4 text-center">
-          <div
-            className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)" }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h3 className="font-display text-3xl leading-none mb-2">Finir la séance ?</h3>
-          <p className="text-sm" style={{ color: "#888" }}>
-            {allDone
-              ? "Toutes les séries sont validées. On lance l'analyse du coach."
-              : `Tu as validé ${doneSets} série${doneSets > 1 ? "s" : ""} sur ${totalSets}. Le coach n'analysera que ce qui est validé.`
-            }
-          </p>
-        </div>
+        {confirmAbandon ? (
+          <>
+            <div className="px-6 pt-6 pb-4 text-center">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center"
+                style={{ background: "rgba(255,77,77,0.12)", border: "1px solid rgba(255,77,77,0.4)" }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" stroke="#ff4d4d" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="font-display text-3xl leading-none mb-2">Abandonner la séance ?</h3>
+              <p className="text-sm" style={{ color: "#888" }}>
+                Tes séries en cours seront effacées et la séance reviendra à son état initial. Aucune analyse coach ne sera lancée.
+              </p>
+            </div>
+            <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setConfirmAbandon(false)}
+                className="py-3 rounded-2xl font-bold text-sm press-effect"
+                style={{ background: "#1c1c1c", color: "#cfd2d6", border: "1px solid #232323" }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleAbandon}
+                className="py-3 rounded-2xl font-bold text-sm press-effect"
+                style={{ background: "rgba(255,77,77,0.15)", color: "#ff4d4d", border: "1px solid rgba(255,77,77,0.5)" }}
+              >
+                Abandonner
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="px-6 pt-6 pb-4 text-center">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center"
+                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)" }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="font-display text-3xl leading-none mb-2">Finir la séance ?</h3>
+              <p className="text-sm" style={{ color: "#888" }}>
+                {allDone
+                  ? "Toutes les séries sont validées. On lance l'analyse du coach."
+                  : `Tu as validé ${doneSets} série${doneSets > 1 ? "s" : ""} sur ${totalSets}. Le coach n'analysera que ce qui est validé.`
+                }
+              </p>
+            </div>
 
-        <div className="px-4 pb-4 grid grid-cols-2 gap-2">
-          <button
-            onClick={session.cancelFinish}
-            className="py-3 rounded-2xl font-bold text-sm press-effect"
-            style={{ background: "#1c1c1c", color: "#cfd2d6", border: "1px solid #232323" }}
-          >
-            Annuler
-          </button>
-          <button
-            onClick={() => session.confirmFinish()}
-            className="py-3 rounded-2xl font-bold text-sm press-effect"
-            style={{
-              background: "linear-gradient(135deg, #39ff14, #1a7a09)",
-              color: "#0a0a0a",
-            }}
-          >
-            Finir & analyser
-          </button>
-        </div>
+            <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={session.cancelFinish}
+                className="py-3 rounded-2xl font-bold text-sm press-effect"
+                style={{ background: "#1c1c1c", color: "#cfd2d6", border: "1px solid #232323" }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => session.confirmFinish()}
+                className="py-3 rounded-2xl font-bold text-sm press-effect"
+                style={{
+                  background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                  color: "#0a0a0a",
+                }}
+              >
+                Finir & analyser
+              </button>
+            </div>
+
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => setConfirmAbandon(true)}
+                className="w-full py-2.5 rounded-2xl text-xs press-effect"
+                style={{ background: "transparent", color: "#ff4d4d" }}
+              >
+                Abandonner la séance
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

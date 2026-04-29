@@ -61,6 +61,12 @@ export interface SessionContextValue {
   expand: () => void;
   minimize: () => void;
   close: () => void;
+  /**
+   * Throws away every set/note the user has logged for the active session
+   * without saving anything, and re-hydrates the sheet from the coach plan in
+   * its fresh state. If the coach plan no longer exists, the sheet is closed.
+   */
+  abandon: () => void;
   retryAnalysis: () => Promise<void>;
 
   setActiveIdx: (idx: number) => void;
@@ -225,6 +231,32 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setView("hidden");
     setFinishing({ status: "idle" });
   }, [state]);
+
+  const abandon = useCallback(() => {
+    const current = stateRef.current;
+    if (!current) return;
+    // Wipe live state so nothing gets saved or analysed
+    clearInProgressFitness(current.date);
+    clearMeta(current.date);
+    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
+    setFinishing({ status: "idle" });
+
+    // Re-hydrate from the coach plan if it still exists, so the sheet shows
+    // the original exercises with all sets unvalidated.
+    const plan = getCoachWorkouts().find((w) => w.date === current.date) ?? null;
+    if (!plan) {
+      setState(null);
+      setView("hidden");
+      return;
+    }
+    setState({
+      date: current.date,
+      category: plan.category,
+      coachWorkoutId: plan.id,
+      exercises: plan.exercises.map(exerciseFromCoach),
+      activeExIdx: 0,
+    });
+  }, []);
 
   const setActiveIdx = useCallback((idx: number) => {
     setState((prev) => prev ? { ...prev, activeExIdx: idx } : prev);
@@ -455,6 +487,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         expand,
         minimize,
         close,
+        abandon,
         setActiveIdx,
         updateSet,
         validateSet,
