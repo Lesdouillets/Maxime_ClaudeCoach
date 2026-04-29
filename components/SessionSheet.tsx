@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, useElapsedSeconds, type LiveExercise } from "@/contexts/SessionContext";
+import { useSession, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
@@ -365,20 +365,6 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
 
 const ActiveCard = memo(ActiveCardImpl);
 
-function ElapsedDisplay() {
-  const elapsed = useElapsedSeconds();
-  // Render an empty placeholder of the same height before the first validated
-  // set so the header layout doesn't shift when the timer kicks in.
-  if (elapsed === null) {
-    return <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "transparent" }}>00:00</span>;
-  }
-  return (
-    <span className="font-display text-2xl leading-none tabular-nums" style={{ color: "#eee" }}>
-      {formatMMSS(elapsed)}
-    </span>
-  );
-}
-
 export default function SessionSheet() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
@@ -469,10 +455,7 @@ export default function SessionSheet() {
             </svg>
           </button>
 
-          <div className="flex flex-col items-center">
-            <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a", marginBottom: 6 }} />
-            <ElapsedDisplay />
-          </div>
+          <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
 
           <button
             onClick={session.requestFinish}
