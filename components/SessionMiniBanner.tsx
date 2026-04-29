@@ -36,8 +36,10 @@ export default function SessionMiniBanner() {
   const { timerKey, timerSec, timerTotalSec } = useTimer();
 
   // The banner only surfaces the live workout (current exercise + rest timer).
-  // Once the user has hit "Finir", the analysis flow is owned by the sheet.
+  // It must NOT show before the user has tapped "Commencer", and once they
+  // hit "Finir" the sheet itself owns the analysis flow.
   if (session.view !== "minimized" || !session.state) return null;
+  if (!session.state.started) return null;
   if (session.finishing.status !== "idle") return null;
 
   const ex = session.state.exercises[session.state.activeExIdx];
