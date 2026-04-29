@@ -1,11 +1,15 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
+
+const DRAG_CLOSE_THRESHOLD_PX = 80;
+const TAP_MAX_MOVEMENT_PX = 6;
+const TAP_MAX_DURATION_MS = 250;
 
 function formatMMSS(sec: number) {
   const m = Math.floor(sec / 60);
@@ -374,11 +378,60 @@ export default function SessionSheet() {
   // Drives the slide-in animation: starts at translateY(100%) on first render,
   // flips to translateY(0) on the next frame so CSS can interpolate.
   const [hasEntered, setHasEntered] = useState(false);
+  // Drag-to-close gesture state. dragY is in pixels (down is positive).
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ y: number; t: number } | null>(null);
 
   // Reset menu state on close
   useEffect(() => {
     if (session.view !== "expanded") setOpenMenuExId(null);
   }, [session.view]);
+
+  // Minimizes the sheet AND navigates back to wherever the session was opened from.
+  // This is what both the Réduire button and the drag-handle tap/drag trigger.
+  const handleClose = useCallback(() => {
+    const origin = session.state?.originRoute;
+    session.minimize();
+    setIsDragging(false);
+    setDragY(0);
+    if (typeof window !== "undefined" && origin) {
+      const here = window.location.pathname + window.location.search;
+      if (origin !== here) router.push(origin);
+    }
+  }, [session, router]);
+
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
+    dragStartRef.current = { y: e.clientY, t: Date.now() };
+    setIsDragging(true);
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+  };
+
+  const onHandlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    if (!dragStartRef.current) return;
+    const dy = e.clientY - dragStartRef.current.y;
+    setDragY(Math.max(0, dy));
+  };
+
+  const onHandlePointerEnd = (e: React.PointerEvent<HTMLElement>) => {
+    const start = dragStartRef.current;
+    dragStartRef.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    if (!start) {
+      setIsDragging(false);
+      setDragY(0);
+      return;
+    }
+    const dy = Math.max(0, e.clientY - start.y);
+    const elapsed = Date.now() - start.t;
+    const isTap = dy < TAP_MAX_MOVEMENT_PX && elapsed < TAP_MAX_DURATION_MS;
+    if (dy >= DRAG_CLOSE_THRESHOLD_PX || isTap) {
+      handleClose();
+    } else {
+      setIsDragging(false);
+      setDragY(0);
+    }
+  };
 
   // Entrance animation: when state appears, start hidden, then expand on next frame.
   useEffect(() => {
@@ -412,16 +465,19 @@ export default function SessionSheet() {
 
   return (
     <>
-      {/* Backdrop blocks underlying interaction when expanded */}
+      {/* Backdrop blocks underlying interaction when expanded; fades during a
+          drag-to-close gesture so the user sees what's behind. */}
       <div
         aria-hidden
         style={{
           position: "fixed",
           inset: 0,
           background: "#0a0a0a",
-          opacity: backdropVisible && hasEntered ? 1 : 0,
+          opacity: isDragging
+            ? Math.max(0, 1 - dragY / 300)
+            : (backdropVisible && hasEntered ? 1 : 0),
           pointerEvents: backdropVisible ? "auto" : "none",
-          transition: "opacity 220ms ease",
+          transition: isDragging ? "none" : "opacity 220ms ease",
           zIndex: 55,
         }}
       />
@@ -437,8 +493,12 @@ export default function SessionSheet() {
           background: "#0a0a0a",
           color: "#fff",
           zIndex: 60,
-          transform: isExpanded ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 280ms cubic-bezier(0.32, 0.72, 0, 1)",
+          transform: isDragging
+            ? `translateY(${dragY}px)`
+            : (isExpanded ? "translateY(0)" : "translateY(100%)"),
+          transition: isDragging
+            ? "none"
+            : "transform 280ms cubic-bezier(0.32, 0.72, 0, 1)",
           display: "flex",
           flexDirection: "column",
           paddingTop: "env(safe-area-inset-top, 0px)",
@@ -447,7 +507,7 @@ export default function SessionSheet() {
         {/* Top bar */}
         <div className="relative flex items-center justify-between px-4 pt-3 pb-2">
           <button
-            onClick={session.minimize}
+            onClick={handleClose}
             className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
             style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
             aria-label="Réduire"
@@ -457,7 +517,26 @@ export default function SessionSheet() {
             </svg>
           </button>
 
-          <div className="rounded-full" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
+          <button
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={onHandlePointerEnd}
+            onPointerCancel={onHandlePointerEnd}
+            aria-label="Glisser vers le bas pour fermer"
+            className="flex items-center justify-center"
+            style={{
+              padding: "16px 32px",
+              touchAction: "none",
+              background: "transparent",
+              border: "none",
+              cursor: "grab",
+            }}
+          >
+            <span
+              className="rounded-full block"
+              style={{ width: 36, height: 4, background: "#2a2a2a" }}
+            />
+          </button>
 
           {isStarted ? (
             <button
