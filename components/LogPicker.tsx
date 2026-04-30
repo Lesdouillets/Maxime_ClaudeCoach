@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getTodayPlan } from "@/lib/plan";
+import { useRunSheet } from "@/contexts/RunSheetContext";
 
 interface LogPickerProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface LogPickerProps {
 
 export default function LogPicker({ onClose }: LogPickerProps) {
   const router = useRouter();
+  const runSheet = useRunSheet();
   const todayPlan = getTodayPlan();
 
   // Close on backdrop click or Escape
@@ -22,6 +24,11 @@ export default function LogPicker({ onClose }: LogPickerProps) {
   const go = (href: string) => {
     onClose();
     router.push(href);
+  };
+
+  const openRun = () => {
+    onClose();
+    runSheet.open(null);
   };
 
   return (
@@ -40,7 +47,7 @@ export default function LogPicker({ onClose }: LogPickerProps) {
       >
         {/* Run */}
         <button
-          onClick={() => go("/log/run")}
+          onClick={openRun}
           className="w-full flex items-center gap-4 p-5 press-effect"
           style={{
             background: todayPlan?.type === "run" ? "rgba(57,255,20,0.06)" : "#111",
