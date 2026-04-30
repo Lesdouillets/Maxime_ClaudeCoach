@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { toLocalDateStr } from "@/lib/plan";
+import { useRunSheet } from "@/contexts/RunSheetContext";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 interface Props {
@@ -28,6 +28,7 @@ export default function DayActions({
   coachRun, coachWorkout,
   onReschedule, onCancel, onDeletePlan, onValidateFitness, onDeleteSession,
 }: Props) {
+  const runSheet = useRunSheet();
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTarget, setRescheduleTarget] = useState<"run" | "workout" | null>(null);
@@ -35,6 +36,7 @@ export default function DayActions({
   const [cancelReason, setCancelReason] = useState("");
 
   const canValidate = !isDone && (isPast || isToday);
+  const openRun = () => runSheet.open(date, { originRoute: `/day?date=${date}` });
 
   const handleRescheduleConfirm = () => {
     if (!rescheduleDate) return;
@@ -76,12 +78,12 @@ export default function DayActions({
       {/* Per-tab actions — Run (double days) */}
       {hasDouble && activeTab === "run" && canAct && canValidate && (
         <div className="space-y-2">
-          <Link href={`/log/run?date=${date}`}
+          <button onClick={openRun}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
             style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             Valider le Run
-          </Link>
+          </button>
           {renderRescheduleInline("run", "Décaler le Run")}
           <button onClick={() => onDeletePlan("run")}
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm press-effect"
@@ -112,14 +114,14 @@ export default function DayActions({
       {/* Single-plan: Valider */}
       {!hasDouble && canAct && canValidate && (
         isRunDay ? (
-          <Link href={`/log/run?date=${date}`}
+          <button onClick={openRun}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
             style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             Valider le Run
-          </Link>
+          </button>
         ) : (
           <button onClick={onValidateFitness}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"

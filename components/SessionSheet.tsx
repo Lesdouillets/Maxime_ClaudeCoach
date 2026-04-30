@@ -130,6 +130,8 @@ interface CollapsedCardProps {
   menuOpen: boolean;
   onMenuClose: () => void;
   onAction: (kind: "note" | "delete") => void;
+  /** Hide the kebab + menu when false (e.g. session is in not-started summary mode) */
+  showMenu?: boolean;
 }
 
 function CollapsedCardImpl({
@@ -139,6 +141,7 @@ function CollapsedCardImpl({
   menuOpen,
   onMenuClose,
   onAction,
+  showMenu = true,
 }: CollapsedCardProps) {
   return (
     <div
@@ -154,19 +157,21 @@ function CollapsedCardImpl({
         <p className="font-bold text-base truncate">{exercise.name}</p>
         <div className="mt-1.5"><ProgressDots exercise={exercise} /></div>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onMenu(); }}
-        className="w-9 h-9 rounded-full flex items-center justify-center press-effect flex-shrink-0"
-        style={{ color: "#777" }}
-        aria-label="Options"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-          <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-        </svg>
-      </button>
-      {menuOpen && (
+      {showMenu && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onMenu(); }}
+          className="w-9 h-9 rounded-full flex items-center justify-center press-effect flex-shrink-0"
+          style={{ color: "#777" }}
+          aria-label="Options"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+      )}
+      {showMenu && menuOpen && (
         <ExerciseMenu
           onNote={() => onAction("note")}
           onDelete={() => onAction("delete")}
@@ -577,6 +582,7 @@ export default function SessionSheet() {
               <CollapsedCard
                 key={ex.id}
                 exercise={ex}
+                showMenu={isStarted}
                 menuOpen={openMenuExId === ex.id}
                 onMenuClose={() => setOpenMenuExId(null)}
                 onTap={() => { if (isStarted) session.setActiveIdx(i); }}

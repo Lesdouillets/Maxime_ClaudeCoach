@@ -3,8 +3,10 @@
 import { usePathname } from "next/navigation";
 import { TimerProvider, useTimer } from "@/contexts/TimerContext";
 import { SessionProvider, useSession } from "@/contexts/SessionContext";
+import { RunSheetProvider, useRunSheet } from "@/contexts/RunSheetContext";
 import SessionSheet from "@/components/SessionSheet";
 import SessionMiniBanner from "@/components/SessionMiniBanner";
+import RunSheet from "@/components/RunSheet";
 import BottomNav from "@/components/BottomNav";
 
 function TimerHalo() {
@@ -57,7 +59,8 @@ function FloatingTimer() {
 
 function BottomNavGate() {
   const session = useSession();
-  if (session.view === "expanded") return null;
+  const runSheet = useRunSheet();
+  if (session.view === "expanded" || runSheet.view === "expanded") return null;
   return <BottomNav />;
 }
 
@@ -65,12 +68,15 @@ export default function GlobalUI({ children }: { children: React.ReactNode }) {
   return (
     <TimerProvider>
       <SessionProvider>
-        <TimerHalo />
-        <FloatingTimer />
-        {children}
-        <SessionMiniBanner />
-        <BottomNavGate />
-        <SessionSheet />
+        <RunSheetProvider>
+          <TimerHalo />
+          <FloatingTimer />
+          {children}
+          <SessionMiniBanner />
+          <BottomNavGate />
+          <SessionSheet />
+          <RunSheet />
+        </RunSheetProvider>
       </SessionProvider>
     </TimerProvider>
   );
