@@ -6,6 +6,14 @@ import { useSession, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
+import FitnessSessionResults from "@/components/FitnessSessionResults";
+import {
+  analyzeSession,
+  getStoredCoachAnalysis,
+  type CoachAnalysisResult,
+} from "@/lib/coachAnalyzer";
+import { getSessions } from "@/lib/storage";
+import type { FitnessSession } from "@/lib/types";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAP_MAX_MOVEMENT_PX = 6;
@@ -387,17 +395,51 @@ export default function SessionSheet() {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ y: number; t: number } | null>(null);
+  // Archive-mode state (loaded only when session.archive is set)
+  const [archiveSession, setArchiveSession] = useState<FitnessSession | null>(null);
+  const [archiveCoachState, setArchiveCoachState] = useState<"analyzing" | "done">("done");
+  const [archiveCoachResult, setArchiveCoachResult] = useState<CoachAnalysisResult | null>(null);
 
   // Reset menu state on close
   useEffect(() => {
     if (session.view !== "expanded") setOpenMenuExId(null);
   }, [session.view]);
 
-  // Minimizes the sheet AND navigates back to wherever the session was opened from.
-  // This is what both the Réduire button and the drag-handle tap/drag trigger.
+  // Load the archived session whenever archive mode is engaged.
+  useEffect(() => {
+    if (!session.archive) {
+      setArchiveSession(null);
+      setArchiveCoachResult(null);
+      setArchiveCoachState("done");
+      return;
+    }
+    const found = getSessions().find(
+      (s): s is FitnessSession =>
+        s.type === "fitness" && s.date.slice(0, 10) === session.archive!.date
+    ) ?? null;
+    setArchiveSession(found);
+    setArchiveCoachResult(getStoredCoachAnalysis(session.archive.date));
+    setArchiveCoachState("done");
+  }, [session.archive]);
+
+  const handleArchiveRetry = useCallback(() => {
+    if (!archiveSession) return;
+    setArchiveCoachState("analyzing");
+    analyzeSession(archiveSession).then((result) => {
+      setArchiveCoachResult(result);
+      setArchiveCoachState("done");
+    });
+  }, [archiveSession]);
+
+  // Drag-down / Réduire: minimize live sessions (so they can be resumed),
+  // but fully close archive views (nothing to resume).
   const handleClose = useCallback(() => {
-    const origin = session.state?.originRoute;
-    session.minimize();
+    const origin = session.state?.originRoute ?? session.archive?.originRoute;
+    if (session.archive && !session.state) {
+      session.close();
+    } else {
+      session.minimize();
+    }
     setIsDragging(false);
     setDragY(0);
     if (typeof window !== "undefined" && origin) {
@@ -438,9 +480,9 @@ export default function SessionSheet() {
     }
   };
 
-  // Entrance animation: when state appears, start hidden, then expand on next frame.
+  // Entrance animation: when state or archive appears, start hidden, then expand on next frame.
   useEffect(() => {
-    if (!session.state) {
+    if (!session.state && !session.archive) {
       setHasEntered(false);
       return;
     }
@@ -449,19 +491,32 @@ export default function SessionSheet() {
       return () => cancelAnimationFrame(id2);
     });
     return () => cancelAnimationFrame(id1);
-  }, [session.state]);
+  }, [session.state, session.archive]);
 
-  if (!session.state) return null;
+  if (!session.state && !session.archive) return null;
 
+  const isArchive = !session.state && !!session.archive;
   const isExpanded = session.view === "expanded" && hasEntered;
   const backdropVisible = session.view === "expanded";
   const isFinishingRunning =
-    session.finishing.status === "saving" ||
-    session.finishing.status === "analyzing" ||
-    session.finishing.status === "done" ||
-    session.finishing.status === "error";
-  const isStarted = session.state.started;
+    !isArchive && (
+      session.finishing.status === "saving" ||
+      session.finishing.status === "analyzing" ||
+      session.finishing.status === "done" ||
+      session.finishing.status === "error"
+    );
+  const isStarted = !isArchive && (session.state?.started ?? false);
   const showRestBar = isStarted && !!timerKey && timerSec > 0;
+
+  const archiveDateStr = session.archive?.date ?? null;
+  const archiveDateLabel = archiveDateStr
+    ? new Date(archiveDateStr + "T12:00:00").toLocaleDateString("fr-FR", {
+        weekday: "long", day: "numeric", month: "long",
+      })
+    : "";
+  const archiveTitle = archiveSession
+    ? archiveSession.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS"
+    : "SÉANCE";
 
   const restProgress =
     timerKey && timerTotalSec > 0
@@ -562,12 +617,53 @@ export default function SessionSheet() {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
-          {!isStarted && (
+          {isArchive && (
+            <div className="px-2 pb-2">
+              <p
+                className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
+                style={{ color: "#39ff14" }}
+              >
+                {archiveDateLabel}
+              </p>
+              <h1
+                className="font-display text-5xl leading-none"
+                style={{ textShadow: "0 0 30px rgba(57,255,20,0.3)" }}
+              >
+                {archiveTitle} ✓
+              </h1>
+            </div>
+          )}
+          {isArchive && archiveSession && (
+            <div className="px-2 space-y-3">
+              <CoachFeedbackCard
+                state={archiveCoachState}
+                result={archiveCoachResult}
+                onRetry={handleArchiveRetry}
+              />
+              <FitnessSessionResults session={archiveSession} />
+              <button
+                onClick={session.deleteArchivedSession}
+                className="w-full py-2 rounded-xl text-xs press-effect"
+                style={{ background: "transparent", border: "1px solid #111", color: "#2a2a2a" }}
+              >
+                Supprimer la séance
+              </button>
+            </div>
+          )}
+          {isArchive && !archiveSession && (
+            <div
+              className="rounded-2xl p-4 mx-2"
+              style={{ background: "#111", border: "1px solid #1a1a1a" }}
+            >
+              <p className="text-sm text-muted">Séance introuvable.</p>
+            </div>
+          )}
+          {!isArchive && !isStarted && (
             <p className="px-1 pb-1 text-[11px] tracking-widest font-bold" style={{ color: "#39ff14" }}>
-              À FAIRE · {session.state.exercises.length} exercice{session.state.exercises.length > 1 ? "s" : ""}
+              À FAIRE · {session.state!.exercises.length} exercice{session.state!.exercises.length > 1 ? "s" : ""}
             </p>
           )}
-          {session.state.exercises.map((ex, i) => {
+          {!isArchive && session.state!.exercises.map((ex, i) => {
             const isActive = isStarted && i === session.state!.activeExIdx;
             if (isActive) {
               return (
@@ -623,7 +719,7 @@ export default function SessionSheet() {
         </div>
 
         {/* Bottom: "Commencer" CTA while not started, or rest progress while running */}
-        {!isStarted && !isFinishingRunning && (
+        {!isArchive && !isStarted && !isFinishingRunning && (
           <div
             className="absolute left-0 right-0 px-4 pt-3"
             style={{
