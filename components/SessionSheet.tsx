@@ -7,6 +7,7 @@ import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
+import NoteModal from "@/components/NoteModal";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -194,10 +195,10 @@ const CollapsedCard = memo(CollapsedCardImpl);
 
 interface ActiveCardProps {
   exercise: LiveExercise;
-  noteOpen: boolean;
+  onOpenNote: () => void;
 }
 
-function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
+function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
   const session = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -207,8 +208,7 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
       return;
     }
     if (kind === "note") {
-      // Toggle the inline note field by giving the comment a single space if empty
-      session.setNote(exercise.id, exercise.comment || " ");
+      onOpenNote();
       return;
     }
   };
@@ -253,18 +253,16 @@ function ActiveCardImpl({ exercise, noteOpen }: ActiveCardProps) {
         </p>
       )}
 
-      {/* Inline editable note */}
-      {(noteOpen || (exercise.comment && exercise.comment.trim() !== "")) && (
-        <div className="px-3 pb-2">
-          <textarea
-            value={exercise.comment}
-            onChange={(e) => session.setNote(exercise.id, e.target.value)}
-            placeholder="Ressenti sur cet exercice…"
-            rows={2}
-            className="w-full bg-transparent border rounded-xl px-3 py-2 text-xs resize-none focus:outline-none"
-            style={{ color: "#bbb", borderColor: "#262626", background: "#0f0f0f" }}
-          />
-        </div>
+      {/* User note preview — tap to edit */}
+      {exercise.comment && exercise.comment.trim() !== "" && (
+        <button
+          onClick={onOpenNote}
+          className="w-full text-left px-4 pb-2 press-effect"
+        >
+          <p className="text-xs italic" style={{ color: "#aaa" }}>
+            ✎ {exercise.comment}
+          </p>
+        </button>
       )}
 
       {/* Set table */}
@@ -387,7 +385,7 @@ export default function SessionSheet() {
   const { timerKey, timerSec, timerTotalSec } = useTimer();
   const router = useRouter();
   const [openMenuExId, setOpenMenuExId] = useState<string | null>(null);
-  const [noteOpenExIds, setNoteOpenExIds] = useState<Set<string>>(new Set());
+  const [noteModalExId, setNoteModalExId] = useState<string | null>(null);
   // Drives the slide-in animation: starts at translateY(100%) on first render,
   // flips to translateY(0) on the next frame so CSS can interpolate.
   const [hasEntered, setHasEntered] = useState(false);
@@ -670,7 +668,7 @@ export default function SessionSheet() {
                 <ActiveCard
                   key={ex.id}
                   exercise={ex}
-                  noteOpen={noteOpenExIds.has(ex.id)}
+                  onOpenNote={() => setNoteModalExId(ex.id)}
                 />
               );
             }
@@ -685,14 +683,7 @@ export default function SessionSheet() {
                 onMenu={() => setOpenMenuExId(ex.id)}
                 onAction={(kind) => {
                   if (kind === "delete") session.removeExercise(ex.id);
-                  else if (kind === "note") {
-                    setNoteOpenExIds((prev) => {
-                      const next = new Set(prev);
-                      next.add(ex.id);
-                      return next;
-                    });
-                    if (isStarted) session.setActiveIdx(i);
-                  }
+                  else if (kind === "note") setNoteModalExId(ex.id);
                 }}
               />
             );
@@ -772,6 +763,20 @@ export default function SessionSheet() {
 
       {/* Confirm finish modal */}
       <FinishSessionModal />
+
+      {/* Note editor modal */}
+      <NoteModal
+        open={!!noteModalExId}
+        initialValue={
+          noteModalExId
+            ? session.state?.exercises.find((e) => e.id === noteModalExId)?.comment ?? ""
+            : ""
+        }
+        onClose={() => setNoteModalExId(null)}
+        onSave={(note) => {
+          if (noteModalExId) session.setNote(noteModalExId, note);
+        }}
+      />
     </>
   );
 }
