@@ -13,30 +13,17 @@ import type { CoachWorkout } from "@/lib/coachPlan";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import {
   addSession,
-  clearInProgressFitness,
   deleteSession,
   generateId,
-  getInProgressFitness,
   getSessions,
-  setInProgressFitness,
 } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { useTimer } from "./TimerContext";
 
-const META_KEY_PREFIX = "cc_session_meta_";
-const ACTIVE_KEY = "cc_active_session_date";
-
 export interface LiveExercise extends Exercise {
   restSeconds?: number;
   coachNote?: string;
-}
-
-interface SessionMeta {
-  category: FitnessCategory;
-  coachWorkoutId: string | null;
-  /** True once the user has hit "Commencer". Live UI gates on this. */
-  started: boolean;
 }
 
 interface SessionState {
@@ -109,27 +96,6 @@ export interface SessionContextValue {
 
 const SessionCtx = createContext<SessionContextValue | null>(null);
 
-function loadMeta(date: string): SessionMeta | null {
-  try {
-    const raw = localStorage.getItem(META_KEY_PREFIX + date);
-    return raw ? (JSON.parse(raw) as SessionMeta) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveMeta(date: string, meta: SessionMeta): void {
-  try {
-    localStorage.setItem(META_KEY_PREFIX + date, JSON.stringify(meta));
-  } catch {}
-}
-
-function clearMeta(date: string): void {
-  try {
-    localStorage.removeItem(META_KEY_PREFIX + date);
-  } catch {}
-}
-
 function exerciseFromCoach(ce: CoachWorkout["exercises"][number]): LiveExercise {
   const setLogs: SetLog[] = ce.setPlans && ce.setPlans.length > 0
     ? ce.setPlans.map((sp) => ({ weight: sp.weight, reps: sp.reps, done: false }))
@@ -161,60 +127,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     stateRef.current = state;
   }, [state]);
 
-  // On mount, restore any in-progress session that was minimized when the user reloaded.
-  useEffect(() => {
-    let activeDate: string | null = null;
-    try { activeDate = localStorage.getItem(ACTIVE_KEY); } catch {}
-    if (!activeDate) return;
-    const meta = loadMeta(activeDate);
-    const inProgress = getInProgressFitness(activeDate);
-    if (!meta || !inProgress) {
-      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
-      return;
-    }
-    // Migration: if the persisted meta predates the started flag, infer it
-    // from the in-progress data — any validated set means the user was already
-    // logging, so treat as started.
-    const inferredStarted =
-      typeof meta.started === "boolean"
-        ? meta.started
-        : (inProgress.exercises as LiveExercise[]).some(
-            (ex) => ex.setLogs?.some((s) => s.done) ?? false
-          );
-
-    setState({
-      date: activeDate,
-      category: meta.category,
-      coachWorkoutId: meta.coachWorkoutId,
-      exercises: inProgress.exercises as LiveExercise[],
-      activeExIdx: inProgress.activeExIdx,
-      started: inferredStarted,
-      // We don't know where the user originally opened the session from after
-      // a reload, so fall back to home.
-      originRoute: "/",
-    });
-    setView("minimized");
-  }, []);
-
-  // Persist live state on every change — only once the session is actually started.
-  // Unstarted sessions are ephemeral: they hydrate instantly from the coach plan,
-  // so there's nothing to recover. Persisting them would cause "another-active"
-  // conflicts when the user browses other dates from the plan page.
-  useEffect(() => {
-    if (!state) return;
-    if (!state.started) return;
-    setInProgressFitness(state.date, {
-      exercises: state.exercises,
-      activeExIdx: state.activeExIdx,
-    });
-    saveMeta(state.date, {
-      category: state.category,
-      coachWorkoutId: state.coachWorkoutId,
-      started: state.started,
-    });
-    try { localStorage.setItem(ACTIVE_KEY, state.date); } catch {}
-  }, [state]);
-
   const open = useCallback<SessionContextValue["open"]>((date, opts) => {
     // Capture where we came from so minimize/drag-down can navigate back.
     // Falls back to the current URL if the caller didn't pass anything.
@@ -239,9 +151,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return "another-active";
       }
       // Unstarted session for a different date — discard and fall through.
-      clearInProgressFitness(current.date);
-      clearMeta(current.date);
-      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
       stateRef.current = null;
       setState(null);
     }
@@ -260,29 +169,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const plan = getCoachWorkouts().find((w) => w.date === date) ?? null;
     if (!plan) return "no-plan";
 
-    // Resume in-progress if present, else hydrate from coach plan
-    const inProgress = getInProgressFitness(date);
-    const meta = loadMeta(date);
-
-    const exercises: LiveExercise[] = inProgress && inProgress.exercises.length > 0
-      ? (inProgress.exercises as LiveExercise[])
-      : plan.exercises.map(exerciseFromCoach);
-
-    // Resume "started" if the persisted meta says so, or if any set was
-    // validated previously. Fresh hydrations from the coach plan start as
-    // not-started.
-    const started =
-      typeof meta?.started === "boolean"
-        ? meta.started
-        : exercises.some((ex) => ex.setLogs?.some((s) => s.done) ?? false);
-
     setState({
       date,
       category: plan.category,
       coachWorkoutId: plan.id,
-      exercises,
-      activeExIdx: inProgress?.activeExIdx ?? 0,
-      started,
+      exercises: plan.exercises.map(exerciseFromCoach),
+      activeExIdx: 0,
+      started: false,
       originRoute,
     });
     setView("expanded");
@@ -299,16 +192,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const close = useCallback(() => {
-    if (state) {
-      clearInProgressFitness(state.date);
-      clearMeta(state.date);
-      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
-    }
     setState(null);
     setArchive(null);
     setView("hidden");
     setFinishing({ status: "idle" });
-  }, [state]);
+  }, []);
 
   const deleteArchivedSession = useCallback(() => {
     if (!archive) return;
@@ -330,10 +218,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const abandon = useCallback(() => {
     const current = stateRef.current;
     if (!current) return;
-    // Wipe live state so nothing gets saved or analysed
-    clearInProgressFitness(current.date);
-    clearMeta(current.date);
-    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
     setFinishing({ status: "idle" });
 
     // Re-hydrate from the coach plan if it still exists, so the sheet shows
@@ -520,11 +404,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     addSession(session);
     autoSyncPush();
     stopTimer();
-
-    // Clear in-progress storage; keep session state alive so the UI shows "analyzing"
-    clearInProgressFitness(state.date);
-    clearMeta(state.date);
-    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
 
     // Snapshot the coach plan BEFORE analysis: if the analyzer rewrites the same id
     // in-place (addCoachWorkout dedup-by-id replaces it), we must NOT delete it
