@@ -19,7 +19,7 @@ function TimerHalo() {
       style={{
         position:      "fixed",
         inset:         0,
-        zIndex:        40,
+        zIndex:        65,
         pointerEvents: "none",
         borderRadius:  "inherit",
         opacity:       visible ? 1 : 0,
