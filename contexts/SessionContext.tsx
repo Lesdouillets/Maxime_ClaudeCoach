@@ -14,6 +14,7 @@ import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import {
   addSession,
   clearInProgressFitness,
+  deleteSession,
   generateId,
   getInProgressFitness,
   getSessions,
@@ -54,6 +55,12 @@ interface SessionState {
   originRoute: string;
 }
 
+/** Archive view: a fitness session for that date is already done — read-only. */
+interface ArchiveState {
+  date: string;
+  originRoute: string;
+}
+
 export type SessionView = "hidden" | "expanded" | "minimized";
 
 export interface FinishingState {
@@ -64,13 +71,17 @@ export interface FinishingState {
 
 export interface SessionContextValue {
   state: SessionState | null;
+  /** Read-only archive view of a finished fitness session. */
+  archive: ArchiveState | null;
   view: SessionView;
   finishing: FinishingState;
 
-  open: (date: string, opts?: { originRoute?: string }) => "ok" | "no-plan" | "already-done" | "another-active";
+  open: (date: string, opts?: { originRoute?: string }) => "ok" | "no-plan" | "another-active";
   expand: () => void;
   minimize: () => void;
   close: () => void;
+  /** Delete the archived session for the current archive date. */
+  deleteArchivedSession: () => void;
   /** Flip the session from "not started" to "in progress". */
   startSession: () => void;
   /**
@@ -138,6 +149,7 @@ function exerciseFromCoach(ce: CoachWorkout["exercises"][number]): LiveExercise 
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SessionState | null>(null);
+  const [archive, setArchive] = useState<ArchiveState | null>(null);
   const stateRef = useRef<SessionState | null>(null);
   const [view, setView] = useState<SessionView>("hidden");
   const [finishing, setFinishing] = useState<FinishingState>({ status: "idle" });
@@ -223,11 +235,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return "another-active";
     }
 
-    // If a session for this date already exists in storage, refuse: it's an archive view.
+    // If a fitness session for this date already exists in storage, open the
+    // read-only archive view in the same sheet.
     const existing = getSessions().some(
       (s) => s.type === "fitness" && s.date.slice(0, 10) === date
     );
-    if (existing) return "already-done";
+    if (existing) {
+      setArchive({ date, originRoute });
+      setView("expanded");
+      return "ok";
+    }
 
     const plan = getCoachWorkouts().find((w) => w.date === date) ?? null;
     if (!plan) return "no-plan";
@@ -274,12 +291,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (state) {
       clearInProgressFitness(state.date);
       clearMeta(state.date);
+      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
     }
-    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
     setState(null);
+    setArchive(null);
     setView("hidden");
     setFinishing({ status: "idle" });
   }, [state]);
+
+  const deleteArchivedSession = useCallback(() => {
+    if (!archive) return;
+    const target = getSessions().find(
+      (s) => s.type === "fitness" && s.date.slice(0, 10) === archive.date
+    );
+    if (target) {
+      deleteSession(target.id);
+      autoSyncPush();
+    }
+    setArchive(null);
+    setView("hidden");
+  }, [archive]);
 
   const startSession = useCallback(() => {
     setState((prev) => prev ? { ...prev, started: true } : prev);
@@ -536,12 +567,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     <SessionCtx.Provider
       value={{
         state,
+        archive,
         view,
         finishing,
         open,
         expand,
         minimize,
         close,
+        deleteArchivedSession,
         startSession,
         abandon,
         setActiveIdx,

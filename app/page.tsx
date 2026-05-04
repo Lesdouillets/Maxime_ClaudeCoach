@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
@@ -36,7 +35,6 @@ const ACCENT: Record<BgType, string> = {
 };
 
 export default function HomePage() {
-  const router = useRouter();
   const session = useSession();
   const runSheet = useRunSheet();
   const [mounted, setMounted] = useState(false);
@@ -184,23 +182,15 @@ export default function HomePage() {
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => {
-              if (!todaySession) {
-                if (todayCoachWorkout) {
-                  const result = session.open(todayStr);
-                  if (result === "ok" || result === "another-active") return;
-                }
-                if (todayCoachRun) {
-                  runSheet.open(todayStr, { originRoute: "/" });
-                  return;
-                }
-              }
-              // Done run session → run sheet (archive view)
-              if (todaySession?.type === "run") {
+              // Runs (planned or done) → run sheet
+              if (todaySession?.type === "run" || (!todaySession && todayCoachRun)) {
                 runSheet.open(todayStr, { originRoute: "/" });
                 return;
               }
-              // Done fitness session → archive view
-              router.push(`/log/fitness?date=${todayStr}`);
+              // Fitness (planned, in-progress, or done archive) → session sheet
+              if (todaySession?.type === "fitness" || todayCoachWorkout) {
+                session.open(todayStr, { originRoute: "/" });
+              }
             }}
             style={{
               background: "rgba(15,15,15,0.3)",

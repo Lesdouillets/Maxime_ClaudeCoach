@@ -69,12 +69,10 @@ export default function PlanPage() {
     e.preventDefault();
     if (target === "fitness") {
       const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
-      if (result === "no-plan" || result === "already-done") {
-        router.push(href);
-      }
+      if (result === "no-plan") router.push(href);
       return;
     }
-    // Run day → run sheet (read-only plan view)
+    // Run day → run sheet (planned or archive view)
     runSheet.open(dateStr, { originRoute: "/plan" });
   };
 
@@ -365,7 +363,8 @@ export default function PlanPage() {
 
             const sheetTarget: "fitness" | "run" | null =
               s.session?.type === "run" ? "run"
-              : s.hasPlan && !s.session
+              : s.session?.type === "fitness" ? "fitness"
+              : s.hasPlan
                 ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
                 : null;
 
@@ -443,7 +442,8 @@ export default function PlanPage() {
 
               const sheetTarget: "fitness" | "run" | null =
                 s.session?.type === "run" ? "run"
-                : s.hasPlan && !s.session
+                : s.session?.type === "fitness" ? "fitness"
+                : s.hasPlan
                   ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
                   : null;
 
