@@ -5,10 +5,30 @@ import { useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
 import Badge from "@/components/Badge";
 import CoachRunPlan from "@/components/CoachRunPlan";
+import RunSessionResults from "@/components/RunSessionResults";
+import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns } from "@/lib/coachPlan";
+import { getSessions } from "@/lib/storage";
+import {
+  analyzeSession,
+  getStoredCoachAnalysis,
+  type CoachAnalysisResult,
+} from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
-import type { PlannedDay } from "@/lib/types";
+import type { PlannedDay, RunSession } from "@/lib/types";
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const StravaIcon = () => (
+  // eslint-disable-next-line @next/next/no-img-element
+  <img
+    src={`${BASE}/strava.svg`}
+    width={12}
+    height={12}
+    alt="Strava"
+    style={{ filter: "invert(50%) sepia(100%) saturate(500%) hue-rotate(350deg)" }}
+  />
+);
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAP_MAX_MOVEMENT_PX = 6;
@@ -23,6 +43,10 @@ export default function RunSheet() {
   const dragStartRef = useRef<{ y: number; t: number } | null>(null);
   const [coachRun, setCoachRun] = useState<CoachRun | null>(null);
   const [genericPlan, setGenericPlan] = useState<PlannedDay | null>(null);
+  const [doneSession, setDoneSession] = useState<RunSession | null>(null);
+  const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
+  const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
+  const [analysisAttempted, setAnalysisAttempted] = useState(false);
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -37,14 +61,36 @@ export default function RunSheet() {
     return () => cancelAnimationFrame(id1);
   }, [sheet.state]);
 
-  // Pull the coach run + the generic weekly plan for the requested date.
+  // Pull the recorded session (if any), the coach run, and the generic
+  // weekly plan for the requested date.
   useEffect(() => {
     if (!sheet.state) return;
     const dateStr = sheet.state.date ?? toLocalDateStr(new Date());
+
+    const recorded = getSessions().find(
+      (s): s is RunSession => s.type === "run" && s.date.slice(0, 10) === dateStr
+    ) ?? null;
+    setDoneSession(recorded);
+
     const dow = new Date(dateStr + "T12:00:00").getDay();
     setCoachRun(getCoachRuns().find((r) => r.date === dateStr) ?? null);
     const generic = WEEKLY_PLAN.find((p) => p.dayOfWeek === dow) ?? null;
     setGenericPlan(generic?.type === "run" ? generic : null);
+
+    // For a Strava-imported run with no stored analysis, fire the coach
+    // analysis in the background so the feedback shows up here.
+    const stored = getStoredCoachAnalysis(dateStr);
+    setCoachResult(stored);
+    if (!stored && recorded?.importedFromStrava) {
+      setAnalysisAttempted(true);
+      setCoachState("analyzing");
+      analyzeSession(recorded).then((result) => {
+        setCoachResult(result);
+        setCoachState("done");
+      });
+    } else {
+      setCoachState("done");
+    }
   }, [sheet.state]);
 
   const handleClose = useCallback(() => {
@@ -189,13 +235,54 @@ export default function RunSheet() {
             className="font-display text-5xl leading-none"
             style={{ textShadow: "0 0 30px rgba(57,255,20,0.3)" }}
           >
-            RUN
+            RUN{doneSession ? " ✓" : ""}
           </h1>
         </div>
 
-        {/* Body — read-only plan view */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 pt-2 pb-12 space-y-4">
-          {coachRun ? (
+          {doneSession ? (
+            // Archive view: results + coach feedback (same widgets as /day)
+            <>
+              {doneSession.importedFromStrava && (
+                <div
+                  className="flex items-center gap-1.5 text-xs"
+                  style={{ color: "#ff6b00" }}
+                >
+                  <StravaIcon /> Importé depuis Strava
+                </div>
+              )}
+
+              {(analysisAttempted || coachState === "analyzing" || !!coachResult) && (
+                <CoachFeedbackCard state={coachState} result={coachResult} />
+              )}
+
+              {coachState === "done" && !analysisAttempted && doneSession && (
+                <button
+                  onClick={() => {
+                    const s = doneSession;
+                    setAnalysisAttempted(true);
+                    setCoachResult(null);
+                    setCoachState("analyzing");
+                    analyzeSession(s).then((result) => {
+                      setCoachResult(result);
+                      setCoachState("done");
+                    });
+                  }}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
+                  style={{
+                    background: "rgba(57,255,20,0.06)",
+                    border: "1px solid rgba(57,255,20,0.2)",
+                    color: "#39ff14",
+                  }}
+                >
+                  RELANCER L&apos;ANALYSE COACH →
+                </button>
+              )}
+
+              <RunSessionResults session={doneSession} />
+            </>
+          ) : coachRun ? (
             <CoachRunPlan coachRun={coachRun} />
           ) : genericPlan ? (
             <div
@@ -232,40 +319,42 @@ export default function RunSheet() {
             </div>
           )}
 
-          {/* Info: Strava sync handles the validation */}
-          <div
-            className="rounded-2xl p-4 flex items-start gap-3"
-            style={{
-              background: "rgba(255,107,0,0.04)",
-              border: "1px solid rgba(255,107,0,0.18)",
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              style={{ flexShrink: 0, marginTop: 2 }}
+          {/* Strava sync hint — only when the run hasn't been recorded yet */}
+          {!doneSession && (
+            <div
+              className="rounded-2xl p-4 flex items-start gap-3"
+              style={{
+                background: "rgba(255,107,0,0.04)",
+                border: "1px solid rgba(255,107,0,0.18)",
+              }}
             >
-              <path
-                d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M5.5 16.5l2.5-3.5 3 2.5 3.5-5L17 14M3 20h18"
-                stroke="#ff6b00"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "#ff6b00" }}>
-                Synchro Strava automatique
-              </p>
-              <p className="text-xs mt-1" style={{ color: "#888" }}>
-                Ton run sera importé automatiquement depuis Strava et le coach
-                lancera son analyse à ce moment-là. Aucune validation manuelle
-                à faire ici.
-              </p>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ flexShrink: 0, marginTop: 2 }}
+              >
+                <path
+                  d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M5.5 16.5l2.5-3.5 3 2.5 3.5-5L17 14M3 20h18"
+                  stroke="#ff6b00"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#ff6b00" }}>
+                  Synchro Strava automatique
+                </p>
+                <p className="text-xs mt-1" style={{ color: "#888" }}>
+                  Ton run sera importé automatiquement depuis Strava et le coach
+                  lancera son analyse à ce moment-là. Aucune validation manuelle
+                  à faire ici.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
