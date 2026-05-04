@@ -72,7 +72,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
               <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
-          <span className="font-bold text-base">Note privée</span>
+          <span className="font-bold text-base">Notes</span>
           <button
             onClick={handleSave}
             className="w-9 h-9 rounded-full flex items-center justify-center press-effect"
