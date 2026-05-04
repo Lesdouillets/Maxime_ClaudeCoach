@@ -363,10 +363,9 @@ export default function PlanPage() {
               </div>
             );
 
-            // Eligible to hand off to a global sheet only when there's a
-            // plan AND no recorded session yet (otherwise it's an archive view).
             const sheetTarget: "fitness" | "run" | null =
-              s.hasPlan && !s.session
+              s.session?.type === "run" ? "run"
+              : s.hasPlan && !s.session
                 ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
                 : null;
 
@@ -443,7 +442,8 @@ export default function PlanPage() {
               );
 
               const sheetTarget: "fitness" | "run" | null =
-                s.hasPlan && !s.session
+                s.session?.type === "run" ? "run"
+                : s.hasPlan && !s.session
                   ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
                   : null;
 

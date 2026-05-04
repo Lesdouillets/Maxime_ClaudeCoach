@@ -184,9 +184,6 @@ export default function HomePage() {
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => {
-              // Planned-but-not-yet-done sessions hand off to a global sheet
-              // so the user lands directly in the workout view (no /day page,
-              // no back button). Done sessions still navigate to the archive.
               if (!todaySession) {
                 if (todayCoachWorkout) {
                   const result = session.open(todayStr);
@@ -197,14 +194,13 @@ export default function HomePage() {
                   return;
                 }
               }
-              // Done fitness session → archive view; runs → day view (with results).
-              const isFitnessDay =
-                !!todayCoachWorkout || todaySession?.type === "fitness";
-              router.push(
-                isFitnessDay
-                  ? `/log/fitness?date=${todayStr}`
-                  : `/day?date=${todayStr}`
-              );
+              // Done run session → run sheet (archive view)
+              if (todaySession?.type === "run") {
+                runSheet.open(todayStr, { originRoute: "/" });
+                return;
+              }
+              // Done fitness session → archive view
+              router.push(`/log/fitness?date=${todayStr}`);
             }}
             style={{
               background: "rgba(15,15,15,0.3)",
