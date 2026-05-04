@@ -196,9 +196,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setView("minimized");
   }, []);
 
-  // Persist live state on every change
+  // Persist live state on every change — only once the session is actually started.
+  // Unstarted sessions are ephemeral: they hydrate instantly from the coach plan,
+  // so there's nothing to recover. Persisting them would cause "another-active"
+  // conflicts when the user browses other dates from the plan page.
   useEffect(() => {
     if (!state) return;
+    if (!state.started) return;
     setInProgressFitness(state.date, {
       exercises: state.exercises,
       activeExIdx: state.activeExIdx,
@@ -221,18 +225,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         : "/");
 
     // If a session is already in flight, expand it. If it's for a different date,
-    // refuse — the user must finish or close the existing one before starting a new one.
+    // refuse only when it's actually started (data would be lost) — otherwise
+    // silently discard the unstarted state and open the requested date.
     const current = stateRef.current;
     if (current) {
       if (current.date === date) {
-        // Refresh the origin so the user comes back to the page they just left,
-        // not to wherever they happened to open the session from originally.
         setState({ ...current, originRoute });
         setView("expanded");
         return "ok";
       }
-      setView("expanded");
-      return "another-active";
+      if (current.started) {
+        setView("expanded");
+        return "another-active";
+      }
+      // Unstarted session for a different date — discard and fall through.
+      clearInProgressFitness(current.date);
+      clearMeta(current.date);
+      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
+      stateRef.current = null;
+      setState(null);
     }
 
     // If a fitness session for this date already exists in storage, open the
