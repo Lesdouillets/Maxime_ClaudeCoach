@@ -13,13 +13,40 @@ import type { CoachWorkout } from "@/lib/coachPlan";
 import { getCoachWorkouts, deleteCoachWorkout } from "@/lib/coachPlan";
 import {
   addSession,
+  clearInProgressFitness,
   deleteSession,
   generateId,
+  getInProgressFitness,
   getSessions,
+  setInProgressFitness,
 } from "@/lib/storage";
-import { autoSyncPush } from "@/lib/sync";
+import { autoSyncPush, syncFull } from "@/lib/sync";
 import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { useTimer } from "./TimerContext";
+
+const META_KEY_PREFIX = "cc_session_meta_";
+const ACTIVE_KEY = "cc_active_session_date";
+
+interface SessionMeta {
+  category: FitnessCategory;
+  coachWorkoutId: string | null;
+  started: boolean;
+}
+
+function loadMeta(date: string): SessionMeta | null {
+  try {
+    const raw = localStorage.getItem(META_KEY_PREFIX + date);
+    return raw ? (JSON.parse(raw) as SessionMeta) : null;
+  } catch { return null; }
+}
+
+function saveMeta(date: string, meta: SessionMeta): void {
+  try { localStorage.setItem(META_KEY_PREFIX + date, JSON.stringify(meta)); } catch {}
+}
+
+function clearMeta(date: string): void {
+  try { localStorage.removeItem(META_KEY_PREFIX + date); } catch {}
+}
 
 export interface LiveExercise extends Exercise {
   restSeconds?: number;
@@ -127,6 +154,48 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     stateRef.current = state;
   }, [state]);
 
+  // On mount: restore any started session that survived a browser reload or
+  // iOS killing the tab. Unstarted sessions are never written, so this only
+  // fires for sessions with real progress.
+  useEffect(() => {
+    let activeDate: string | null = null;
+    try { activeDate = localStorage.getItem(ACTIVE_KEY); } catch {}
+    if (!activeDate) return;
+    const meta = loadMeta(activeDate);
+    const inProgress = getInProgressFitness(activeDate);
+    if (!meta || !inProgress || !meta.started) {
+      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
+      return;
+    }
+    setState({
+      date: activeDate,
+      category: meta.category,
+      coachWorkoutId: meta.coachWorkoutId,
+      exercises: inProgress.exercises as LiveExercise[],
+      activeExIdx: inProgress.activeExIdx,
+      started: true,
+      originRoute: "/",
+    });
+    setView("minimized");
+  }, []);
+
+  // Persist to localStorage only once the session is started. Unstarted sessions
+  // are ephemeral — they hydrate instantly from the plan. Writing them caused
+  // conflicts when the user browsed multiple future dates from the plan page.
+  useEffect(() => {
+    if (!state?.started) return;
+    setInProgressFitness(state.date, {
+      exercises: state.exercises,
+      activeExIdx: state.activeExIdx,
+    });
+    saveMeta(state.date, {
+      category: state.category,
+      coachWorkoutId: state.coachWorkoutId,
+      started: true,
+    });
+    try { localStorage.setItem(ACTIVE_KEY, state.date); } catch {}
+  }, [state]);
+
   const open = useCallback<SessionContextValue["open"]>((date, opts) => {
     // Capture where we came from so minimize/drag-down can navigate back.
     // Falls back to the current URL if the caller didn't pass anything.
@@ -180,6 +249,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
     setView("expanded");
     setFinishing({ status: "idle" });
+    // Pull fresh data from Supabase in the background so the next open
+    // (or archive view) always reflects the latest plan/session state.
+    syncFull().catch(() => {});
     return "ok";
   }, []);
 
@@ -192,11 +264,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const close = useCallback(() => {
+    if (state) {
+      clearInProgressFitness(state.date);
+      clearMeta(state.date);
+      try { localStorage.removeItem(ACTIVE_KEY); } catch {}
+    }
     setState(null);
     setArchive(null);
     setView("hidden");
     setFinishing({ status: "idle" });
-  }, []);
+  }, [state]);
 
   const deleteArchivedSession = useCallback(() => {
     if (!archive) return;
@@ -218,6 +295,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const abandon = useCallback(() => {
     const current = stateRef.current;
     if (!current) return;
+    clearInProgressFitness(current.date);
+    clearMeta(current.date);
+    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
     setFinishing({ status: "idle" });
 
     // Re-hydrate from the coach plan if it still exists, so the sheet shows
@@ -404,6 +484,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     addSession(session);
     autoSyncPush();
     stopTimer();
+    clearInProgressFitness(state.date);
+    clearMeta(state.date);
+    try { localStorage.removeItem(ACTIVE_KEY); } catch {}
 
     // Snapshot the coach plan BEFORE analysis: if the analyzer rewrites the same id
     // in-place (addCoachWorkout dedup-by-id replaces it), we must NOT delete it

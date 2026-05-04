@@ -4,6 +4,7 @@ import type {
   StravaActivity,
   AppState,
   CancelledDay,
+  Exercise,
 } from "./types";
 
 const KEYS = {
@@ -190,6 +191,36 @@ export function unrescheduleDay(from: string): void {
   localStorage.setItem(KEYS.rescheduledDays, JSON.stringify(
     getRescheduledDays().filter((d) => d.from !== from)
   ));
+}
+
+// ─── In-Progress Fitness Sessions ─────────────────────────────────────────────
+// Persists only while the session is started (started === true) so progress
+// survives a browser reload or iOS killing the tab mid-session.
+// Cleared on finish, abandon, or close.
+
+export interface InProgressFitnessState {
+  exercises: Exercise[];
+  activeExIdx: number;
+}
+
+const inProgressKey = (date: string) => `cc_in_progress_fitness_${date}`;
+
+export function getInProgressFitness(date: string): InProgressFitnessState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(inProgressKey(date));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+export function setInProgressFitness(date: string, s: InProgressFitnessState): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(inProgressKey(date), JSON.stringify(s)); } catch {}
+}
+
+export function clearInProgressFitness(date: string): void {
+  if (typeof window === "undefined") return;
+  try { localStorage.removeItem(inProgressKey(date)); } catch {}
 }
 
 // ─── Full State Export ────────────────────────────────────────────────────────
