@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
+import { useRunSheet } from "@/contexts/RunSheetContext";
 import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
 import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
@@ -37,6 +38,7 @@ const ACCENT: Record<BgType, string> = {
 export default function HomePage() {
   const router = useRouter();
   const session = useSession();
+  const runSheet = useRunSheet();
   const [mounted, setMounted] = useState(false);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
@@ -182,15 +184,20 @@ export default function HomePage() {
           <button
             className="w-full text-left p-5 rounded-2xl press-effect"
             onClick={() => {
-              // Active workout (planned, not yet done) → open the global session sheet.
-              if (todayCoachWorkout && !todaySession) {
-                const result = session.open(todayStr);
-                // "ok" = sheet now shows today's plan.
-                // "another-active" = a different in-flight session was expanded instead;
-                // in both cases the sheet handles the UI, so don't fall through to navigation.
-                if (result === "ok" || result === "another-active") return;
+              // Planned-but-not-yet-done sessions hand off to a global sheet
+              // so the user lands directly in the workout view (no /day page,
+              // no back button). Done sessions still navigate to the archive.
+              if (!todaySession) {
+                if (todayCoachWorkout) {
+                  const result = session.open(todayStr);
+                  if (result === "ok" || result === "another-active") return;
+                }
+                if (todayCoachRun) {
+                  runSheet.open(todayStr, { originRoute: "/" });
+                  return;
+                }
               }
-              // Done fitness session → archive view; runs (planned or done) → day view.
+              // Done fitness session → archive view; runs → day view (with results).
               const isFitnessDay =
                 !!todayCoachWorkout || todaySession?.type === "fitness";
               router.push(

@@ -10,6 +10,7 @@ import { getSessions, getCancelledDays, getRescheduledDays } from "@/lib/storage
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { syncFull } from "@/lib/sync";
 import { useSession } from "@/contexts/SessionContext";
+import { useRunSheet } from "@/contexts/RunSheetContext";
 import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
@@ -51,23 +52,30 @@ function getMonthCells(monthOffset: number): (Date | null)[] {
 export default function PlanPage() {
   const router = useRouter();
   const sessionCtx = useSession();
+  const runSheet = useRunSheet();
   const [mounted, setMounted] = useState(false);
 
   // Click handler for day cards: when the day has a coach plan and no
-  // completed session, hand off to the global session sheet directly so the
+  // completed session, hand off to the relevant global sheet directly so the
+  // user lands in the workout view (no /day page, no back button) and the
   // origin (this plan page) is preserved for minimize/drag-down.
   const handleDayClick = (
     e: React.MouseEvent,
     href: string,
-    canOpen: boolean,
+    target: "fitness" | "run" | null,
     dateStr: string
   ) => {
-    if (!canOpen) return; // let the Link navigate
+    if (!target) return; // not eligible — let the Link navigate
     e.preventDefault();
-    const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
-    if (result === "no-plan" || result === "already-done") {
-      router.push(href);
+    if (target === "fitness") {
+      const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
+      if (result === "no-plan" || result === "already-done") {
+        router.push(href);
+      }
+      return;
     }
+    // Run day → run sheet (read-only plan view)
+    runSheet.open(dateStr, { originRoute: "/plan" });
   };
 
   // ── View toggle ──
@@ -355,11 +363,16 @@ export default function PlanPage() {
               </div>
             );
 
-            const canOpenInSheet = isFitnessDay && s.hasPlan && !s.session;
+            // Eligible to hand off to a global sheet only when there's a
+            // plan AND no recorded session yet (otherwise it's an archive view).
+            const sheetTarget: "fitness" | "run" | null =
+              s.hasPlan && !s.session
+                ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
+                : null;
 
             return isClickable ? (
               <Link key={dateStr} href={href}
-                onClick={(e) => handleDayClick(e, href, canOpenInSheet, dateStr)}
+                onClick={(e) => handleDayClick(e, href, sheetTarget, dateStr)}
                 className="block rounded-2xl overflow-hidden press-effect"
                 style={{ border: `1px solid ${sc.border}`, background: sc.bg,
                   boxShadow: day.isToday ? "0 0 20px rgba(57,255,20,0.06)" : "none",
@@ -429,13 +442,16 @@ export default function PlanPage() {
                 </div>
               );
 
-              const canOpenInSheet = isFitnessDay && s.hasPlan && !s.session;
+              const sheetTarget: "fitness" | "run" | null =
+                s.hasPlan && !s.session
+                  ? (isFitnessDay ? "fitness" : s.planType === "run" ? "run" : null)
+                  : null;
 
               return isClickable ? (
                 <Link
                   key={dateStr}
                   href={href}
-                  onClick={(e) => handleDayClick(e, href, canOpenInSheet, dateStr)}
+                  onClick={(e) => handleDayClick(e, href, sheetTarget, dateStr)}
                   className="press-effect"
                 >
                   {cell}
