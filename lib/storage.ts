@@ -194,7 +194,9 @@ export function unrescheduleDay(from: string): void {
 }
 
 // ─── In-Progress Fitness Sessions ─────────────────────────────────────────────
-// Live workout state survives navigation (cleared on save or cancel).
+// Persists only while the session is started (started === true) so progress
+// survives a browser reload or iOS killing the tab mid-session.
+// Cleared on finish, abandon, or close.
 
 export interface InProgressFitnessState {
   exercises: Exercise[];
@@ -208,23 +210,17 @@ export function getInProgressFitness(date: string): InProgressFitnessState | nul
   try {
     const raw = localStorage.getItem(inProgressKey(date));
     return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-export function setInProgressFitness(date: string, state: InProgressFitnessState): void {
+export function setInProgressFitness(date: string, s: InProgressFitnessState): void {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(inProgressKey(date), JSON.stringify(state));
-  } catch {}
+  try { localStorage.setItem(inProgressKey(date), JSON.stringify(s)); } catch {}
 }
 
 export function clearInProgressFitness(date: string): void {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(inProgressKey(date));
-  } catch {}
+  try { localStorage.removeItem(inProgressKey(date)); } catch {}
 }
 
 // ─── Full State Export ────────────────────────────────────────────────────────

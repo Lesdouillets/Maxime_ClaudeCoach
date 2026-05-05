@@ -20,23 +20,37 @@ import {
   getSessions,
   setInProgressFitness,
 } from "@/lib/storage";
-import { autoSyncPush } from "@/lib/sync";
+import { autoSyncPush, syncFull } from "@/lib/sync";
 import { analyzeSession, type CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import { useTimer } from "./TimerContext";
 
 const META_KEY_PREFIX = "cc_session_meta_";
 const ACTIVE_KEY = "cc_active_session_date";
 
-export interface LiveExercise extends Exercise {
-  restSeconds?: number;
-  coachNote?: string;
-}
-
 interface SessionMeta {
   category: FitnessCategory;
   coachWorkoutId: string | null;
-  /** True once the user has hit "Commencer". Live UI gates on this. */
   started: boolean;
+}
+
+function loadMeta(date: string): SessionMeta | null {
+  try {
+    const raw = localStorage.getItem(META_KEY_PREFIX + date);
+    return raw ? (JSON.parse(raw) as SessionMeta) : null;
+  } catch { return null; }
+}
+
+function saveMeta(date: string, meta: SessionMeta): void {
+  try { localStorage.setItem(META_KEY_PREFIX + date, JSON.stringify(meta)); } catch {}
+}
+
+function clearMeta(date: string): void {
+  try { localStorage.removeItem(META_KEY_PREFIX + date); } catch {}
+}
+
+export interface LiveExercise extends Exercise {
+  restSeconds?: number;
+  coachNote?: string;
 }
 
 interface SessionState {
@@ -109,27 +123,6 @@ export interface SessionContextValue {
 
 const SessionCtx = createContext<SessionContextValue | null>(null);
 
-function loadMeta(date: string): SessionMeta | null {
-  try {
-    const raw = localStorage.getItem(META_KEY_PREFIX + date);
-    return raw ? (JSON.parse(raw) as SessionMeta) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveMeta(date: string, meta: SessionMeta): void {
-  try {
-    localStorage.setItem(META_KEY_PREFIX + date, JSON.stringify(meta));
-  } catch {}
-}
-
-function clearMeta(date: string): void {
-  try {
-    localStorage.removeItem(META_KEY_PREFIX + date);
-  } catch {}
-}
-
 function exerciseFromCoach(ce: CoachWorkout["exercises"][number]): LiveExercise {
   const setLogs: SetLog[] = ce.setPlans && ce.setPlans.length > 0
     ? ce.setPlans.map((sp) => ({ weight: sp.weight, reps: sp.reps, done: false }))
@@ -161,44 +154,36 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     stateRef.current = state;
   }, [state]);
 
-  // On mount, restore any in-progress session that was minimized when the user reloaded.
+  // On mount: restore any started session that survived a browser reload or
+  // iOS killing the tab. Unstarted sessions are never written, so this only
+  // fires for sessions with real progress.
   useEffect(() => {
     let activeDate: string | null = null;
     try { activeDate = localStorage.getItem(ACTIVE_KEY); } catch {}
     if (!activeDate) return;
     const meta = loadMeta(activeDate);
     const inProgress = getInProgressFitness(activeDate);
-    if (!meta || !inProgress) {
+    if (!meta || !inProgress || !meta.started) {
       try { localStorage.removeItem(ACTIVE_KEY); } catch {}
       return;
     }
-    // Migration: if the persisted meta predates the started flag, infer it
-    // from the in-progress data — any validated set means the user was already
-    // logging, so treat as started.
-    const inferredStarted =
-      typeof meta.started === "boolean"
-        ? meta.started
-        : (inProgress.exercises as LiveExercise[]).some(
-            (ex) => ex.setLogs?.some((s) => s.done) ?? false
-          );
-
     setState({
       date: activeDate,
       category: meta.category,
       coachWorkoutId: meta.coachWorkoutId,
       exercises: inProgress.exercises as LiveExercise[],
       activeExIdx: inProgress.activeExIdx,
-      started: inferredStarted,
-      // We don't know where the user originally opened the session from after
-      // a reload, so fall back to home.
+      started: true,
       originRoute: "/",
     });
     setView("minimized");
   }, []);
 
-  // Persist live state on every change
+  // Persist to localStorage only once the session is started. Unstarted sessions
+  // are ephemeral — they hydrate instantly from the plan. Writing them caused
+  // conflicts when the user browsed multiple future dates from the plan page.
   useEffect(() => {
-    if (!state) return;
+    if (!state?.started) return;
     setInProgressFitness(state.date, {
       exercises: state.exercises,
       activeExIdx: state.activeExIdx,
@@ -206,7 +191,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     saveMeta(state.date, {
       category: state.category,
       coachWorkoutId: state.coachWorkoutId,
-      started: state.started,
+      started: true,
     });
     try { localStorage.setItem(ACTIVE_KEY, state.date); } catch {}
   }, [state]);
@@ -221,18 +206,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         : "/");
 
     // If a session is already in flight, expand it. If it's for a different date,
-    // refuse — the user must finish or close the existing one before starting a new one.
+    // refuse only when it's actually started (data would be lost) — otherwise
+    // silently discard the unstarted state and open the requested date.
     const current = stateRef.current;
     if (current) {
       if (current.date === date) {
-        // Refresh the origin so the user comes back to the page they just left,
-        // not to wherever they happened to open the session from originally.
         setState({ ...current, originRoute });
         setView("expanded");
         return "ok";
       }
-      setView("expanded");
-      return "another-active";
+      if (current.started) {
+        setView("expanded");
+        return "another-active";
+      }
+      // Unstarted session for a different date — discard and fall through.
+      stateRef.current = null;
+      setState(null);
     }
 
     // If a fitness session for this date already exists in storage, open the
@@ -249,33 +238,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const plan = getCoachWorkouts().find((w) => w.date === date) ?? null;
     if (!plan) return "no-plan";
 
-    // Resume in-progress if present, else hydrate from coach plan
-    const inProgress = getInProgressFitness(date);
-    const meta = loadMeta(date);
-
-    const exercises: LiveExercise[] = inProgress && inProgress.exercises.length > 0
-      ? (inProgress.exercises as LiveExercise[])
-      : plan.exercises.map(exerciseFromCoach);
-
-    // Resume "started" if the persisted meta says so, or if any set was
-    // validated previously. Fresh hydrations from the coach plan start as
-    // not-started.
-    const started =
-      typeof meta?.started === "boolean"
-        ? meta.started
-        : exercises.some((ex) => ex.setLogs?.some((s) => s.done) ?? false);
-
     setState({
       date,
       category: plan.category,
       coachWorkoutId: plan.id,
-      exercises,
-      activeExIdx: inProgress?.activeExIdx ?? 0,
-      started,
+      exercises: plan.exercises.map(exerciseFromCoach),
+      activeExIdx: 0,
+      started: false,
       originRoute,
     });
     setView("expanded");
     setFinishing({ status: "idle" });
+    // Pull fresh data from Supabase in the background so the next open
+    // (or archive view) always reflects the latest plan/session state.
+    syncFull().catch(() => {});
     return "ok";
   }, []);
 
@@ -319,7 +295,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const abandon = useCallback(() => {
     const current = stateRef.current;
     if (!current) return;
-    // Wipe live state so nothing gets saved or analysed
     clearInProgressFitness(current.date);
     clearMeta(current.date);
     try { localStorage.removeItem(ACTIVE_KEY); } catch {}
@@ -509,8 +484,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     addSession(session);
     autoSyncPush();
     stopTimer();
-
-    // Clear in-progress storage; keep session state alive so the UI shows "analyzing"
     clearInProgressFitness(state.date);
     clearMeta(state.date);
     try { localStorage.removeItem(ACTIVE_KEY); } catch {}
