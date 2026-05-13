@@ -45,19 +45,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    href: "/settings",
-    label: "Profil",
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="8" r="4"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8"
-          fill={active ? "rgba(57,255,20,0.1)" : "none"} />
-        <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
     href: "/coach",
     label: "Coach",
     icon: (active: boolean) => (

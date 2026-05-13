@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
+import { getCurrentUser } from "@/lib/sync";
+import type { User } from "@supabase/supabase-js";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
 import { useRunSheet } from "@/contexts/RunSheetContext";
@@ -43,6 +46,7 @@ export default function HomePage() {
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
   const [importedCount, setImportedCount] = useState(0);
+  const [authUser, setAuthUser] = useState<User | null>(null);
 
   const refresh = useCallback(() => {
     setSessions(getSessions());
@@ -50,6 +54,8 @@ export default function HomePage() {
     setCoachRuns(getCoachRuns());
     setRescheduledDays(getRescheduledDays());
   }, []);
+
+  useEffect(() => { getCurrentUser().then(setAuthUser); }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -157,13 +163,39 @@ export default function HomePage() {
 
       {/* Top header — matches PageHeader style */}
       <div
-        className="absolute left-0 right-0 px-5 z-10"
+        className="absolute left-0 right-0 px-5 z-10 flex justify-between items-start"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}
       >
-        <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1" style={{ color: "#39ff14" }}>
-          {dateLabel}
-        </p>
-        <h1 className="font-display text-5xl leading-none">CLAUDE COACH</h1>
+        <div>
+          <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1" style={{ color: "#39ff14" }}>
+            {dateLabel}
+          </p>
+          <h1 className="font-display text-5xl leading-none">CLAUDE COACH</h1>
+        </div>
+        <Link
+          href="/settings"
+          className="press-effect flex items-center justify-center relative flex-shrink-0"
+          style={{
+            width: 40, height: 40, borderRadius: "50%",
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            marginTop: 4,
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="#aaa" strokeWidth="1.8"/>
+            <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <span style={{
+            position: "absolute", bottom: 2, right: 2,
+            width: 8, height: 8, borderRadius: "50%",
+            background: authUser ? "#39ff14" : "#333",
+            border: "1.5px solid rgba(0,0,0,0.8)",
+            boxShadow: authUser ? "0 0 4px #39ff14" : "none",
+          }} />
+        </Link>
       </div>
 
       {/* Strava import toast */}
