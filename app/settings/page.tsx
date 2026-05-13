@@ -95,28 +95,7 @@ export default function SettingsPage() {
         }
       }
 
-      // Enrich existing run sessions from the last 14 days that have no laps yet
-      if (tokens) {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - 14);
-        const cutoffStr = cutoff.toISOString().slice(0, 10);
-        const existing = getSessions().filter(
-          (s): s is RunSession =>
-            s.type === "run" &&
-            !!s.stravaActivityId &&
-            !s.laps &&
-            s.date.slice(0, 10) >= cutoffStr
-        );
-        for (const s of existing) {
-          const laps = await fetchActivityLaps(tokens, s.stravaActivityId!).catch(() => []);
-          if (laps.length > 1) {
-            updateSession({ ...s, laps });
-            n++;
-          }
-        }
-      }
-
-      setStravaMsg(n > 0 ? `${n} activité${n > 1 ? "s" : ""} mise${n > 1 ? "s" : ""} à jour` : "Déjà à jour");
+      setStravaMsg(n > 0 ? `${n} activité${n > 1 ? "s" : ""} importée${n > 1 ? "s" : ""}` : "Déjà à jour");
       setTimeout(() => setStravaMsg(""), 3000);
     } catch { setStravaMsg("Erreur"); }
     finally { setStravaResyncing(false); }
