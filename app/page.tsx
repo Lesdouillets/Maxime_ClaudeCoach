@@ -5,7 +5,7 @@ import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
 import { useRunSheet } from "@/contexts/RunSheetContext";
-import { fetchNewActivitiesSinceLastVisit, autoImportActivity } from "@/lib/strava";
+import { fetchNewActivitiesSinceLastVisit, fetchActivityLaps, autoImportActivity } from "@/lib/strava";
 import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
@@ -57,11 +57,15 @@ export default function HomePage() {
     const tokens = getStravaTokens();
     if (!tokens) return;
     fetchNewActivitiesSinceLastVisit()
-      .then((activities) => {
+      .then(async (activities) => {
         if (!activities.length) return;
+        const tokens = getStravaTokens();
         let count = 0;
-        activities.forEach((act) => {
-          const s = autoImportActivity(act);
+        for (const act of activities) {
+          const laps = (tokens && ["Run", "TrailRun", "VirtualRun"].includes(act.type))
+            ? await fetchActivityLaps(tokens, act.id).catch(() => [])
+            : [];
+          const s = autoImportActivity(act, laps);
           if (s) {
             addSession(s);
             count++;
@@ -71,7 +75,7 @@ export default function HomePage() {
               analyzeSession(s).catch(() => {});
             }
           }
-        });
+        }
         if (count > 0) {
           setImportedCount(count);
           refresh();

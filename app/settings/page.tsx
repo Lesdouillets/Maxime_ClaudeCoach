@@ -6,9 +6,10 @@ import { supabase } from "@/lib/supabase";
 import { getLastSync, autoSyncPush, signInWithGitHub, signOut } from "@/lib/sync";
 import { parseCoachWorkoutJSON, addCoachWorkout, addCoachRun, clearFutureCoachPlans } from "@/lib/coachPlan";
 import { buildExportData } from "@/lib/export";
-import { getCancelledDays, getStravaTokens } from "@/lib/storage";
-import { getStravaAuthUrl, forceResyncRecentActivities, autoImportActivity } from "@/lib/strava";
+import { getCancelledDays, getStravaTokens, getSessions, updateSession } from "@/lib/storage";
+import { getStravaAuthUrl, forceResyncRecentActivities, fetchActivityLaps, autoImportActivity } from "@/lib/strava";
 import { addSession } from "@/lib/storage";
+import type { RunSession } from "@/lib/types";
 import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import {
   getProfiles, getActiveProfile, switchProfile,
@@ -75,10 +76,16 @@ export default function SettingsPage() {
     if (stravaResyncing) return;
     setStravaResyncing(true); setStravaMsg("");
     try {
+      const tokens = getStravaTokens();
       const acts = await forceResyncRecentActivities(14);
       let n = 0;
-      acts.forEach((a) => {
-        const s = autoImportActivity(a);
+
+      // Import new activities with laps
+      for (const a of acts) {
+        const laps = (tokens && ["Run", "TrailRun", "VirtualRun"].includes(a.type))
+          ? await fetchActivityLaps(tokens, a.id).catch(() => [])
+          : [];
+        const s = autoImportActivity(a, laps);
         if (s) {
           addSession(s);
           n++;
@@ -86,8 +93,23 @@ export default function SettingsPage() {
             analyzeSession(s).catch(() => {});
           }
         }
-      });
-      setStravaMsg(n > 0 ? `${n} activité${n > 1 ? "s" : ""} importée${n > 1 ? "s" : ""}` : "Déjà à jour");
+      }
+
+      // Enrich existing run sessions that have no laps yet
+      if (tokens) {
+        const existing = getSessions().filter(
+          (s): s is RunSession => s.type === "run" && !!s.stravaActivityId && !s.laps
+        );
+        for (const s of existing) {
+          const laps = await fetchActivityLaps(tokens, s.stravaActivityId!).catch(() => []);
+          if (laps.length > 1) {
+            updateSession({ ...s, laps });
+            n++;
+          }
+        }
+      }
+
+      setStravaMsg(n > 0 ? `${n} activité${n > 1 ? "s" : ""} mise${n > 1 ? "s" : ""} à jour` : "Déjà à jour");
       setTimeout(() => setStravaMsg(""), 3000);
     } catch { setStravaMsg("Erreur"); }
     finally { setStravaResyncing(false); }
