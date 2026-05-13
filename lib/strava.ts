@@ -1,4 +1,4 @@
-import type { StravaActivity, StravaTokens } from "./types";
+import type { StravaActivity, StravaLap, StravaTokens } from "./types";
 import { getStravaTokens, saveStravaTokens } from "./storage";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID ?? "";
@@ -111,6 +111,22 @@ export async function fetchRecentActivities(
   return res.json();
 }
 
+// ─── Fetch Activity Laps ──────────────────────────────────────────────────────
+
+/** Fetch per-lap data for a single activity. Returns [] on failure. */
+export async function fetchActivityLaps(
+  tokens: StravaTokens,
+  activityId: number
+): Promise<StravaLap[]> {
+  const fresh = await refreshTokenIfNeeded(tokens);
+  const res = await fetch(
+    `https://www.strava.com/api/v3/activities/${activityId}/laps`,
+    { headers: { Authorization: `Bearer ${fresh.access_token}` } }
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
 // ─── Auto-fetch on App Open ───────────────────────────────────────────────────
 
 export async function fetchNewActivitiesSinceLastVisit(): Promise<StravaActivity[]> {
@@ -208,7 +224,8 @@ export function mapStravaTypeToSession(stravaType: string): "run" | "fitness" | 
 
 /** Convert a StravaActivity to a WorkoutSession and save it */
 export function autoImportActivity(
-  activity: StravaActivity
+  activity: StravaActivity,
+  laps?: StravaLap[]
 ): import("./types").WorkoutSession | null {
   const sessionType = mapStravaTypeToSession(activity.type);
   if (!sessionType) return null;
@@ -231,6 +248,7 @@ export function autoImportActivity(
       comment: "",
       stravaActivityId: activity.id,
       importedFromStrava: true,
+      ...(laps && laps.length > 0 ? { laps } : {}),
     };
   }
 

@@ -46,6 +46,7 @@ export interface RunSession {
   targetZone?: string;
   stravaActivityId?: number;
   importedFromStrava?: boolean;
+  laps?: StravaLap[];
 }
 
 export type WorkoutSession = FitnessSession | RunSession;
@@ -88,6 +89,18 @@ export interface StravaActivity {
   average_speed: number; // m/s
   average_heartrate?: number;
   max_heartrate?: number;
+}
+
+export interface StravaLap {
+  lap_index: number;
+  name: string;
+  elapsed_time: number;
+  moving_time: number;
+  distance: number;           // mètres
+  average_speed: number;      // m/s
+  average_heartrate?: number;
+  max_heartrate?: number;
+  total_elevation_gain?: number;
 }
 
 // ─── Cancelled Days ───────────────────────────────────────────────────────────

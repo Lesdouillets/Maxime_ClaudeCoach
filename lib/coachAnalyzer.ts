@@ -119,6 +119,7 @@ export function compactSession(s: WorkoutSession): string {
     if (s.avgHeartRate) parts.push(`HR${s.avgHeartRate}`);
     if (s.elevationGainM) parts.push(`D+${s.elevationGainM}m`);
     if (s.targetZone) parts.push(s.targetZone);
+    if (s.laps && s.laps.length > 1) parts.push(`(${s.laps.length} fractions)`);
     if (s.comment) parts.push(`"${s.comment}"`);
     return parts.join(" ");
   }

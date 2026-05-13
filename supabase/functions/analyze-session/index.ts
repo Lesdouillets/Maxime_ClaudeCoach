@@ -115,10 +115,26 @@ function sessionToText(s: Record<string, unknown>): string {
   if (s.type === "run") {
     const dist = s.distanceKm ?? "?";
     const pace = s.avgPaceSecPerKm
-      ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Number(s.avgPaceSecPerKm) % 60).padStart(2, "0")}/km`
+      ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Math.round(Number(s.avgPaceSecPerKm) % 60)).padStart(2, "0")}/km`
       : "";
     const hr = s.avgHeartRate ? ` FC:${s.avgHeartRate}` : "";
-    return `run ${date} | ${dist}km @${pace}${hr}${comment}`;
+
+    const lapsText = Array.isArray(s.laps) && (s.laps as unknown[]).length > 1
+      ? (s.laps as Record<string, unknown>[])
+          .map((lap) => {
+            const lapSpeed = Number(lap.average_speed) || 0;
+            const secPerKm = lapSpeed > 0 ? 1000 / lapSpeed : 0;
+            const lapPace = secPerKm > 0
+              ? `${Math.floor(secPerKm / 60)}:${String(Math.round(secPerKm % 60)).padStart(2, "0")}`
+              : "?";
+            const lapDist = ((Number(lap.distance) || 0) / 1000).toFixed(2);
+            const lapHr = lap.average_heartrate ? ` FC${Math.round(Number(lap.average_heartrate))}` : "";
+            return `[${lap.lap_index}: ${lapDist}km @${lapPace}${lapHr}]`;
+          })
+          .join(" ")
+      : null;
+
+    return `run ${date} | ${dist}km @${pace}${hr}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
   }
 
   // fitness
