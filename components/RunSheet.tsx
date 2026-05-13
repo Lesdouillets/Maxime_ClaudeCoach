@@ -9,7 +9,8 @@ import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns } from "@/lib/coachPlan";
-import { getSessions } from "@/lib/storage";
+import { getSessions, getStravaTokens, updateSession } from "@/lib/storage";
+import { fetchActivityLaps, fetchRecentActivities } from "@/lib/strava";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -47,6 +48,8 @@ export default function RunSheet() {
   const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
+  const [stravaSyncing, setStravaSyncing] = useState(false);
+  const [stravaSyncMsg, setStravaSyncMsg] = useState("");
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -92,6 +95,48 @@ export default function RunSheet() {
       setCoachState("done");
     }
   }, [sheet.state]);
+
+  const handleStravaSync = async () => {
+    if (!doneSession || stravaSyncing) return;
+    const tokens = getStravaTokens();
+    if (!tokens) { setStravaSyncMsg("Non connecté à Strava"); return; }
+    setStravaSyncing(true);
+    setStravaSyncMsg("");
+    try {
+      let activityId = doneSession.stravaActivityId;
+
+      if (!activityId) {
+        // Cherche une activité run Strava le même jour
+        const dayStart = Math.floor(new Date(dateStr + "T00:00:00").getTime() / 1000);
+        const activities = await fetchRecentActivities(tokens, dayStart);
+        const match = activities.find(
+          (a) => a.start_date.slice(0, 10) === dateStr &&
+            ["Run", "TrailRun", "VirtualRun"].includes(a.type)
+        );
+        if (match) activityId = match.id;
+      }
+
+      if (!activityId) {
+        setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour");
+        return;
+      }
+
+      const laps = await fetchActivityLaps(tokens, activityId);
+      if (laps.length > 1) {
+        const updated: RunSession = { ...doneSession, laps, stravaActivityId: activityId, importedFromStrava: true };
+        updateSession(updated);
+        setDoneSession(updated);
+        setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
+      } else {
+        setStravaSyncMsg("Aucune fraction trouvée dans Strava");
+      }
+    } catch {
+      setStravaSyncMsg("Erreur de synchronisation");
+    } finally {
+      setStravaSyncing(false);
+      setTimeout(() => setStravaSyncMsg(""), 4000);
+    }
+  };
 
   const handleClose = useCallback(() => {
     const origin = sheet.state?.originRoute;
@@ -281,6 +326,24 @@ export default function RunSheet() {
               )}
 
               <RunSessionResults session={doneSession} />
+
+              {/* Strava sync button */}
+              <button
+                onClick={handleStravaSync}
+                disabled={stravaSyncing}
+                className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
+                style={{
+                  background: "rgba(252,76,2,0.08)",
+                  border: "1px solid rgba(252,76,2,0.3)",
+                  color: stravaSyncing ? "#888" : "#fc4c02",
+                  opacity: stravaSyncing ? 0.6 : 1,
+                }}
+              >
+                {stravaSyncing ? "SYNCHRONISATION…" : "SYNCHRONISER AVEC STRAVA →"}
+              </button>
+              {stravaSyncMsg && (
+                <p className="text-center text-xs" style={{ color: "#888" }}>{stravaSyncMsg}</p>
+              )}
             </>
           ) : coachRun ? (
             <CoachRunPlan coachRun={coachRun} />
