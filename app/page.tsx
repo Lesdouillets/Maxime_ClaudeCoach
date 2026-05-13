@@ -55,7 +55,7 @@ export default function HomePage() {
     setRescheduledDays(getRescheduledDays());
   }, []);
 
-  useEffect(() => { getCurrentUser().then(setAuthUser); }, []);
+  useEffect(() => { setAuthUser(getCurrentUser()); }, []);
 
   useEffect(() => {
     setMounted(true);
