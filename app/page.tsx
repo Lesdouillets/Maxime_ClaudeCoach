@@ -120,8 +120,12 @@ export default function HomePage() {
   const hasActivity = isDone || !!todayCoachWorkout || !!todayCoachRun;
 
   // Label for the card title
+  // When a run session is done but no coach run exists for today (e.g. user ran on a rest day),
+  // skip todayCoachWorkout.label (which would show "Repos ...") and fall through to "RUN".
   const sessionLabel = todayCoachRun?.label?.toUpperCase()
-    ?? todayCoachWorkout?.label?.toUpperCase()
+    ?? (isDone && todaySession?.type === "run"
+      ? "RUN"
+      : todayCoachWorkout?.label?.toUpperCase())
     ?? (todaySession?.type === "run" ? "RUN"
       : todaySession?.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS");
 
