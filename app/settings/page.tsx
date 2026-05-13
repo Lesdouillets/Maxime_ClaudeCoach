@@ -95,10 +95,17 @@ export default function SettingsPage() {
         }
       }
 
-      // Enrich existing run sessions that have no laps yet
+      // Enrich existing run sessions from the last 14 days that have no laps yet
       if (tokens) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 14);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
         const existing = getSessions().filter(
-          (s): s is RunSession => s.type === "run" && !!s.stravaActivityId && !s.laps
+          (s): s is RunSession =>
+            s.type === "run" &&
+            !!s.stravaActivityId &&
+            !s.laps &&
+            s.date.slice(0, 10) >= cutoffStr
         );
         for (const s of existing) {
           const laps = await fetchActivityLaps(tokens, s.stravaActivityId!).catch(() => []);
