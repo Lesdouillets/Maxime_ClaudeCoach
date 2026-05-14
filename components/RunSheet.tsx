@@ -8,8 +8,8 @@ import CoachRunPlan from "@/components/CoachRunPlan";
 import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, formatPace, toLocalDateStr } from "@/lib/plan";
-import { getCoachRuns } from "@/lib/coachPlan";
-import { getSessions, getStravaTokens, updateSession } from "@/lib/storage";
+import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
+import { getSessions, getStravaTokens, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { fetchActivityLaps, fetchRecentActivities } from "@/lib/strava";
 import {
@@ -51,6 +51,10 @@ export default function RunSheet() {
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [stravaSyncing, setStravaSyncing] = useState(false);
   const [stravaSyncMsg, setStravaSyncMsg] = useState("");
+  const [optionsMenuOpen, setOptionsMenuOpen] = useState(false);
+  const [optionsPanel, setOptionsPanel] = useState<"reschedule" | "cancel" | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -69,6 +73,8 @@ export default function RunSheet() {
   // weekly plan for the requested date.
   useEffect(() => {
     if (!sheet.state) return;
+    setOptionsMenuOpen(false);
+    setOptionsPanel(null);
     const dateStr = sheet.state.date ?? toLocalDateStr(new Date());
 
     const recorded = getSessions().find(
@@ -145,11 +151,33 @@ export default function RunSheet() {
     sheet.close();
     setIsDragging(false);
     setDragY(0);
+    setOptionsMenuOpen(false);
+    setOptionsPanel(null);
+    setRescheduleDate("");
+    setCancelReason("");
     if (typeof window !== "undefined" && origin) {
       const here = window.location.pathname + window.location.search;
       if (origin !== here) router.push(origin);
     }
   }, [sheet, router]);
+
+  const handleRescheduleRun = () => {
+    if (!rescheduleDate || !coachRun) return;
+    deleteCoachRun(coachRun.id);
+    addCoachRun({ ...coachRun, date: rescheduleDate });
+    autoSyncPush().catch(() => {});
+    setOptionsPanel(null);
+    setRescheduleDate("");
+  };
+
+  const handleCancelRun = () => {
+    if (!coachRun) return;
+    cancelDay(dateStr, cancelReason.trim());
+    deleteCoachRun(coachRun.id);
+    autoSyncPush().catch(() => {});
+    setCancelReason("");
+    handleClose();
+  };
 
   const onHandlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
     dragStartRef.current = { y: e.clientY, t: Date.now() };
@@ -267,8 +295,129 @@ export default function RunSheet() {
             />
           </button>
 
-          <span className="w-10 h-10" aria-hidden />
+          {coachRun !== null && !doneSession ? (
+            <div className="relative">
+              <button
+                onClick={() => { setOptionsMenuOpen((v) => !v); setOptionsPanel(null); }}
+                className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
+                style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
+                aria-label="Options"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
+              {optionsMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[60]"
+                    style={{ background: "transparent" }}
+                    onClick={() => setOptionsMenuOpen(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden"
+                    style={{
+                      width: 220,
+                      background: "rgba(28,28,30,0.96)",
+                      border: "1px solid #2a2a2a",
+                      backdropFilter: "blur(40px)",
+                      WebkitBackdropFilter: "blur(40px)",
+                      boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    <button
+                      onClick={() => { setOptionsPanel("reschedule"); setOptionsMenuOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
+                      style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
+                    >
+                      <span>Décaler la séance</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 7h8" stroke="#888" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => { setOptionsPanel("cancel"); setOptionsMenuOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
+                      style={{ color: "#ff4d4d" }}
+                    >
+                      <span>Annuler la séance</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="#ff4d4d" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <span className="w-10 h-10" aria-hidden />
+          )}
         </div>
+
+        {/* Options panel */}
+        {optionsPanel !== null && (
+          <div
+            className="mx-4 mb-2 rounded-2xl overflow-hidden"
+            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid #2a2a2a" }}
+          >
+            {optionsPanel === "reschedule" && (
+              <div className="p-4 space-y-3">
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>DÉCALER LE RUN</p>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    min={toLocalDateStr(new Date())}
+                    autoFocus
+                    className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                    style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                  />
+                  <button
+                    onClick={handleRescheduleRun}
+                    disabled={!rescheduleDate}
+                    className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                    style={{ background: "#ff6b00", color: "white" }}
+                  >OK</button>
+                  <button
+                    onClick={() => { setOptionsPanel(null); setRescheduleDate(""); }}
+                    className="px-3 py-2.5 rounded-xl text-xs press-effect"
+                    style={{ background: "#1a1a1a", color: "#555" }}
+                  >✕</button>
+                </div>
+              </div>
+            )}
+            {optionsPanel === "cancel" && (
+              <div className="p-4 space-y-3">
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>ANNULER LE RUN</p>
+                <input
+                  type="text"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Raison de l'annulation…"
+                  className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+                  style={{ background: "#111", border: "1px solid #333", color: "white" }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCancelRun(); }}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelRun}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
+                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}
+                  >Confirmer l&apos;annulation</button>
+                  <button
+                    onClick={() => { setOptionsPanel(null); setCancelReason(""); }}
+                    className="px-4 py-2.5 rounded-xl text-sm press-effect"
+                    style={{ background: "transparent", color: "#555" }}
+                  >✕</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Header */}
         <div className="px-5 pb-3">
