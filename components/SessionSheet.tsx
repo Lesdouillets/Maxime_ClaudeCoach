@@ -13,7 +13,10 @@ import {
   getStoredCoachAnalysis,
   type CoachAnalysisResult,
 } from "@/lib/coachAnalyzer";
-import { getSessions } from "@/lib/storage";
+import { getSessions, cancelDay } from "@/lib/storage";
+import { getCoachWorkouts, deleteCoachWorkout, addCoachWorkout, type CoachWorkout } from "@/lib/coachPlan";
+import { toLocalDateStr } from "@/lib/plan";
+import { autoSyncPush } from "@/lib/sync";
 import type { FitnessSession } from "@/lib/types";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
@@ -397,10 +400,18 @@ export default function SessionSheet() {
   const [archiveSession, setArchiveSession] = useState<FitnessSession | null>(null);
   const [archiveCoachState, setArchiveCoachState] = useState<"analyzing" | "done">("done");
   const [archiveCoachResult, setArchiveCoachResult] = useState<CoachAnalysisResult | null>(null);
+  const [sheetOptionsOpen, setSheetOptionsOpen] = useState(false);
+  const [sheetPanel, setSheetPanel] = useState<"reschedule" | "cancel" | null>(null);
+  const [sheetRescheduleDate, setSheetRescheduleDate] = useState("");
+  const [sheetCancelReason, setSheetCancelReason] = useState("");
 
   // Reset menu state on close
   useEffect(() => {
-    if (session.view !== "expanded") setOpenMenuExId(null);
+    if (session.view !== "expanded") {
+      setOpenMenuExId(null);
+      setSheetOptionsOpen(false);
+      setSheetPanel(null);
+    }
   }, [session.view]);
 
   // Load the archived session whenever archive mode is engaged.
@@ -440,6 +451,10 @@ export default function SessionSheet() {
     }
     setIsDragging(false);
     setDragY(0);
+    setSheetOptionsOpen(false);
+    setSheetPanel(null);
+    setSheetRescheduleDate("");
+    setSheetCancelReason("");
     if (typeof window !== "undefined" && origin) {
       const here = window.location.pathname + window.location.search;
       if (origin !== here) router.push(origin);
@@ -520,6 +535,30 @@ export default function SessionSheet() {
     timerKey && timerTotalSec > 0
       ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
       : 0;
+
+  const sessionCoachWorkoutId = !isArchive ? (session.state?.coachWorkoutId ?? null) : null;
+  const sessionCoachWorkout: CoachWorkout | null = sessionCoachWorkoutId
+    ? (getCoachWorkouts().find((w) => w.id === sessionCoachWorkoutId) ?? null)
+    : null;
+  const sessionDate = !isArchive ? (session.state?.date ?? "") : "";
+
+  const handleRescheduleWorkout = () => {
+    if (!sheetRescheduleDate || !sessionCoachWorkout) return;
+    deleteCoachWorkout(sessionCoachWorkout.id);
+    addCoachWorkout({ ...sessionCoachWorkout, date: sheetRescheduleDate });
+    autoSyncPush().catch(() => {});
+    setSheetPanel(null);
+    setSheetRescheduleDate("");
+  };
+
+  const handleCancelWorkout = () => {
+    if (!sessionCoachWorkout) return;
+    cancelDay(sessionDate, sheetCancelReason.trim());
+    deleteCoachWorkout(sessionCoachWorkout.id);
+    autoSyncPush().catch(() => {});
+    setSheetCancelReason("");
+    handleClose();
+  };
 
   return (
     <>
@@ -608,10 +647,129 @@ export default function SessionSheet() {
                 <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+          ) : sessionCoachWorkoutId !== null ? (
+            <div className="relative">
+              <button
+                onClick={() => { setSheetOptionsOpen((v) => !v); setSheetPanel(null); }}
+                className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
+                style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
+                aria-label="Options"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
+              {sheetOptionsOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-[60]"
+                    style={{ background: "transparent" }}
+                    onClick={() => setSheetOptionsOpen(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden"
+                    style={{
+                      width: 220,
+                      background: "rgba(28,28,30,0.96)",
+                      border: "1px solid #2a2a2a",
+                      backdropFilter: "blur(40px)",
+                      WebkitBackdropFilter: "blur(40px)",
+                      boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
+                    }}
+                  >
+                    <button
+                      onClick={() => { setSheetPanel("reschedule"); setSheetOptionsOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
+                      style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
+                    >
+                      <span>Décaler la séance</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 7h8" stroke="#888" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => { setSheetPanel("cancel"); setSheetOptionsOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
+                      style={{ color: "#ff4d4d" }}
+                    >
+                      <span>Annuler la séance</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="#ff4d4d" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <span className="w-10 h-10" aria-hidden />
           )}
         </div>
+
+        {/* Options panel */}
+        {sheetPanel !== null && !isArchive && (
+          <div
+            className="mx-4 mb-2 rounded-2xl overflow-hidden"
+            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid #2a2a2a" }}
+          >
+            {sheetPanel === "reschedule" && (
+              <div className="p-4 space-y-3">
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>DÉCALER LA SÉANCE</p>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={sheetRescheduleDate}
+                    onChange={(e) => setSheetRescheduleDate(e.target.value)}
+                    min={toLocalDateStr(new Date())}
+                    autoFocus
+                    className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
+                    style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                  />
+                  <button
+                    onClick={handleRescheduleWorkout}
+                    disabled={!sheetRescheduleDate}
+                    className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
+                    style={{ background: "#ff6b00", color: "white" }}
+                  >OK</button>
+                  <button
+                    onClick={() => { setSheetPanel(null); setSheetRescheduleDate(""); }}
+                    className="px-3 py-2.5 rounded-xl text-xs press-effect"
+                    style={{ background: "#1a1a1a", color: "#555" }}
+                  >✕</button>
+                </div>
+              </div>
+            )}
+            {sheetPanel === "cancel" && (
+              <div className="p-4 space-y-3">
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>ANNULER LA SÉANCE</p>
+                <input
+                  type="text"
+                  value={sheetCancelReason}
+                  onChange={(e) => setSheetCancelReason(e.target.value)}
+                  placeholder="Raison de l'annulation…"
+                  className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+                  style={{ background: "#111", border: "1px solid #333", color: "white" }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCancelWorkout(); }}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelWorkout}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
+                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}
+                  >Confirmer l&apos;annulation</button>
+                  <button
+                    onClick={() => { setSheetPanel(null); setSheetCancelReason(""); }}
+                    className="px-4 py-2.5 rounded-xl text-sm press-effect"
+                    style={{ background: "transparent", color: "#555" }}
+                  >✕</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
