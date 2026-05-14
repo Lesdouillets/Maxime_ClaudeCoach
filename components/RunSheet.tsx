@@ -10,6 +10,7 @@ import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { WEEKLY_PLAN, formatPace, toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns } from "@/lib/coachPlan";
 import { getSessions, getStravaTokens, updateSession } from "@/lib/storage";
+import { autoSyncPush } from "@/lib/sync";
 import { fetchActivityLaps, fetchRecentActivities } from "@/lib/strava";
 import {
   analyzeSession,
@@ -126,6 +127,7 @@ export default function RunSheet() {
         const updated: RunSession = { ...doneSession, laps, stravaActivityId: activityId, importedFromStrava: true };
         updateSession(updated);
         setDoneSession(updated);
+        autoSyncPush().catch(() => {});
         setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
       } else {
         setStravaSyncMsg("Aucune fraction trouvée dans Strava");
@@ -382,42 +384,6 @@ export default function RunSheet() {
             </div>
           )}
 
-          {/* Strava sync hint — only when the run hasn't been recorded yet */}
-          {!doneSession && (
-            <div
-              className="rounded-2xl p-4 flex items-start gap-3"
-              style={{
-                background: "rgba(255,107,0,0.04)",
-                border: "1px solid rgba(255,107,0,0.18)",
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ flexShrink: 0, marginTop: 2 }}
-              >
-                <path
-                  d="M13 4a1 1 0 1 0 2 0 1 1 0 0 0-2 0M5.5 16.5l2.5-3.5 3 2.5 3.5-5L17 14M3 20h18"
-                  stroke="#ff6b00"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "#ff6b00" }}>
-                  Synchro Strava automatique
-                </p>
-                <p className="text-xs mt-1" style={{ color: "#888" }}>
-                  Ton run sera importé automatiquement depuis Strava et le coach
-                  lancera son analyse à ce moment-là. Aucune validation manuelle
-                  à faire ici.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </>

@@ -5,11 +5,9 @@ import Link from "next/link";
 import { toLocalDateStr, formatPace } from "@/lib/plan";
 import { getCurrentUser } from "@/lib/sync";
 import type { User } from "@supabase/supabase-js";
-import { getSessions, getStravaTokens, addSession, getRescheduledDays } from "@/lib/storage";
+import { getSessions, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
 import { useRunSheet } from "@/contexts/RunSheetContext";
-import { fetchNewActivitiesSinceLastVisit, fetchActivityLaps, autoImportActivity } from "@/lib/strava";
-import { analyzeSession, getStoredCoachAnalysis } from "@/lib/coachAnalyzer";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
@@ -45,7 +43,6 @@ export default function HomePage() {
   const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
   const [coachRuns, setCoachRuns] = useState<CoachRun[]>([]);
   const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
-  const [importedCount, setImportedCount] = useState(0);
   const [authUser, setAuthUser] = useState<User | null>(null);
 
   const refresh = useCallback(() => {
@@ -60,35 +57,6 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true);
     refresh();
-    const tokens = getStravaTokens();
-    if (!tokens) return;
-    fetchNewActivitiesSinceLastVisit()
-      .then(async (activities) => {
-        if (!activities.length) return;
-        const tokens = getStravaTokens();
-        let count = 0;
-        for (const act of activities) {
-          const laps = (tokens && ["Run", "TrailRun", "VirtualRun"].includes(act.type))
-            ? await fetchActivityLaps(tokens, act.id).catch(() => [])
-            : [];
-          const s = autoImportActivity(act, laps);
-          if (s) {
-            addSession(s);
-            count++;
-            // Fire coach analysis in background for runs — result stored in localStorage,
-            // visible next time the user opens the day view for that date.
-            if (s.type === "run" && !getStoredCoachAnalysis(s.date.slice(0, 10))) {
-              analyzeSession(s).catch(() => {});
-            }
-          }
-        }
-        if (count > 0) {
-          setImportedCount(count);
-          refresh();
-          setTimeout(() => setImportedCount(0), 4000);
-        }
-      })
-      .catch(() => {});
   }, [refresh]);
 
   if (!mounted) return null;
@@ -197,21 +165,6 @@ export default function HomePage() {
           }} />
         </Link>
       </div>
-
-      {/* Strava import toast */}
-      {importedCount > 0 && (
-        <div
-          className="absolute left-4 right-4 rounded-2xl p-3 flex items-center gap-3 z-10"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 80px)", background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)", backdropFilter: "blur(16px)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <p className="text-sm font-semibold" style={{ color: "#39ff14" }}>
-            {importedCount} activité{importedCount > 1 ? "s" : ""} importée{importedCount > 1 ? "s" : ""} depuis Strava
-          </p>
-        </div>
-      )}
 
       {/* Bottom card — above floating nav */}
       <div
