@@ -1,7 +1,28 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useSession } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
+
+const THUMB_STYLE: CSSProperties = {
+  width: 36,
+  height: 36,
+  background: "linear-gradient(135deg, var(--color-surface-3), var(--color-surface))",
+  border: "1px solid var(--color-white-08)",
+};
+
+const BANNER_STYLE: CSSProperties = {
+  background: "var(--color-surface-2-blur)",
+  border: "1px solid var(--color-white-08)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
+};
+
+const PROGRESS_TRACK_STYLE: CSSProperties = {
+  width: 60,
+  background: "var(--color-surface-3)",
+};
 
 function formatMMSS(sec: number) {
   const m = Math.floor(sec / 60);
@@ -17,16 +38,8 @@ function ExerciseThumb({ name }: { name: string }) {
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div
-      className="rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{
-        width: 36,
-        height: 36,
-        background: "linear-gradient(135deg, #1c1c1c, #0e0e0e)",
-        border: "1px solid #1f1f1f",
-      }}
-    >
-      <span className="font-display text-sm" style={{ color: "#888" }}>{initials || "EX"}</span>
+    <div className="rounded-xl flex items-center justify-center flex-shrink-0" style={THUMB_STYLE}>
+      <span className="font-display text-sm" style={{ color: "var(--color-muted)" }}>{initials || "EX"}</span>
     </div>
   );
 }
@@ -35,9 +48,7 @@ export default function SessionMiniBanner() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
 
-  // The banner only surfaces the live workout (current exercise + rest timer).
-  // It must NOT show before the user has tapped "Commencer", and once they
-  // hit "Finir" the sheet itself owns the analysis flow.
+  // Ne s'affiche qu'une fois la séance démarrée, pas pendant le flow de fin
   if (session.view !== "minimized" || !session.state) return null;
   if (!session.state.started) return null;
   if (session.finishing.status !== "idle") return null;
@@ -49,7 +60,7 @@ export default function SessionMiniBanner() {
   const restProgress = timerTotalSec > 0
     ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
     : 0;
-  const timerColor = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
+  const timerColor = timerSec > 10 ? "var(--color-neon)" : timerSec > 3 ? "var(--color-orange)" : "var(--color-error)";
 
   return (
     <div
@@ -59,13 +70,7 @@ export default function SessionMiniBanner() {
       <button
         onClick={session.expand}
         className="w-full pointer-events-auto rounded-2xl flex items-center gap-3 p-2.5 press-effect"
-        style={{
-          background: "rgba(20,20,20,0.92)",
-          border: "1px solid #232323",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
-        }}
+        style={BANNER_STYLE}
       >
         <ExerciseThumb name={ex.name} />
         <p className="flex-1 text-left font-bold text-sm truncate">{ex.name}</p>
@@ -74,14 +79,10 @@ export default function SessionMiniBanner() {
             <span className="font-display text-xl leading-none tabular-nums" style={{ color: timerColor }}>
               {formatMMSS(timerSec)}
             </span>
-            <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ width: 60, background: "#1d1d1d" }}>
+            <div className="mt-1 h-1 rounded-full overflow-hidden" style={PROGRESS_TRACK_STYLE}>
               <div
                 className="h-full"
-                style={{
-                  width: `${restProgress * 100}%`,
-                  background: timerColor,
-                  transition: "width 600ms linear",
-                }}
+                style={{ width: `${restProgress * 100}%`, background: timerColor, transition: "width 600ms linear" }}
               />
             </div>
           </div>

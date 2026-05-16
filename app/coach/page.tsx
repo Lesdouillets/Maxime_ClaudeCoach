@@ -123,7 +123,7 @@ export default function CoachPage() {
         <div>
           <h1
             className="font-display tracking-widest"
-            style={{ fontSize: "22px", color: "#39ff14", letterSpacing: "0.12em" }}
+            style={{ fontSize: "22px", color: "#CDFF00", letterSpacing: "0.12em" }}
           >
             COACH
           </h1>
@@ -158,11 +158,11 @@ export default function CoachPage() {
             <div className="text-center">
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ background: "rgba(57,255,20,0.08)", border: "1px solid rgba(57,255,20,0.2)" }}
+                style={{ background: "rgba(205,255,0,0.08)", border: "1px solid rgba(205,255,0,0.2)" }}
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                    stroke="#39ff14" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    stroke="#CDFF00" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <p className="text-sm font-medium" style={{ color: "#888" }}>
@@ -177,7 +177,7 @@ export default function CoachPage() {
                   className="press-effect text-left rounded-2xl px-4 py-3 text-sm"
                   style={{
                     background: "#0a130a",
-                    border: "1px solid rgba(57,255,20,0.2)",
+                    border: "1px solid rgba(205,255,0,0.2)",
                     color: "#aaa",
                   }}
                 >
@@ -199,14 +199,14 @@ export default function CoachPage() {
                     maxWidth: "82%",
                     ...(msg.role === "user"
                       ? {
-                          background: "rgba(57,255,20,0.06)",
-                          border: "1px solid rgba(57,255,20,0.18)",
+                          background: "rgba(205,255,0,0.06)",
+                          border: "1px solid rgba(205,255,0,0.18)",
                           color: "#ddd",
                           borderBottomRightRadius: "6px",
                         }
                       : {
                           background: "#0a130a",
-                          border: "1px solid rgba(57,255,20,0.2)",
+                          border: "1px solid rgba(205,255,0,0.2)",
                           color: "#aaa",
                           borderBottomLeftRadius: "6px",
                         }),
@@ -215,7 +215,7 @@ export default function CoachPage() {
                   {msg.role === "assistant" && (
                     <p
                       className="text-[10px] font-bold tracking-widest mb-1"
-                      style={{ color: "#39ff14" }}
+                      style={{ color: "#CDFF00" }}
                     >
                       ALEX
                     </p>
@@ -227,9 +227,9 @@ export default function CoachPage() {
                       disabled={applying === msg.id}
                       className="press-effect flex items-center gap-1.5 mt-2 text-[11px] font-bold px-3 py-1.5 rounded-xl"
                       style={{
-                        background: applying === msg.id ? "rgba(57,255,20,0.05)" : "rgba(57,255,20,0.12)",
-                        color: applying === msg.id ? "#555" : "#39ff14",
-                        border: "1px solid rgba(57,255,20,0.3)",
+                        background: applying === msg.id ? "rgba(205,255,0,0.05)" : "rgba(205,255,0,0.12)",
+                        color: applying === msg.id ? "#555" : "#CDFF00",
+                        border: "1px solid rgba(205,255,0,0.3)",
                         transition: "all 0.2s",
                       }}
                     >
@@ -245,9 +245,9 @@ export default function CoachPage() {
                     <span
                       className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{
-                        background: "rgba(57,255,20,0.1)",
-                        color: "#39ff14",
-                        border: "1px solid rgba(57,255,20,0.25)",
+                        background: "rgba(205,255,0,0.1)",
+                        color: "#CDFF00",
+                        border: "1px solid rgba(205,255,0,0.25)",
                       }}
                     >
                       {[
@@ -267,11 +267,11 @@ export default function CoachPage() {
                   className="rounded-2xl px-4 py-3"
                   style={{
                     background: "#0a130a",
-                    border: "1px solid rgba(57,255,20,0.2)",
+                    border: "1px solid rgba(205,255,0,0.2)",
                     borderBottomLeftRadius: "6px",
                   }}
                 >
-                  <p className="text-[10px] font-bold tracking-widest mb-2" style={{ color: "#39ff14" }}>
+                  <p className="text-[10px] font-bold tracking-widest mb-2" style={{ color: "#CDFF00" }}>
                     ALEX
                   </p>
                   <span className="flex gap-1 items-center">
@@ -280,7 +280,7 @@ export default function CoachPage() {
                         key={i}
                         className="w-1.5 h-1.5 rounded-full inline-block"
                         style={{
-                          background: "#39ff14",
+                          background: "#CDFF00",
                           animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
                         }}
                       />
@@ -322,7 +322,7 @@ export default function CoachPage() {
             className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
             style={{
               color: "#ddd",
-              caretColor: "#39ff14",
+              caretColor: "#CDFF00",
               maxHeight: "120px",
             }}
           />
@@ -331,14 +331,14 @@ export default function CoachPage() {
             disabled={!input.trim() || sending}
             className="press-effect flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
             style={{
-              background: input.trim() && !sending ? "rgba(57,255,20,0.15)" : "transparent",
-              border: `1px solid ${input.trim() && !sending ? "rgba(57,255,20,0.4)" : "rgba(255,255,255,0.08)"}`,
+              background: input.trim() && !sending ? "rgba(205,255,0,0.15)" : "transparent",
+              border: `1px solid ${input.trim() && !sending ? "rgba(205,255,0,0.4)" : "rgba(255,255,255,0.08)"}`,
               transition: "all 0.2s",
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                stroke={input.trim() && !sending ? "#39ff14" : "#444"}
+                stroke={input.trim() && !sending ? "#CDFF00" : "#444"}
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>

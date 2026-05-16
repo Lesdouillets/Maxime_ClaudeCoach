@@ -125,8 +125,8 @@ function ProgressDots({ exercise }: { exercise: LiveExercise }) {
           style={{
             width: 22,
             height: 4,
-            background: s.done ? "#39ff14" : "#1f1f1f",
-            boxShadow: s.done ? "0 0 6px rgba(57,255,20,0.4)" : undefined,
+            background: s.done ? "#CDFF00" : "#1f1f1f",
+            boxShadow: s.done ? "0 0 6px rgba(205,255,0,0.4)" : undefined,
             transition: "background 200ms ease",
           }}
         />
@@ -296,14 +296,14 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
               className="grid items-center px-2 py-2 my-1.5 rounded-xl"
               style={{
                 gridTemplateColumns: "44px 1fr 1fr 44px",
-                background: set.done ? "rgba(57,255,20,0.06)" : "transparent",
-                border: set.done ? "1px solid rgba(57,255,20,0.18)" : "1px solid #1c1c1c",
+                background: set.done ? "rgba(205,255,0,0.06)" : "transparent",
+                border: set.done ? "1px solid rgba(205,255,0,0.18)" : "1px solid #1c1c1c",
                 opacity: set.done ? 0.95 : 1,
               }}
             >
               <span
                 className="text-center font-display text-2xl leading-none"
-                style={{ color: set.done ? "#39ff14" : "#9aa0a6" }}
+                style={{ color: set.done ? "#CDFF00" : "#9aa0a6" }}
               >
                 {idx + 1}
               </span>
@@ -317,7 +317,7 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
                 disabled={set.done}
                 inputMode="numeric"
                 className="text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                style={{ color: set.done ? "#39ff14" : "#cfd2d6" }}
+                style={{ color: set.done ? "#CDFF00" : "#cfd2d6" }}
                 min={0}
                 step={1}
               />
@@ -331,7 +331,7 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
                 disabled={set.done}
                 inputMode="decimal"
                 className="text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                style={{ color: set.done ? "#39ff14" : "#cfd2d6" }}
+                style={{ color: set.done ? "#CDFF00" : "#cfd2d6" }}
                 min={0}
                 step={0.5}
               />
@@ -341,11 +341,11 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
                   <button
                     onClick={() => session.unvalidateSet(exercise.id, idx)}
                     className="w-9 h-9 rounded-xl flex items-center justify-center press-effect"
-                    style={{ background: "rgba(57,255,20,0.18)", border: "1px solid rgba(57,255,20,0.5)" }}
+                    style={{ background: "rgba(205,255,0,0.18)", border: "1px solid rgba(205,255,0,0.5)" }}
                     aria-label="Annuler la validation"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12l5 5L20 7" stroke="#39ff14" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5 12l5 5L20 7" stroke="#CDFF00" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
                 ) : (
@@ -725,13 +725,13 @@ export default function SessionSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                    style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleWorkout}
                     disabled={!sheetRescheduleDate}
                     className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                    style={{ background: "#ff6b00", color: "white" }}
+                    style={{ background: "#D07900", color: "white" }}
                   >OK</button>
                   <button
                     onClick={() => { setSheetPanel(null); setSheetRescheduleDate(""); }}
@@ -777,13 +777,13 @@ export default function SessionSheet() {
             <div className="px-2 pb-2">
               <p
                 className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
-                style={{ color: "#39ff14" }}
+                style={{ color: "#CDFF00" }}
               >
                 {archiveDateLabel}
               </p>
               <h1
                 className="font-display text-5xl leading-none"
-                style={{ textShadow: "0 0 30px rgba(57,255,20,0.3)" }}
+                style={{ textShadow: "0 0 30px rgba(205,255,0,0.3)" }}
               >
                 {archiveTitle} ✓
               </h1>
@@ -815,7 +815,7 @@ export default function SessionSheet() {
             </div>
           )}
           {!isArchive && !isStarted && (
-            <p className="px-1 pb-1 text-[11px] tracking-widest font-bold" style={{ color: "#39ff14" }}>
+            <p className="px-1 pb-1 text-[11px] tracking-widest font-bold" style={{ color: "#CDFF00" }}>
               À FAIRE · {session.state!.exercises.length} exercice{session.state!.exercises.length > 1 ? "s" : ""}
             </p>
           )}
@@ -858,7 +858,7 @@ export default function SessionSheet() {
                 <button
                   onClick={() => { session.close(); router.push("/"); }}
                   className="mt-3 w-full py-3 rounded-2xl font-bold press-effect"
-                  style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)", color: "#39ff14" }}
+                  style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.4)", color: "#CDFF00" }}
                 >
                   Continuer →
                 </button>
@@ -881,7 +881,7 @@ export default function SessionSheet() {
               onClick={session.startSession}
               className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
               style={{
-                background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                background: "linear-gradient(135deg, #CDFF00, #1a7a09)",
                 color: "#0a0a0a",
               }}
             >
@@ -900,7 +900,7 @@ export default function SessionSheet() {
             }}
           >
             <div className="flex items-baseline justify-between text-xs mb-1">
-              <span className="font-display text-xl tabular-nums" style={{ color: "#ff6b00" }}>
+              <span className="font-display text-xl tabular-nums" style={{ color: "#D07900" }}>
                 {formatMMSS(timerSec)}
               </span>
               <span style={{ color: "#666" }}>/ {formatMMSS(timerTotalSec)}</span>
@@ -910,7 +910,7 @@ export default function SessionSheet() {
                 className="h-full"
                 style={{
                   width: `${restProgress * 100}%`,
-                  background: "linear-gradient(90deg, #ff6b00, #ff9a3c)",
+                  background: "linear-gradient(90deg, #D07900, #ff9a3c)",
                   transition: "width 600ms linear",
                 }}
               />

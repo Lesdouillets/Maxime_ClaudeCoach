@@ -40,18 +40,21 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,75..125,100..900;1,75..125,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body className="bg-background text-white font-body antialiased">
         <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
+          if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
             window.addEventListener('load', () => {
               navigator.serviceWorker.register('${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/sw.js', {
                 scope: '${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/'
               });
             });
+          }
+          if ('serviceWorker' in navigator && location.hostname === 'localhost') {
+            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
           }
         `}} />
         <SyncProvider />

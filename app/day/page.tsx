@@ -176,7 +176,7 @@ export default function DayPage() {
               });
             }}
             className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
-            style={{ background: "rgba(57,255,20,0.06)", border: "1px solid rgba(57,255,20,0.2)", color: "#39ff14" }}
+            style={{ background: "rgba(205,255,0,0.06)", border: "1px solid rgba(205,255,0,0.2)", color: "#CDFF00" }}
           >
             RELANCER L'ANALYSE COACH →
           </button>
@@ -199,7 +199,7 @@ export default function DayPage() {
         <div className="space-y-4">
 
         {session?.importedFromStrava && (
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: "#D07900" }}>
             <StravaIcon /> Importé depuis Strava
           </div>
         )}
@@ -212,7 +212,7 @@ export default function DayPage() {
                 className="flex-1 py-2 text-xs font-bold tracking-wide uppercase press-effect"
                 style={{
                   background: activeTab === tab ? "#1a1a1a" : "transparent",
-                  color: activeTab === tab ? "#39ff14" : "#444",
+                  color: activeTab === tab ? "#CDFF00" : "#444",
                 }}>
                 {tab === "run" ? "Run" : "Muscu"}
               </button>
@@ -233,12 +233,12 @@ export default function DayPage() {
               <div className="flex gap-4 mt-2">
                 {genericPlan.targetDistanceKm && (
                   <div>
-                    <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{genericPlan.targetDistanceKm}</span>
+                    <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{genericPlan.targetDistanceKm}</span>
                     <span className="text-xs text-muted ml-1">km</span>
                   </div>
                 )}
                 {genericPlan.targetPaceSecPerKm && (
-                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{formatPace(genericPlan.targetPaceSecPerKm)}</span>
+                  <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{formatPace(genericPlan.targetPaceSecPerKm)}</span>
                 )}
                 {genericPlan.targetZone && <Badge label={genericPlan.targetZone} variant="neon" />}
               </div>

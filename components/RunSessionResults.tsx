@@ -13,13 +13,13 @@ export default function RunSessionResults({ session }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
           <p className="text-xs text-muted mb-1">Distance</p>
-          <p className="font-display text-3xl" style={{ color: "#39ff14" }}>
+          <p className="font-display text-3xl" style={{ color: "#CDFF00" }}>
             {session.distanceKm.toFixed(2)}<span className="text-sm text-muted ml-1">km</span>
           </p>
         </div>
         <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
           <p className="text-xs text-muted mb-1">Allure</p>
-          <p className="font-display text-3xl" style={{ color: "#39ff14" }}>
+          <p className="font-display text-3xl" style={{ color: "#CDFF00" }}>
             {session.avgPaceSecPerKm > 0 ? formatPace(session.avgPaceSecPerKm) : "--"}
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function RunSessionResults({ session }: Props) {
                       <td className="text-right px-3 py-2.5" style={{ color: "#ccc" }}>
                         {(lap.distance / 1000).toFixed(2)}<span style={{ color: "#666", marginLeft: 2 }}>km</span>
                       </td>
-                      <td className="text-right px-3 py-2.5 font-display" style={{ color: "#39ff14" }}>{lapPace}</td>
+                      <td className="text-right px-3 py-2.5 font-display" style={{ color: "#CDFF00" }}>{lapPace}</td>
                       <td className="text-right px-4 py-2.5" style={{ color: lap.average_heartrate ? "#ccc" : "#333" }}>
                         {lap.average_heartrate ? Math.round(lap.average_heartrate) : "—"}
                       </td>

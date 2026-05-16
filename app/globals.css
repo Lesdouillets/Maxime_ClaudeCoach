@@ -4,19 +4,54 @@
 
 /* Fonts are loaded via <link> in layout.tsx (runtime, works offline build) */
 :root {
-  --font-bebas: 'Bebas Neue', Anton, Impact, sans-serif;
-  --font-outfit: 'Outfit', 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-body: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Palette — source de vérité pour les styles inline et les SVGs */
+  --color-neon: #CDFF00;
+  --color-neon-dim: #4a5e00;
+  --color-neon-bg: #0a1a00;
+  --color-orange: #D07900;
+  --color-orange-dim: #5a3200;
+  --color-blue: #6BD2FF;
+  --color-blue-dim: #1a4a6b;
+  --color-background: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-2: #1a1a1a;
+  --color-surface-3: #222222;
+  --color-muted: #555555;
+  --color-dim: #444444;
+  --color-subtle: #333333;
+  --color-secondary: #888888;
+  --color-strava: #fc4c02;
+  --color-error: #ff4d4d;
+  --color-error-bg: #511111;
+  --color-error-border: #C80514;
+
+  /* Variantes d'opacité pré-calculées — fallback pour iOS < 16.2 (color-mix non supporté) */
+  --color-neon-08: rgba(205, 255, 0, 0.08);
+  --color-neon-10: rgba(205, 255, 0, 0.10);
+  --color-neon-20: rgba(205, 255, 0, 0.20);
+  --color-neon-glow: rgba(205, 255, 0, 0.60);
+  --color-neon-shadow: rgba(205, 255, 0, 0.30);
+  --color-orange-glow: rgba(208, 121, 0, 0.60);
+  --color-orange-shadow: rgba(208, 121, 0, 0.30);
+  --color-neon-input-ring: rgba(205, 255, 0, 0.10);
+  --color-bg-blur: rgba(10, 10, 10, 0.70);
+  --color-surface-2-blur: rgba(26, 26, 26, 0.92);
+  --color-white-08: rgba(255, 255, 255, 0.08);
 }
 
 @keyframes timer-halo-pulse {
   0%, 100% {
     box-shadow:
-      inset 0 0 22px 6px rgba(255, 107, 0, 0.30),
+      inset 0 0 22px 6px rgba(208, 121, 0, 0.30),
       inset 0 0 50px 12px rgba(200, 30, 30, 0.12);
   }
   50% {
     box-shadow:
-      inset 0 0 30px 8px rgba(255, 107, 0, 0.50),
+      inset 0 0 30px 8px rgba(208, 121, 0, 0.50),
       inset 0 0 70px 18px rgba(200, 30, 30, 0.22);
   }
 }
@@ -31,9 +66,9 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  background-color: #0a0a0a;
+  background-color: var(--color-background);
   color: #ffffff;
-  font-family: var(--font-outfit);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
@@ -50,22 +85,31 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(57, 255, 20, 0.2);
-  color: #39ff14;
+  background: var(--color-neon-20);
+  background: color-mix(in srgb, var(--color-neon) 20%, transparent);
+  color: var(--color-neon);
 }
 
 /* Display font utility */
 .font-display {
-  font-family: var(--font-bebas);
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+/* Mono font utility */
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 /* Neon text glow */
 .text-neon-glow {
-  text-shadow: 0 0 20px rgba(57, 255, 20, 0.6);
+  text-shadow: 0 0 20px var(--color-neon-glow);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-neon) 60%, transparent);
 }
 
 .text-orange-glow {
-  text-shadow: 0 0 20px rgba(255, 107, 0, 0.6);
+  text-shadow: 0 0 20px var(--color-orange-glow);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-orange) 60%, transparent);
 }
 
 /* Card hover effect */
@@ -97,12 +141,12 @@ input[type="text"],
 input[type="number"],
 textarea,
 select {
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-subtle);
   color: white;
   border-radius: 8px;
   padding: 12px 14px;
-  font-family: var(--font-outfit);
+  font-family: var(--font-body);
   transition: border-color 0.2s ease;
   width: 100%;
 }
@@ -112,13 +156,14 @@ input[type="number"]:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #39ff14;
-  box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.1);
+  border-color: var(--color-neon);
+  box-shadow: 0 0 0 2px var(--color-neon-input-ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-neon) 10%, transparent);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #555;
+  color: var(--color-muted);
 }
 
 /* Bottom nav safe area */

@@ -86,10 +86,10 @@ export default function FinishSessionModal() {
             <div className="px-6 pt-6 pb-4 text-center">
               <div
                 className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center"
-                style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.4)" }}
+                style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.4)" }}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="#39ff14" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="#CDFF00" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <h3 className="font-display text-3xl leading-none mb-2">Finir la séance ?</h3>
@@ -113,7 +113,7 @@ export default function FinishSessionModal() {
                 onClick={() => session.confirmFinish()}
                 className="py-3 rounded-2xl font-bold text-sm press-effect"
                 style={{
-                  background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                  background: "linear-gradient(135deg, #CDFF00, #1a7a09)",
                   color: "#0a0a0a",
                 }}
               >

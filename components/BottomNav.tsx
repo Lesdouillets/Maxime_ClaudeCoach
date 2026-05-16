@@ -4,6 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const NEON    = "var(--color-neon)";
+const MUTED   = "var(--color-muted)";
+const NEON_BG = "var(--color-neon-10)";
+
+const NAV_STYLE = {
+  background: "var(--color-bg-blur)",
+  backdropFilter: "blur(40px)",
+  WebkitBackdropFilter: "blur(40px)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "9999px",
+  padding: "10px 14px",
+  gap: "4px",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
+} as const;
+
 const NAV_ITEMS = [
   {
     href: "/",
@@ -12,10 +27,10 @@ const NAV_ITEMS = [
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path
           d="M3 9.5L12 3L21 9.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V9.5Z"
-          stroke={active ? "#39ff14" : "#555"}
+          stroke={active ? NEON : MUTED}
           strokeWidth="1.8"
           strokeLinejoin="round"
-          fill={active ? "rgba(57,255,20,0.1)" : "none"}
+          fill={active ? NEON_BG : "none"}
         />
       </svg>
     ),
@@ -26,11 +41,11 @@ const NAV_ITEMS = [
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <rect x="3" y="4" width="18" height="18" rx="2"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" />
+          stroke={active ? NEON : MUTED} strokeWidth="1.8" />
         <path d="M3 9H21M8 2V6M16 2V6"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
+          stroke={active ? NEON : MUTED} strokeWidth="1.8" strokeLinecap="round" />
         <path d="M8 13H8.01M12 13H12.01M16 13H16.01M8 17H8.01M12 17H12.01"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="2" strokeLinecap="round" />
+          stroke={active ? NEON : MUTED} strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -40,7 +55,7 @@ const NAV_ITEMS = [
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M3 20V14M8 20V8M13 20V11M18 20V4"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8" strokeLinecap="round" />
+          stroke={active ? NEON : MUTED} strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -50,9 +65,9 @@ const NAV_ITEMS = [
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-          stroke={active ? "#39ff14" : "#555"} strokeWidth="1.8"
+          stroke={active ? NEON : MUTED} strokeWidth="1.8"
           strokeLinecap="round" strokeLinejoin="round"
-          fill={active ? "rgba(57,255,20,0.1)" : "none"} />
+          fill={active ? NEON_BG : "none"} />
       </svg>
     ),
   },
@@ -70,25 +85,12 @@ export default function BottomNav() {
 
   return (
     <div
-      className="fixed left-0 right-0 z-50 flex justify-center pointer-events-none"
+      className="fixed left-0 right-0 z-nav flex justify-center pointer-events-none"
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
     >
-      <nav
-        className="flex items-center pointer-events-auto"
-        style={{
-          background: "rgba(10,10,10,0.7)",
-          backdropFilter: "blur(40px)",
-          WebkitBackdropFilter: "blur(40px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: "9999px",
-          padding: "10px 14px",
-          gap: "4px",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
-        }}
-      >
+      <nav className="flex items-center pointer-events-auto" style={NAV_STYLE}>
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const isActivating = activating === item.href;
 
           return (
@@ -99,7 +101,7 @@ export default function BottomNav() {
               style={{
                 padding: "10px 20px",
                 borderRadius: "9999px",
-                background: isActive ? "rgba(57,255,20,0.1)" : "transparent",
+                background: isActive ? NEON_BG : "transparent",
                 animation: isActivating ? "nav-activate 0.35s ease-out" : undefined,
               }}
             >

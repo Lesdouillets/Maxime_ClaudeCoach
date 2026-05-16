@@ -24,6 +24,7 @@ export interface CoachWorkout {
   category: FitnessCategory;
   label: string;
   coachNote?: string;
+  durationMin?: number;
   exercises: CoachExercise[];
 }
 
@@ -46,7 +47,8 @@ export interface CoachRun {
   label: string;
   coachNote?: string;
   distanceKm: number;
-  pace: string;         // target pace "6:00"
+  pace?: string;        // target pace "6:00" — absent pour séances à allure variable
+  durationMin?: number;
   targetHR?: string;    // "130-150"
   targetZone?: string;  // "Z2", "Z3", "Z4"
   intervals?: CoachRunInterval[];

@@ -28,8 +28,8 @@ function segDistLabel(seg: CoachRunInterval): string {
 
 export default function CoachRunPlan({ coachRun }: Props) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.15)" }}>
-      <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#39ff14" }}>PLAN COACH</p>
+    <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.15)" }}>
+      <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#CDFF00" }}>PLAN COACH</p>
       {coachRun.intervals && coachRun.intervals.length > 0 ? (
         <div className="space-y-3">
           {coachRun.intervals.map((seg, i) => (
@@ -56,10 +56,10 @@ export default function CoachRunPlan({ coachRun }: Props) {
       ) : (
         <div className="flex gap-4 items-end">
           <div>
-            <span className="font-display text-3xl" style={{ color: "#39ff14" }}>{coachRun.distanceKm}</span>
+            <span className="font-display text-3xl" style={{ color: "#CDFF00" }}>{coachRun.distanceKm}</span>
             <span className="text-xs text-muted ml-1">km</span>
           </div>
-          <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{coachRun.pace}/km</span>
+          <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{coachRun.pace}/km</span>
           {coachRun.targetHR && <span className="text-sm text-muted self-end mb-1">♥ {coachRun.targetHR}</span>}
           {coachRun.targetZone && <Badge label={coachRun.targetZone} variant="neon" />}
         </div>

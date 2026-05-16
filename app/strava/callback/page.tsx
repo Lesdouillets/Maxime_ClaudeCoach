@@ -54,7 +54,7 @@ function StravaCallbackInner() {
               animation: "pulse-neon 1.5s ease-in-out infinite",
             }}
           >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff6b00">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#D07900">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
             </svg>
           </div>
@@ -68,16 +68,16 @@ function StravaCallbackInner() {
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
             style={{
-              background: "rgba(57,255,20,0.15)",
-              border: "2px solid rgba(57,255,20,0.4)",
-              boxShadow: "0 0 30px rgba(57,255,20,0.2)",
+              background: "rgba(205,255,0,0.15)",
+              border: "2px solid rgba(205,255,0,0.4)",
+              boxShadow: "0 0 30px rgba(205,255,0,0.2)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M5 13L9 17L19 7" stroke="#39ff14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5 13L9 17L19 7" stroke="#CDFF00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h2 className="font-display text-3xl text-neon-glow" style={{ color: "#39ff14" }}>
+          <h2 className="font-display text-3xl text-neon-glow" style={{ color: "#CDFF00" }}>
             STRAVA CONNECTÉ
           </h2>
           <p className="text-muted text-sm">
@@ -92,16 +92,16 @@ function StravaCallbackInner() {
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
             style={{
-              background: "rgba(255,107,0,0.15)",
-              border: "2px solid rgba(255,107,0,0.4)",
+              background: "rgba(208,121,0,0.15)",
+              border: "2px solid rgba(208,121,0,0.4)",
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path d="M12 9V13M12 17H12.01M21 12C21 16.971 16.971 21 12 21C7.029 21 3 16.971 3 12C3 7.029 7.029 3 12 3C16.971 3 21 7.029 21 12Z"
-                stroke="#ff6b00" strokeWidth="2" strokeLinecap="round"/>
+                stroke="#D07900" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h2 className="font-display text-3xl" style={{ color: "#ff6b00" }}>
+          <h2 className="font-display text-3xl" style={{ color: "#D07900" }}>
             ERREUR
           </h2>
           <p className="text-sm text-gray-400 max-w-xs">{errorMessage}</p>
@@ -113,7 +113,7 @@ function StravaCallbackInner() {
             onClick={() => router.push("/")}
             className="mt-4 px-6 py-3 rounded-xl font-bold text-sm press-effect"
             style={{
-              background: "#ff6b00",
+              background: "#D07900",
               color: "white",
             }}
           >

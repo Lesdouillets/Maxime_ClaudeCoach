@@ -74,15 +74,15 @@ export default function StatsPage() {
 
         {/* Summary row */}
         <div className="grid grid-cols-2 gap-3">
-          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="#39ff14" />
-          <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="#ff6b00" />
+          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="#CDFF00" />
+          <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="#D07900" />
           <BigStat
             value={avgPace ? `${Math.floor(avgPace / 60)}:${String(Math.round(avgPace % 60)).padStart(2, "0")}` : "—"}
             unit="/km"
             label="Allure moyenne"
-            accent="#39ff14"
+            accent="#CDFF00"
           />
-          <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="#ff6b00" />
+          <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="#D07900" />
         </div>
 
         {/* Tab selector */}
@@ -97,8 +97,8 @@ export default function StatsPage() {
               className="flex-1 py-2 rounded-xl text-xs font-bold tracking-wide press-effect capitalize"
               style={{
                 background: tab === t ? "#1a1a1a" : "transparent",
-                color: tab === t ? "#39ff14" : "#555",
-                border: tab === t ? "1px solid rgba(57,255,20,0.2)" : "1px solid transparent",
+                color: tab === t ? "#CDFF00" : "#555",
+                border: tab === t ? "1px solid rgba(205,255,0,0.2)" : "1px solid transparent",
               }}
             >
               {t === "runs" ? "Run" : t === "fitness" ? "Salle" : "Poids"}
@@ -119,10 +119,10 @@ export default function StatsPage() {
                     <Tooltip
                       contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
                       labelStyle={{ color: "#888", fontSize: 11 }}
-                      itemStyle={{ color: "#39ff14" }}
+                      itemStyle={{ color: "#CDFF00" }}
                       formatter={(v: number) => [`${v.toFixed(1)} km`, ""]}
                     />
-                    <Bar dataKey="km" fill="#39ff14" opacity={0.85} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="km" fill="#CDFF00" opacity={0.85} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -136,8 +136,8 @@ export default function StatsPage() {
                   <AreaChart data={paceChartData}>
                     <defs>
                       <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#39ff14" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#39ff14" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#CDFF00" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#CDFF00" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="#1a1a1a" vertical={false} />
@@ -157,13 +157,13 @@ export default function StatsPage() {
                     <Tooltip
                       contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
                       labelStyle={{ color: "#888", fontSize: 11 }}
-                      itemStyle={{ color: "#39ff14" }}
+                      itemStyle={{ color: "#CDFF00" }}
                       formatter={(v: number) => [
                         `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}/km`,
                         "Allure",
                       ]}
                     />
-                    <Area type="monotone" dataKey="pace" stroke="#39ff14" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="pace" stroke="#CDFF00" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -219,7 +219,7 @@ export default function StatsPage() {
                 disabled={!newWeight}
                 className="self-end px-4 py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
                 style={{
-                  background: "linear-gradient(135deg, #39ff14, #1a7a09)",
+                  background: "linear-gradient(135deg, #CDFF00, #1a7a09)",
                   color: "#0a0a0a",
                 }}
               >
@@ -236,8 +236,8 @@ export default function StatsPage() {
                   }))}>
                     <defs>
                       <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#39ff14" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#39ff14" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#CDFF00" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#CDFF00" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="#1a1a1a" vertical={false} />
@@ -250,7 +250,7 @@ export default function StatsPage() {
                       labelStyle={{ color: "#888", fontSize: 11 }}
                       formatter={(v: number) => [`${v} kg`, "Poids"]}
                     />
-                    <Area type="monotone" dataKey="kg" stroke="#39ff14" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="kg" stroke="#CDFF00" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -266,7 +266,7 @@ export default function StatsPage() {
                   <span className="text-sm text-muted">
                     {new Date(entry.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
                   </span>
-                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>
+                  <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>
                     {entry.kg}
                     <span className="text-sm text-muted ml-1">kg</span>
                   </span>
@@ -334,9 +334,9 @@ function ExerciseWeightCard({
               <span className="text-xs" style={{ color: "#444" }}>
                 {ex.sets}×{ex.reps}
               </span>
-              <span className="font-display text-lg leading-none" style={{ color: "#ff6b00" }}>
+              <span className="font-display text-lg leading-none" style={{ color: "#D07900" }}>
                 {ex.weight > 0 ? (
-                  <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "#ff6b00", opacity: 0.6 }}>kg</span></>
+                  <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "#D07900", opacity: 0.6 }}>kg</span></>
                 ) : (
                   <span className="text-sm" style={{ color: "#444" }}>PC</span>
                 )}

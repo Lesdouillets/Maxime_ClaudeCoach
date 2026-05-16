@@ -5,33 +5,30 @@ interface PageHeaderProps {
   right?: React.ReactNode;
 }
 
-export default function PageHeader({
-  title,
-  subtitle,
-  accent = "neon",
-  right,
-}: PageHeaderProps) {
+const ACCENT_COLOR = {
+  neon:   "var(--color-neon)",
+  orange: "var(--color-orange)",
+};
+
+const ACCENT_GLOW = {
+  neon:   "0 0 30px var(--color-neon-shadow)",
+  orange: "0 0 30px var(--color-orange-shadow)",
+};
+
+export default function PageHeader({ title, subtitle, accent = "neon", right }: PageHeaderProps) {
   return (
     <header className="px-5 pb-4 flex items-end justify-between" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
       <div>
         {subtitle && (
-          <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
-             style={{ color: accent === "neon" ? "#39ff14" : "#ff6b00" }}>
+          <p className="text-xs font-medium tracking-[0.2em] uppercase mb-1" style={{ color: ACCENT_COLOR[accent] }}>
             {subtitle}
           </p>
         )}
-        <h1
-          className="font-display text-5xl leading-none"
-          style={{
-            textShadow: accent === "neon"
-              ? "0 0 30px rgba(57,255,20,0.3)"
-              : "0 0 30px rgba(255,107,0,0.3)",
-          }}
-        >
+        <h1 className="font-display text-5xl leading-none" style={{ textShadow: ACCENT_GLOW[accent] }}>
           {title}
         </h1>
       </div>
-      {right && <div>{right}</div>}
+      {right}
     </header>
   );
 }

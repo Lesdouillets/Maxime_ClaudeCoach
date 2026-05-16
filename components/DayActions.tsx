@@ -58,10 +58,10 @@ export default function DayActions({
         <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)}
           min={toLocalDateStr(new Date())} autoFocus
           className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-          style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }} />
+          style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }} />
         <button onClick={handleRescheduleConfirm} disabled={!rescheduleDate}
           className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-          style={{ background: "#ff6b00", color: "white" }}>OK</button>
+          style={{ background: "#D07900", color: "white" }}>OK</button>
         <button onClick={() => { setShowReschedule(false); setRescheduleDate(""); setRescheduleTarget(null); }}
           className="px-3 py-2.5 rounded-xl text-xs press-effect" style={{ background: "#1a1a1a", color: "#555" }}>✕</button>
       </div>
@@ -80,7 +80,7 @@ export default function DayActions({
         <div className="space-y-2">
           <button onClick={openRun}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+            style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.3)", color: "#CDFF00" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             Valider le Run
           </button>
@@ -98,7 +98,7 @@ export default function DayActions({
         <div className="space-y-2">
           <button onClick={onValidateFitness}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+            style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.3)", color: "#CDFF00" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
             Valider la Muscu
           </button>
@@ -116,7 +116,7 @@ export default function DayActions({
         isRunDay ? (
           <button onClick={openRun}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+            style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.3)", color: "#CDFF00" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -125,7 +125,7 @@ export default function DayActions({
         ) : (
           <button onClick={onValidateFitness}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold press-effect"
-            style={{ background: "rgba(57,255,20,0.12)", border: "1px solid rgba(57,255,20,0.3)", color: "#39ff14" }}>
+            style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.3)", color: "#CDFF00" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -152,12 +152,12 @@ export default function DayActions({
                 onChange={(e) => setRescheduleDate(e.target.value)}
                 min={toLocalDateStr(new Date())}
                 className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }}
                 autoFocus
               />
               <button onClick={handleRescheduleConfirm} disabled={!rescheduleDate}
                 className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                style={{ background: "#ff6b00", color: "white" }}>OK</button>
+                style={{ background: "#D07900", color: "white" }}>OK</button>
               <button onClick={() => { setShowReschedule(false); setRescheduleDate(""); setRescheduleTarget(null); }}
                 className="px-3 py-2.5 rounded-xl text-xs press-effect"
                 style={{ background: "#1a1a1a", color: "#555" }}>✕</button>

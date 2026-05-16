@@ -41,7 +41,7 @@ function FloatingTimer() {
     pathname === "/day" ||
     pathname === "/log/fitness";
   if (!timerKey || timerSec <= 0 || hidden) return null;
-  const color = timerSec > 10 ? "#39ff14" : timerSec > 3 ? "#ff6b00" : "#ff4444";
+  const color = timerSec > 10 ? "#CDFF00" : timerSec > 3 ? "#D07900" : "#ff4444";
   return (
     <button
       onClick={stopTimer}

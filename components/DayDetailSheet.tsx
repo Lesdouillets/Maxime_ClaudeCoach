@@ -15,7 +15,7 @@ interface Props {
 }
 
 const StravaIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff6b00">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="#D07900">
     <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
   </svg>
 );
@@ -84,7 +84,7 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
           {session?.type === "run" && (
             <>
               {session.importedFromStrava && (
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: "#D07900" }}>
                   <StravaIcon />
                   Importé depuis Strava
                 </div>
@@ -94,14 +94,14 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
                   <p className="text-xs text-muted mb-1">Distance</p>
-                  <p className="font-display text-3xl" style={{ color: "#39ff14" }}>
+                  <p className="font-display text-3xl" style={{ color: "#CDFF00" }}>
                     {session.distanceKm.toFixed(2)}
                     <span className="text-sm text-muted ml-1">km</span>
                   </p>
                 </div>
                 <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
                   <p className="text-xs text-muted mb-1">Allure</p>
-                  <p className="font-display text-3xl" style={{ color: "#39ff14" }}>
+                  <p className="font-display text-3xl" style={{ color: "#CDFF00" }}>
                     {session.avgPaceSecPerKm > 0 ? formatPace(session.avgPaceSecPerKm) : "--"}
                   </p>
                 </div>
@@ -135,8 +135,8 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
 
               {/* Coach run plan */}
               {coachRun && (
-                <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.1)" }}>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#39ff14" }}>
+                <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.1)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#CDFF00" }}>
                     Plan du coach — {coachRun.label}
                   </p>
                   {coachRun.coachNote && (
@@ -160,14 +160,14 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
                   ) : (
                     <div className="flex gap-4 text-sm">
                       <div>
-                        <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{coachRun.distanceKm}</span>
+                        <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{coachRun.distanceKm}</span>
                         <span className="text-xs text-muted ml-1">km</span>
                       </div>
                       <div className="self-end mb-0.5 text-muted">{coachRun.pace}/km</div>
                       {coachRun.targetHR && <div className="self-end mb-0.5 text-xs text-muted">♥ {coachRun.targetHR}</div>}
                       {coachRun.targetZone && (
                         <span className="self-center px-2 py-0.5 rounded-lg text-xs font-bold"
-                          style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14" }}>
+                          style={{ background: "rgba(205,255,0,0.15)", color: "#CDFF00" }}>
                           {coachRun.targetZone}
                         </span>
                       )}
@@ -178,8 +178,8 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
 
               {/* Plan targets comparison */}
               {!coachRun && plan?.type === "run" && (plan.targetDistanceKm || plan.targetPaceSecPerKm) && (
-                <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.1)" }}>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#39ff14" }}>
+                <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.1)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#CDFF00" }}>
                     Objectif
                   </p>
                   <div className="flex gap-4 text-sm text-muted">
@@ -203,7 +203,7 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
           {session?.type === "fitness" && (
             <>
               {session.importedFromStrava && (
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: "#ff6b00" }}>
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: "#D07900" }}>
                   <StravaIcon />
                   Importé depuis Strava
                 </div>
@@ -211,8 +211,8 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
 
               {/* Coach workout linked */}
               {coachWorkout && (
-                <div className="rounded-2xl p-4" style={{ background: "rgba(57,255,20,0.04)", border: "1px solid rgba(57,255,20,0.1)" }}>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#39ff14" }}>
+                <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.1)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#CDFF00" }}>
                     Plan du coach — {coachWorkout.label}
                   </p>
                   {coachWorkout.coachNote && (
@@ -284,18 +284,18 @@ export default function DayDetailSheet({ date, session, plan, coachWorkout, coac
                 <div className="flex gap-4 mt-3">
                   {plan.targetDistanceKm && (
                     <div>
-                      <span className="font-display text-2xl" style={{ color: "#39ff14" }}>{plan.targetDistanceKm}</span>
+                      <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{plan.targetDistanceKm}</span>
                       <span className="text-xs text-muted ml-1">km</span>
                     </div>
                   )}
                   {plan.targetPaceSecPerKm && (
-                    <span className="font-display text-2xl" style={{ color: "#39ff14" }}>
+                    <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>
                       {formatPace(plan.targetPaceSecPerKm)}
                     </span>
                   )}
                   {plan.targetZone && (
                     <span className="px-2 py-0.5 rounded-lg text-xs font-bold"
-                      style={{ background: "rgba(57,255,20,0.15)", color: "#39ff14" }}>
+                      style={{ background: "rgba(205,255,0,0.15)", color: "#CDFF00" }}>
                       {plan.targetZone}
                     </span>
                   )}

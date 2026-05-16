@@ -373,13 +373,13 @@ export default function RunSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid rgba(255,107,0,0.3)", color: "white" }}
+                    style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleRun}
                     disabled={!rescheduleDate}
                     className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                    style={{ background: "#ff6b00", color: "white" }}
+                    style={{ background: "#D07900", color: "white" }}
                   >OK</button>
                   <button
                     onClick={() => { setOptionsPanel(null); setRescheduleDate(""); }}
@@ -423,13 +423,13 @@ export default function RunSheet() {
         <div className="px-5 pb-3">
           <p
             className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
-            style={{ color: "#39ff14" }}
+            style={{ color: "#CDFF00" }}
           >
             {dateLabel}
           </p>
           <h1
             className="font-display text-5xl leading-none"
-            style={{ textShadow: "0 0 30px rgba(57,255,20,0.3)" }}
+            style={{ textShadow: "0 0 30px rgba(205,255,0,0.3)" }}
           >
             RUN{doneSession ? " ✓" : ""}
           </h1>
@@ -443,7 +443,7 @@ export default function RunSheet() {
               {doneSession.importedFromStrava && (
                 <div
                   className="flex items-center gap-1.5 text-xs"
-                  style={{ color: "#ff6b00" }}
+                  style={{ color: "#D07900" }}
                 >
                   <StravaIcon /> Importé depuis Strava
                 </div>
@@ -467,9 +467,9 @@ export default function RunSheet() {
                   }}
                   className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
                   style={{
-                    background: "rgba(57,255,20,0.06)",
-                    border: "1px solid rgba(57,255,20,0.2)",
-                    color: "#39ff14",
+                    background: "rgba(205,255,0,0.06)",
+                    border: "1px solid rgba(205,255,0,0.2)",
+                    color: "#CDFF00",
                   }}
                 >
                   RELANCER L&apos;ANALYSE COACH →
@@ -502,22 +502,22 @@ export default function RunSheet() {
             <div
               className="rounded-2xl p-4"
               style={{
-                background: "rgba(57,255,20,0.04)",
-                border: "1px solid rgba(57,255,20,0.15)",
+                background: "rgba(205,255,0,0.04)",
+                border: "1px solid rgba(205,255,0,0.15)",
               }}
             >
               <p className="text-xs text-muted mb-2">{genericPlan.targetDescription}</p>
               <div className="flex gap-4 mt-2 items-end">
                 {genericPlan.targetDistanceKm && (
                   <div>
-                    <span className="font-display text-3xl" style={{ color: "#39ff14" }}>
+                    <span className="font-display text-3xl" style={{ color: "#CDFF00" }}>
                       {genericPlan.targetDistanceKm}
                     </span>
                     <span className="text-xs text-muted ml-1">km</span>
                   </div>
                 )}
                 {genericPlan.targetPaceSecPerKm && (
-                  <span className="font-display text-2xl" style={{ color: "#39ff14" }}>
+                  <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>
                     {formatPace(genericPlan.targetPaceSecPerKm)}
                   </span>
                 )}

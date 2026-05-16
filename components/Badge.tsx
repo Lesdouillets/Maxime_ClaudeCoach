@@ -4,24 +4,21 @@ interface BadgeProps {
   size?: "sm" | "md";
 }
 
+const VARIANT_CLASSES = {
+  neon:    "bg-neon/10 text-neon border border-neon/30",
+  orange:  "bg-orange/10 text-orange border border-orange/30",
+  muted:   "bg-surface-2 text-[#888] border border-surface-3",
+  surface: "bg-surface-3 text-white border border-subtle",
+};
+
+const SIZE_CLASSES = {
+  sm: "text-[10px] px-2 py-0.5",
+  md: "text-xs px-3 py-1",
+};
+
 export default function Badge({ label, variant = "muted", size = "md" }: BadgeProps) {
-  const styles = {
-    neon: { background: "rgba(57,255,20,0.1)", color: "#39ff14", border: "1px solid rgba(57,255,20,0.3)" },
-    orange: { background: "rgba(255,107,0,0.1)", color: "#ff6b00", border: "1px solid rgba(255,107,0,0.3)" },
-    muted: { background: "#1a1a1a", color: "#888", border: "1px solid #2a2a2a" },
-    surface: { background: "#222", color: "#fff", border: "1px solid #333" },
-  };
-
-  const sizes = {
-    sm: "text-[10px] px-2 py-0.5",
-    md: "text-xs px-3 py-1",
-  };
-
   return (
-    <span
-      className={`inline-flex items-center rounded-full font-semibold tracking-wider uppercase ${sizes[size]}`}
-      style={styles[variant]}
-    >
+    <span className={`inline-flex items-center rounded-full font-semibold tracking-wider uppercase ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]}`}>
       {label}
     </span>
   );
