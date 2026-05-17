@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getTodayPlan } from "@/lib/plan";
 import { useRunSheet } from "@/contexts/RunSheetContext";
 
 interface LogPickerProps {
@@ -12,19 +11,12 @@ interface LogPickerProps {
 export default function LogPicker({ onClose }: LogPickerProps) {
   const router = useRouter();
   const runSheet = useRunSheet();
-  const todayPlan = getTodayPlan();
 
-  // Close on backdrop click or Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
-
-  const go = (href: string) => {
-    onClose();
-    router.push(href);
-  };
 
   const openRun = () => {
     onClose();
@@ -49,10 +41,7 @@ export default function LogPicker({ onClose }: LogPickerProps) {
         <button
           onClick={openRun}
           className="w-full flex items-center gap-4 p-5 press-effect"
-          style={{
-            background: todayPlan?.type === "run" ? "rgba(205,255,0,0.06)" : "#111",
-            borderBottom: "1px solid #1a1a1a",
-          }}
+          style={{ background: "#111", borderBottom: "1px solid #1a1a1a" }}
         >
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -67,21 +56,13 @@ export default function LogPicker({ onClose }: LogPickerProps) {
             <p className="font-bold text-base">Run</p>
             <p className="text-xs text-muted">Distance, allure, FC</p>
           </div>
-          {todayPlan?.type === "run" && (
-            <span
-              className="text-[10px] font-bold px-2 py-1 rounded-full tracking-widest"
-              style={{ background: "rgba(205,255,0,0.15)", color: "#CDFF00", border: "1px solid rgba(205,255,0,0.3)" }}
-            >
-              AUJOURD'HUI
-            </span>
-          )}
         </button>
 
         {/* Renfo */}
         <button
-          onClick={() => go("/log/fitness")}
+          onClick={() => { router.push("/log/fitness"); onClose(); }}
           className="w-full flex items-center gap-4 p-5 press-effect"
-          style={{ background: todayPlan?.type === "fitness" ? "rgba(208,121,0,0.05)" : "#111" }}
+          style={{ background: "#111" }}
         >
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -96,14 +77,6 @@ export default function LogPicker({ onClose }: LogPickerProps) {
             <p className="font-bold text-base">Renfo</p>
             <p className="text-xs text-muted">Exercices, séries, poids</p>
           </div>
-          {todayPlan?.type === "fitness" && (
-            <span
-              className="text-[10px] font-bold px-2 py-1 rounded-full tracking-widest"
-              style={{ background: "rgba(208,121,0,0.15)", color: "#D07900", border: "1px solid rgba(208,121,0,0.3)" }}
-            >
-              AUJOURD'HUI
-            </span>
-          )}
         </button>
       </div>
     </>

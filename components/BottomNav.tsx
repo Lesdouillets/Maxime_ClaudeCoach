@@ -4,33 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const NEON    = "var(--color-neon)";
-const MUTED   = "var(--color-muted)";
-const NEON_BG = "var(--color-neon-10)";
+const NEON  = "var(--color-neon)";
+const MUTED = "var(--color-muted)";
 
-const NAV_STYLE = {
-  background: "var(--color-bg-blur)",
-  backdropFilter: "blur(40px)",
-  WebkitBackdropFilter: "blur(40px)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "9999px",
-  padding: "10px 14px",
-  gap: "4px",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
-} as const;
+export type BottomNavState = "nav" | "hidden";
+
+interface BottomNavProps {
+  state?: BottomNavState;
+}
 
 const NAV_ITEMS = [
   {
     href: "/",
     label: "Home",
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path
           d="M3 9.5L12 3L21 9.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V9.5Z"
           stroke={active ? NEON : MUTED}
           strokeWidth="1.8"
           strokeLinejoin="round"
-          fill={active ? NEON_BG : "none"}
+          fill="none"
         />
       </svg>
     ),
@@ -39,7 +33,7 @@ const NAV_ITEMS = [
     href: "/plan",
     label: "Plan",
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <rect x="3" y="4" width="18" height="18" rx="2"
           stroke={active ? NEON : MUTED} strokeWidth="1.8" />
         <path d="M3 9H21M8 2V6M16 2V6"
@@ -53,7 +47,7 @@ const NAV_ITEMS = [
     href: "/stats",
     label: "Stats",
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M3 20V14M8 20V8M13 20V11M18 20V4"
           stroke={active ? NEON : MUTED} strokeWidth="1.8" strokeLinecap="round" />
       </svg>
@@ -63,17 +57,17 @@ const NAV_ITEMS = [
     href: "/coach",
     label: "Coach",
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
           stroke={active ? NEON : MUTED} strokeWidth="1.8"
           strokeLinecap="round" strokeLinejoin="round"
-          fill={active ? NEON_BG : "none"} />
+          fill="none" />
       </svg>
     ),
   },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ state = "nav" }: BottomNavProps) {
   const pathname = usePathname();
   const [activating, setActivating] = useState<string | null>(null);
 
@@ -83,29 +77,39 @@ export default function BottomNav() {
     return () => clearTimeout(t);
   }, [pathname]);
 
+  if (state === "hidden") return null;
+
   return (
     <div
-      className="fixed left-0 right-0 z-nav flex justify-center pointer-events-none"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
+      className="fixed left-0 right-0 bottom-0 z-nav"
+      style={{
+        background: "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000 35%)",
+        backdropFilter: "blur(40px)",
+        WebkitBackdropFilter: "blur(40px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
     >
-      <nav className="flex items-center pointer-events-auto" style={NAV_STYLE}>
+      <nav className="flex items-center justify-around px-2 pt-2 pb-1">
         {NAV_ITEMS.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const isActivating = activating === item.href;
-
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-center press-effect"
+              className="flex flex-col items-center gap-1 press-effect"
               style={{
-                padding: "10px 20px",
-                borderRadius: "9999px",
-                background: isActive ? NEON_BG : "transparent",
+                padding: "6px 20px",
                 animation: isActivating ? "nav-activate 0.35s ease-out" : undefined,
               }}
             >
               {item.icon(isActive)}
+              <span
+                className="text-[10px] font-bold tracking-widest uppercase"
+                style={{ color: isActive ? NEON : MUTED }}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

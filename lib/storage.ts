@@ -10,7 +10,6 @@ import type {
 const KEYS = {
   sessions: "cc_sessions",
   stravaTokens: "cc_strava_tokens",
-  lastStravaFetch: "cc_last_strava_fetch",
   pendingStrava: "cc_pending_strava",
   bodyWeight: "cc_body_weight",
   cancelledDays: "cc_cancelled_days",
@@ -74,18 +73,6 @@ export function saveStravaTokens(tokens: StravaTokens): void {
 export function clearStravaTokens(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(KEYS.stravaTokens);
-}
-
-// ─── Last Strava Fetch ────────────────────────────────────────────────────────
-
-export function getLastStravaFetch(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(KEYS.lastStravaFetch);
-}
-
-export function setLastStravaFetch(iso: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEYS.lastStravaFetch, iso);
 }
 
 // ─── Pending Strava Activities ────────────────────────────────────────────────
@@ -228,8 +215,7 @@ export function clearInProgressFitness(date: string): void {
 export function getFullState(): AppState {
   return {
     sessions: getSessions(),
-    lastStravaFetch: getLastStravaFetch() ?? undefined,
-    stravaTokens: getStravaTokens() ?? undefined,
+stravaTokens: getStravaTokens() ?? undefined,
     pendingStravaActivities: getPendingStravaActivities(),
   };
 }

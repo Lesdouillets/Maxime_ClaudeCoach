@@ -51,21 +51,6 @@ export interface RunSession {
 
 export type WorkoutSession = FitnessSession | RunSession;
 
-// ─── Weekly Plan ──────────────────────────────────────────────────────────────
-
-export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Sun
-
-export interface PlannedDay {
-  dayOfWeek: DayOfWeek;
-  type: SessionType;
-  category?: FitnessCategory;
-  label: string;
-  targetDescription: string;
-  targetDistanceKm?: number;
-  targetPaceSecPerKm?: number;
-  targetZone?: string;
-}
-
 // ─── Strava ───────────────────────────────────────────────────────────────────
 
 export interface StravaTokens {
@@ -114,7 +99,6 @@ export interface CancelledDay {
 
 export interface AppState {
   sessions: WorkoutSession[];
-  lastStravaFetch?: string; // ISO timestamp
   stravaTokens?: StravaTokens;
   pendingStravaActivities?: StravaActivity[];
   bodyWeightKg?: number[];

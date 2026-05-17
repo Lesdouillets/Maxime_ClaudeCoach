@@ -20,7 +20,6 @@ export const PROFILED_KEYS = [
   "cc_rescheduled_days",
   "cc_body_weight",
   "cc_strava_tokens",
-  "cc_last_strava_fetch",
   "cc_pending_strava",
   "cc_last_sync",
   "cc_chat_history",

@@ -3,22 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
-import Badge from "@/components/Badge";
 import CoachRunPlan from "@/components/CoachRunPlan";
 import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
-import { WEEKLY_PLAN, formatPace, toLocalDateStr } from "@/lib/plan";
+import { formatPace, toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
-import { getSessions, getStravaTokens, updateSession, cancelDay } from "@/lib/storage";
+import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
-import { fetchActivityLaps, fetchRecentActivities } from "@/lib/strava";
+import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
   type CoachAnalysisResult,
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
-import type { PlannedDay, RunSession } from "@/lib/types";
+import type { RunSession } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const StravaIcon = () => (
@@ -43,8 +42,9 @@ export default function RunSheet() {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ y: number; t: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateStr = sheet.state?.date ?? toLocalDateStr(new Date());
   const [coachRun, setCoachRun] = useState<CoachRun | null>(null);
-  const [genericPlan, setGenericPlan] = useState<PlannedDay | null>(null);
   const [doneSession, setDoneSession] = useState<RunSession | null>(null);
   const [coachState, setCoachState] = useState<"analyzing" | "done">("done");
   const [coachResult, setCoachResult] = useState<CoachAnalysisResult | null>(null);
@@ -82,10 +82,7 @@ export default function RunSheet() {
     ) ?? null;
     setDoneSession(recorded);
 
-    const dow = new Date(dateStr + "T12:00:00").getDay();
     setCoachRun(getCoachRuns().find((r) => r.date === dateStr) ?? null);
-    const generic = WEEKLY_PLAN.find((p) => p.dayOfWeek === dow) ?? null;
-    setGenericPlan(generic?.type === "run" ? generic : null);
 
     // For a Strava-imported run with no stored analysis, fire the coach
     // analysis in the background so the feedback shows up here.
@@ -102,6 +99,36 @@ export default function RunSheet() {
       setCoachState("done");
     }
   }, [sheet.state]);
+
+  const handleStravaImport = async () => {
+    if (stravaSyncing) return;
+    const tokens = getStravaTokens();
+    if (!tokens) { setStravaSyncMsg("Non connecté à Strava"); return; }
+    setStravaSyncing(true);
+    setStravaSyncMsg("");
+    try {
+      const dayStart = Math.floor(new Date(dateStr + "T00:00:00").getTime() / 1000);
+      const activities = await fetchRecentActivities(tokens, dayStart);
+      const match = activities.find(
+        (a) => a.start_date.slice(0, 10) === dateStr &&
+          ["Run", "TrailRun", "VirtualRun"].includes(a.type)
+      );
+      if (!match) { setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour"); return; }
+      const laps = await fetchActivityLaps(tokens, match.id);
+      const session = autoImportActivity(match, laps);
+      if (!session || session.type !== "run") { setStravaSyncMsg("Erreur lors de l'import"); return; }
+      const alreadyLogged = getSessions().some((s) => s.type === "run" && s.date.slice(0, 10) === dateStr);
+      if (alreadyLogged) { setStravaSyncMsg("Une séance run existe déjà pour ce jour"); return; }
+      addSession(session);
+      setDoneSession(session as RunSession);
+      autoSyncPush().catch(() => {});
+    } catch {
+      setStravaSyncMsg("Erreur de synchronisation");
+    } finally {
+      setStravaSyncing(false);
+      setTimeout(() => setStravaSyncMsg(""), 4000);
+    }
+  };
 
   const handleStravaSync = async () => {
     if (!doneSession || stravaSyncing) return;
@@ -216,7 +243,6 @@ export default function RunSheet() {
   const isExpanded = sheet.view === "expanded" && hasEntered;
   const backdropVisible = sheet.view === "expanded";
 
-  const dateStr = sheet.state.date ?? toLocalDateStr(new Date());
   const dateLabel = new Date(dateStr + "T12:00:00").toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long",
   });
@@ -436,7 +462,7 @@ export default function RunSheet() {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 pt-2 pb-12 space-y-4">
+        <div className={`flex-1 overflow-y-auto px-5 pt-2 space-y-4 ${coachRun && !doneSession ? "pb-32" : "pb-12"}`}>
           {doneSession ? (
             // Archive view: results + coach feedback (same widgets as /day)
             <>
@@ -498,32 +524,6 @@ export default function RunSheet() {
             </>
           ) : coachRun ? (
             <CoachRunPlan coachRun={coachRun} />
-          ) : genericPlan ? (
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: "rgba(205,255,0,0.04)",
-                border: "1px solid rgba(205,255,0,0.15)",
-              }}
-            >
-              <p className="text-xs text-muted mb-2">{genericPlan.targetDescription}</p>
-              <div className="flex gap-4 mt-2 items-end">
-                {genericPlan.targetDistanceKm && (
-                  <div>
-                    <span className="font-display text-3xl" style={{ color: "#CDFF00" }}>
-                      {genericPlan.targetDistanceKm}
-                    </span>
-                    <span className="text-xs text-muted ml-1">km</span>
-                  </div>
-                )}
-                {genericPlan.targetPaceSecPerKm && (
-                  <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>
-                    {formatPace(genericPlan.targetPaceSecPerKm)}
-                  </span>
-                )}
-                {genericPlan.targetZone && <Badge label={genericPlan.targetZone} variant="neon" />}
-              </div>
-            </div>
           ) : (
             <div
               className="rounded-2xl p-4"
@@ -534,6 +534,66 @@ export default function RunSheet() {
           )}
 
         </div>
+
+        {/* Strava CTA — run à venir non encore loggué */}
+        {coachRun && !doneSession && (
+          <div
+            className="absolute left-0 right-0 px-4 pt-3"
+            style={{
+              bottom: 0,
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+            }}
+          >
+            {stravaSyncMsg && (
+              <p className="text-center text-xs mb-2" style={{ color: "#888" }}>{stravaSyncMsg}</p>
+            )}
+            <div className="flex gap-3">
+              <button
+                disabled
+                title="Import photo — bientôt disponible"
+                aria-label="Import photo (bientôt disponible)"
+                className="flex items-center justify-center"
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "14px",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" />
+
+              <button
+                onClick={handleStravaImport}
+                disabled={stravaSyncing}
+                className="flex-1 flex items-center justify-center gap-2.5 press-effect"
+                style={{
+                  background: stravaSyncing ? "#7a2500" : "#FC4C02",
+                  borderRadius: "12px",
+                  padding: "15px 20px",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  color: "white",
+                  opacity: stravaSyncing ? 0.7 : 1,
+                }}
+              >
+                {!stravaSyncing && (
+                  <svg width="20" height="20" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                    <path opacity="0.6" fillRule="evenodd" clipRule="evenodd" d="M4.97436 6.83333L7.53846 11L10 6.83333H8.46154L7.53846 8.40741L6.51282 6.83333H4.97436Z" fill="white"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M5.28205 1L8.46154 6.83333H2L5.28205 1ZM5.28205 4.51852L6.51282 6.83333H3.94872L5.28205 4.51852Z" fill="white"/>
+                  </svg>
+                )}
+                {stravaSyncing ? "Recherche en cours…" : "Sync Strava"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

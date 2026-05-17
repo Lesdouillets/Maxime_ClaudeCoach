@@ -879,13 +879,21 @@ export default function SessionSheet() {
           >
             <button
               onClick={session.startSession}
-              className="w-full py-4 rounded-2xl font-bold text-base tracking-wide press-effect"
+              className="w-full flex items-center justify-center gap-2 press-effect"
               style={{
-                background: "linear-gradient(135deg, #CDFF00, #1a7a09)",
-                color: "#0a0a0a",
+                background: "var(--color-neon)",
+                color: "#000",
+                borderRadius: "12px",
+                padding: "15px 24px",
+                fontWeight: 600,
+                fontSize: "15px",
+                letterSpacing: "0.01em",
               }}
             >
               Commencer la séance
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 18l6-6-6-6" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
           </div>
         )}

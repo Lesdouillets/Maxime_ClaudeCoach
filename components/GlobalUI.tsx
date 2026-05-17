@@ -35,10 +35,9 @@ function FloatingTimer() {
   const session = useSession();
   const pathname = usePathname();
   // Don't show floating timer when the session sheet is up (it has its own progress bar),
-  // nor on legacy fitness page or day page (they have inline timers).
+  // nor on legacy fitness page (it has its own inline timer).
   const hidden =
     session.view !== "hidden" ||
-    pathname === "/day" ||
     pathname === "/log/fitness";
   if (!timerKey || timerSec <= 0 || hidden) return null;
   const color = timerSec > 10 ? "#CDFF00" : timerSec > 3 ? "#D07900" : "#ff4444";
@@ -60,8 +59,10 @@ function FloatingTimer() {
 function BottomNavGate() {
   const session = useSession();
   const runSheet = useRunSheet();
+  const pathname = usePathname();
+  if (pathname.startsWith("/dev/")) return null;
   if (session.view === "expanded" || runSheet.view === "expanded") return null;
-  return <BottomNav />;
+  return <BottomNav state="nav" />;
 }
 
 export default function GlobalUI({ children }: { children: React.ReactNode }) {

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { SessionTag } from "./SessionTag";
+import type { SessionType } from "./SessionTag";
 import type { DaySlot } from "@/lib/weekProgram";
 
 export interface WeekProgramProps {
   days: DaySlot[];
   weekLabel: string;
-  onDayClick: (date: string) => void;
+  onDayClick: (date: string, type: SessionType) => void;
 }
 
 export function WeekProgram({ days, weekLabel, onDayClick }: WeekProgramProps) {
@@ -33,7 +34,7 @@ export function WeekProgram({ days, weekLabel, onDayClick }: WeekProgramProps) {
               type={day.type}
               status={day.status}
               size="md"
-              onClick={day.type !== "rest" ? () => onDayClick(day.date) : undefined}
+              onClick={day.type !== "rest" ? () => onDayClick(day.date, day.type) : undefined}
             />
             <span
               className="text-[11px] font-bold"

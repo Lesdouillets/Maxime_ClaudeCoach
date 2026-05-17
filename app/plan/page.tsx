@@ -265,7 +265,7 @@ export default function PlanPage() {
               s.planType === "fitness" || s.session?.type === "fitness";
             const href = isFitnessDay
               ? `/log/fitness?date=${dateStr}`
-              : `/day?date=${dateStr}`;
+              : "/";
 
             const inner = day.isToday ? (
               <div className="p-5">
@@ -412,7 +412,7 @@ export default function PlanPage() {
                 s.planType === "fitness" || s.session?.type === "fitness";
               const href = isFitnessDay
                 ? `/log/fitness?date=${dateStr}`
-                : `/day?date=${dateStr}`;
+                : "/";
 
               // Dot indicator color
               const dotColor =
