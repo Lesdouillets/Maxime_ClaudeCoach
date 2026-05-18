@@ -72,3 +72,4 @@ Local dev: copy `.env.local.example` → `.env.local` and fill in Supabase + Str
 - Depth-counting JSON extraction breaks if a string value contains `{` or `}`.
 - `analyze-session` is fire-and-forget — failures are silent (`console.error` only).
 - Supabase's unique index on `coach_plans(user_id, profile_id, date, category)` means orphan remote rows must be deleted **before** upserting, not after (see `pushCoachPlans`).
+- **`usePathname()` vs `window.location.pathname` in sheets** : `usePathname()` retourne le chemin **sans** le base path (`/plan`), `window.location.pathname` l'inclut en prod (`/Maxime_ClaudeCoach/plan`). Toute comparaison de route dans `RunSheet` / `SessionSheet` doit utiliser `usePathname()` — remplacer par `window.location.pathname` casse silencieusement la navigation en prod (le sheet ferme et la page Plan recharge en scrollant to today).
