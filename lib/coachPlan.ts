@@ -52,6 +52,8 @@ export interface CoachRun {
   targetHR?: string;    // "130-150"
   targetZone?: string;  // "Z2", "Z3", "Z4"
   intervals?: CoachRunInterval[];
+  /** Vrai si c'est une compétition (semi, 10km, etc.) — déclenche le badge COURSE */
+  isRace?: boolean;
 }
 
 export type CoachPlan = CoachWorkout | CoachRun;
@@ -207,6 +209,8 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     pace: String(data.pace ?? "6:00"),
     targetHR: data.targetHR != null ? String(data.targetHR) : undefined,
     targetZone: data.targetZone != null ? String(data.targetZone) : undefined,
+    durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
+    isRace: data.isRace === true,
     intervals: Array.isArray(data.intervals)
       ? (data.intervals as Record<string, unknown>[]).map((seg) => ({
           label: seg.label != null ? String(seg.label) : undefined,

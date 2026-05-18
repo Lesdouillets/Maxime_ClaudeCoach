@@ -5,6 +5,7 @@ import { formatPace } from "@/lib/plan";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import { ARCHIVO_WIDE_BOLD, STAT_VALUE_STYLE, STAT_UNIT_STYLE } from "@/lib/typography";
+import { RaceBadge, RACE_COLOR } from "@/components/RaceBadge";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -74,13 +75,18 @@ function RestCard() {
 function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardProps, "todayCoachRun" | "todaySession" | "onOpenRun">) {
   const run = todaySession?.type === "run" ? todaySession : null;
   const isDone = run !== null;
-  const accent = "var(--color-blue)";
+  const isRace = todayCoachRun?.isRace ?? false;
+  const accent = isRace ? RACE_COLOR : "var(--color-blue)";
 
   return (
     <button
       className="w-full text-left rounded-2xl overflow-hidden relative press-effect"
       onClick={onOpenRun}
-      style={{ height: CARD_HEIGHT, border: `1px solid ${accent}45` }}
+      style={{
+        height: CARD_HEIGHT,
+        border: `1px solid ${isRace ? `${RACE_COLOR}55` : `${accent}45`}`,
+        boxShadow: isRace ? `0 0 24px rgba(254,237,0,0.08)` : undefined,
+      }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={IMAGES.run} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -109,14 +115,19 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
                 <StatGroup value={todayCoachRun.pace} unit="/km" />
               </>
             )}
-            {todayCoachRun.targetZone && (
+            {isRace ? (
+              <>
+                <Separator />
+                <RaceBadge wingSize={8} fontSize={9} />
+              </>
+            ) : todayCoachRun.targetZone ? (
               <>
                 <Separator />
                 <span style={{ ...STAT_UNIT_STYLE, color: accent, fontSize: 10, letterSpacing: "0.12em" }}>
                   {todayCoachRun.targetZone}
                 </span>
               </>
-            )}
+            ) : null}
           </div>
         )}
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr } from "@/lib/plan";
+import { WingLeft, WingRight, RACE_COLOR } from "@/components/RaceBadge";
 import { getSessions, getCancelledDays, getRescheduledDays } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { syncFull } from "@/lib/sync";
@@ -17,6 +18,14 @@ const GRID_HEADERS = ["LUN.", "MAR.", "MER.", "JEU.", "VEN.", "SAM.", "DIM."];
 const TODAY_RING_COLOR  = "rgba(255,255,255,0.85)";
 const TODAY_GLOW        = "0 0 8px rgba(255,255,255,0.15)";
 const MONTH_LABEL_COLOR = "rgba(255,255,255,0.65)";
+const TOP_GRADIENT_STYLE = {
+  position:      "fixed" as const,
+  top: 0, left: 0, right: 0,
+  height:        "calc(env(safe-area-inset-top, 44px) + 56px)",
+  background:    "linear-gradient(to top, rgba(0,0,0,0) 0%, var(--color-background) 55%)",
+  pointerEvents: "none" as const,
+  zIndex:        10,
+};
 
 // ── Type ───────────────────────────────────────────────────────────────────
 interface DayStatus {
@@ -147,24 +156,33 @@ function MonthSection({
                 : null
               : null;
 
+          const isRace = s.effectiveRun?.isRace ?? false;
           const cell = (
             <div
               className="aspect-square flex items-center justify-center"
               style={{ opacity: s.isCancelled ? 0.4 : 1 }}
             >
-              <div
-                className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
-                style={{
-                  ...(s.isToday && { border: `1px solid ${TODAY_RING_COLOR}`, boxShadow: TODAY_GLOW }),
-                }}
-              >
-                <span
-                  className="text-xs font-medium leading-none"
-                  style={{ color: statusColor(s) }}
+              {isRace ? (
+                <div
+                  className="w-7 h-7 flex items-center justify-center"
+                  style={{ gap: 3, color: RACE_COLOR }}
                 >
-                  {date.getDate()}
-                </span>
-              </div>
+                  <WingLeft size={6} />
+                  <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR }}>
+                    {date.getDate()}
+                  </span>
+                  <WingRight size={6} />
+                </div>
+              ) : (
+                <div
+                  className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
+                  style={s.isToday ? { border: `1px solid ${TODAY_RING_COLOR}`, boxShadow: TODAY_GLOW } : undefined}
+                >
+                  <span className="text-xs font-medium leading-none" style={{ color: statusColor(s) }}>
+                    {date.getDate()}
+                  </span>
+                </div>
+              )}
             </div>
           );
 
@@ -286,17 +304,25 @@ export default function PlanPage() {
   const months = getVisibleMonths();
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in px-4 pb-nav">
-      {months.map((offset, idx) => (
-        <MonthSection
-          key={offset}
-          monthOffset={offset}
-          isFirst={idx === 0}
-          getDayStatus={getDayStatus}
-          handleDayClick={handleDayClick}
-          scrollRef={offset === 0 ? todayMonthRef : undefined}
-        />
-      ))}
-    </div>
+    <>
+      {/* Gradient fixe en haut — même logique que la nav bar en bas */}
+      <div aria-hidden style={TOP_GRADIENT_STYLE} />
+
+      <div
+        className="max-w-md mx-auto animate-fade-in px-4 pb-nav"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 44px) + 20px)" }}
+      >
+        {months.map((offset, idx) => (
+          <MonthSection
+            key={offset}
+            monthOffset={offset}
+            isFirst={idx === 0}
+            getDayStatus={getDayStatus}
+            handleDayClick={handleDayClick}
+            scrollRef={offset === 0 ? todayMonthRef : undefined}
+          />
+        ))}
+      </div>
+    </>
   );
 }

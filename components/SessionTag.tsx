@@ -1,6 +1,4 @@
-import { RunIcon } from "./icons/RunIcon";
-import { WeightIcon } from "./icons/WeightIcon";
-import { RestIcon } from "./icons/RestIcon";
+import { RunIcon, WeightIcon, RestIcon } from "@/components/icons";
 
 export type SessionType   = "run" | "fitness" | "rest";
 export type SessionStatus = "planned" | "today" | "done" | "missed";

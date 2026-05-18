@@ -17,6 +17,7 @@ import { getSessions, cancelDay } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout, addCoachWorkout, type CoachWorkout } from "@/lib/coachPlan";
 import { toLocalDateStr } from "@/lib/plan";
 import { autoSyncPush } from "@/lib/sync";
+import { originNeedsRedirect } from "@/lib/navigation";
 import type { FitnessSession } from "@/lib/types";
 
 const DRAG_CLOSE_THRESHOLD_PX = 80;
@@ -455,10 +456,7 @@ export default function SessionSheet() {
     setSheetPanel(null);
     setSheetRescheduleDate("");
     setSheetCancelReason("");
-    if (typeof window !== "undefined" && origin) {
-      const here = window.location.pathname + window.location.search;
-      if (origin !== here) router.push(origin);
-    }
+    if (origin && originNeedsRedirect(origin)) router.push(origin);
   }, [session, router]);
 
   const onHandlePointerDown = (e: React.PointerEvent<HTMLElement>) => {

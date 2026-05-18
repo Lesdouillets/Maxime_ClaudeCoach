@@ -8,8 +8,10 @@ import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { formatPace, toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
+import { RaceBadge } from "@/components/RaceBadge";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
+import { originNeedsRedirect } from "@/lib/navigation";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
   analyzeSession,
@@ -182,10 +184,7 @@ export default function RunSheet() {
     setOptionsPanel(null);
     setRescheduleDate("");
     setCancelReason("");
-    if (typeof window !== "undefined" && origin) {
-      const here = window.location.pathname + window.location.search;
-      if (origin !== here) router.push(origin);
-    }
+    if (origin && originNeedsRedirect(origin)) router.push(origin);
   }, [sheet, router]);
 
   const handleRescheduleRun = () => {
@@ -453,12 +452,15 @@ export default function RunSheet() {
           >
             {dateLabel}
           </p>
-          <h1
-            className="font-display text-5xl leading-none"
-            style={{ textShadow: "0 0 30px rgba(205,255,0,0.3)" }}
-          >
-            RUN{doneSession ? " ✓" : ""}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1
+              className="font-display text-5xl leading-none"
+              style={{ textShadow: coachRun?.isRace ? "0 0 30px rgba(254,237,0,0.25)" : "0 0 30px rgba(205,255,0,0.3)" }}
+            >
+              RUN{doneSession ? " ✓" : ""}
+            </h1>
+            {coachRun?.isRace && <RaceBadge wingSize={10} fontSize={11} />}
+          </div>
         </div>
 
         {/* Body */}

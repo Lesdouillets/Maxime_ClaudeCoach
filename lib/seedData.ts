@@ -69,6 +69,18 @@ function makeLowerPlan(date: string, weekIndex: number): CoachWorkout {
 }
 
 function makeRunPlan(date: string, weekIndex: number): CoachRun {
+  if (weekIndex === -2) {
+    return {
+      id: `seed-run-${weekIndex}`,
+      type: "run",
+      date,
+      label: "Semi-marathon",
+      distanceKm: 21.1,
+      pace: "5:10",
+      durationMin: 110,
+      isRace: true,
+    };
+  }
   return {
     id: `seed-run-${weekIndex}`,
     type: "run",
