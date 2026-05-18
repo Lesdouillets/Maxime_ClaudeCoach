@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
 import CoachRunPlan from "@/components/CoachRunPlan";
 import RunSessionResults from "@/components/RunSessionResults";
@@ -40,6 +40,7 @@ const TAP_MAX_DURATION_MS = 250;
 export default function RunSheet() {
   const sheet = useRunSheet();
   const router = useRouter();
+  const pathname = usePathname();
   const [hasEntered, setHasEntered] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -184,8 +185,8 @@ export default function RunSheet() {
     setOptionsPanel(null);
     setRescheduleDate("");
     setCancelReason("");
-    if (origin && originNeedsRedirect(origin)) router.push(origin);
-  }, [sheet, router]);
+    if (origin && originNeedsRedirect(origin, pathname)) router.push(origin);
+  }, [sheet, router, pathname]);
 
   const handleRescheduleRun = () => {
     if (!rescheduleDate || !coachRun) return;

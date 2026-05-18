@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession, type LiveExercise } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
@@ -388,6 +388,7 @@ export default function SessionSheet() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
   const router = useRouter();
+  const pathname = usePathname();
   const [openMenuExId, setOpenMenuExId] = useState<string | null>(null);
   const [noteModalExId, setNoteModalExId] = useState<string | null>(null);
   // Drives the slide-in animation: starts at translateY(100%) on first render,
@@ -456,8 +457,8 @@ export default function SessionSheet() {
     setSheetPanel(null);
     setSheetRescheduleDate("");
     setSheetCancelReason("");
-    if (origin && originNeedsRedirect(origin)) router.push(origin);
-  }, [session, router]);
+    if (origin && originNeedsRedirect(origin, pathname)) router.push(origin);
+  }, [session, router, pathname]);
 
   const onHandlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
     dragStartRef.current = { y: e.clientY, t: Date.now() };
