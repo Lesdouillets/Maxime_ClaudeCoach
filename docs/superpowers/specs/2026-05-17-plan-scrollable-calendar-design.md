@@ -64,10 +64,12 @@ Rend :
 
 `const todayMonthRef = useRef<HTMLDivElement>(null)` — passé uniquement à `MonthSection` dont l'offset est `0`.
 
-Au montage, dans le `useEffect` existant (après `syncFull`) :
+Au montage, dans un `useEffect` dédié (séparé du `syncFull`) :
 
 ```ts
-todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+useEffect(() => {
+  todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+}, []);
 ```
 
 ---
@@ -80,15 +82,15 @@ todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
 "AVRIL 2026"
 ```
 
-- Font : Archivo 700, `wdth 110`, 14px, letter-spacing 10%
-- Couleur : `#555`
-- Margin bottom : 8px
+- Font : `.font-display` (Archivo 700, `wdth 110`), 14px, `tracking-[0.10em]`
+- Couleur : `var(--color-muted)` / `text-muted`
+- Margin bottom : `mb-2`
 - Margin top inter-mois : `mt-12` (48px) sauf pour le premier mois
 
 ### Headers de colonnes (L M M J V S D)
 
 - Répétés à chaque mois
-- JetBrains Mono 700, 10px, letter-spacing 10%, couleur `#333`
+- `.font-mono` (JetBrains Mono 700), 10px, `tracking-[0.10em]`, couleur `var(--color-subtle)` / `text-subtle`
 - Grid 7 colonnes, texte centré
 
 ### Cellule de jour
@@ -101,22 +103,23 @@ Structure :
 └──────────────┘
 ```
 
-**Couleurs du numéro** (inchangées) :
-- `done` → `#CDFF00`
-- `missed` → `#cc3333`
-- `upcoming` → `planColor(planType)` (blue ou orange)
-- `today-planned` → `planColor(planType)`
-- `today-rest` / `rest` → `#555`
+**Couleurs du numéro** — alignées sur les tokens du design system :
+- `done` → `var(--color-neon)` (`#CDFF00`)
+- `missed` → `var(--color-error)` (`#ff4d4d`)
+- `upcoming` / `today-planned` → `var(--color-blue)` ou `var(--color-orange)` selon `planType`
+- `today-rest` / `rest` → `var(--color-muted)`
+
+> Note : le code actuel utilisait `#cc3333` pour `missed` — aligné ici sur `var(--color-error)` qui est le token officiel du design system.
 
 **Point sous le numéro** :
-- `done` → `#CDFF00`
-- `missed` → `rgba(180,0,0,0.55)`
-- `upcoming` / `today-planned` → `planColor(planType)`
+- `done` → `var(--color-neon)`
+- `missed` → `var(--color-error-border)` (`#C80514`, plus lisible que le rgba ad hoc antérieur)
+- `upcoming` / `today-planned` → `var(--color-blue)` ou `var(--color-orange)`
 - Pas de point pour `rest` / `today-rest`
 
 **Cellule "done" — fond subtil** :
 ```css
-background: rgba(205, 255, 0, 0.07);
+background: var(--color-neon-08);   /* rgba(205, 255, 0, 0.08) — variante pré-calculée */
 border-radius: 10px;
 ```
 
@@ -124,14 +127,14 @@ border-radius: 10px;
 ```css
 border: 1px solid rgba(255, 255, 255, 0.85);
 border-radius: 50%;         /* cercle parfait via aspect-square */
-box-shadow: 0 0 0 1px transparent, 0 0 8px rgba(255, 255, 255, 0.15);
+box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
 ```
 
 ### Espacement & layout
 
 - `gap-1` entre cellules (identique à l'existant)
 - `mt-12` entre sections de mois
-- `pb-24` en bas du scroll pour ne pas être masqué par la barre de navigation
+- `.pb-nav` en bas du scroll — classe utilitaire du design system (`calc(100px + env(safe-area-inset-bottom))`), gère le safe area iOS
 - `px-4` sur le conteneur global (identique à l'existant)
 
 ---
@@ -145,7 +148,7 @@ export default function PlanPage() {
   // useEffect : refresh() + syncFull() + scrollIntoView
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in px-4 pb-24">
+    <div className="max-w-md mx-auto animate-fade-in px-4 pb-nav">
       {getVisibleMonths().map((offset) => (
         <MonthSection
           key={offset}
