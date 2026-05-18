@@ -146,7 +146,7 @@ function MonthSection({
             s.planType === "fitness" || s.session?.type === "fitness";
           const href = isFitnessDay
             ? `/log/fitness?date=${dateStr}`
-            : "/";
+            : "/plan";
           const sheetTarget: "fitness" | "run" | null =
             s.session?.type === "run"     ? "run"
             : s.session?.type === "fitness" ? "fitness"
@@ -219,8 +219,8 @@ export default function PlanPage() {
     target: "fitness" | "run" | null,
     dateStr: string
   ) => {
-    if (!target) return;
     e.preventDefault();
+    if (!target) return;
     if (target === "fitness") {
       const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
       if (result === "no-plan") router.push(href);
@@ -253,7 +253,10 @@ export default function PlanPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+    // RAF : laisse le navigateur iOS finaliser le layout avant de scroller
+    requestAnimationFrame(() => {
+      todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+    });
   }, [mounted]);
 
   function getDayStatus(dateStr: string): DayStatus {
