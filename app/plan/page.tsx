@@ -13,7 +13,10 @@ import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/typ
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const GRID_HEADERS = ["L", "M", "M", "J", "V", "S", "D"];
+const GRID_HEADERS = ["LUN.", "MAR.", "MER.", "JEU.", "VEN.", "SAM.", "DIM."];
+const TODAY_RING_COLOR  = "rgba(255,255,255,0.85)";
+const TODAY_GLOW        = "0 0 8px rgba(255,255,255,0.15)";
+const MONTH_LABEL_COLOR = "rgba(255,255,255,0.65)";
 
 // ── Type ───────────────────────────────────────────────────────────────────
 interface DayStatus {
@@ -44,13 +47,6 @@ function statusColor(s: DayStatus): string {
   return planColor(s.planType);
 }
 
-function dotColor(s: DayStatus): string | null {
-  if (s.status === "done")                                        return "var(--color-neon)";
-  if (s.status === "missed")                                      return "var(--color-error-border)";
-  if (s.status === "upcoming" || s.status === "today-planned")   return planColor(s.planType);
-  return null;
-}
-
 // ── Calendar utilities ─────────────────────────────────────────────────────
 function getVisibleMonths(): number[] {
   return [-3, -2, -1, 0, 1, 2, 3];
@@ -60,7 +56,7 @@ function getMonthLabel(monthOffset: number): string {
   const d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() + monthOffset);
-  return `${d.toLocaleDateString("fr-FR", { month: "long" }).toUpperCase()} ${d.getFullYear()}`;
+  return `${d.toLocaleDateString("fr-FR", { month: "long" })} ${d.getFullYear()}`;
 }
 
 function getMonthCells(monthOffset: number): (Date | null)[] {
@@ -101,11 +97,17 @@ function MonthSection({
   const monthCells = getMonthCells(monthOffset);
 
   return (
-    <div ref={scrollRef} className={isFirst ? "" : "mt-12"}>
+    <div ref={scrollRef} className={isFirst ? "" : "mt-8"}>
       {/* Header mois */}
       <div
-        className="font-display mb-2 tracking-[0.10em] text-muted"
-        style={{ fontSize: "14px", fontVariationSettings: "'wdth' 110" }}
+        className="font-display font-bold mb-3"
+        style={{
+          fontSize: "20px",
+          lineHeight: "22px",
+          letterSpacing: "-0.43px",
+          fontVariationSettings: "'wdth' 100",
+          color: MONTH_LABEL_COLOR,
+        }}
       >
         {getMonthLabel(monthOffset)}
       </div>
@@ -114,9 +116,9 @@ function MonthSection({
       <div className="grid grid-cols-7 mb-1">
         {GRID_HEADERS.map((h, i) => (
           <div
-            key={i}
-            className="text-center font-mono text-subtle py-1"
-            style={{ fontSize: "10px", letterSpacing: "0.10em" }}
+            key={h}
+            className="text-center font-mono font-bold text-subtle py-1"
+            style={{ fontSize: "12px", letterSpacing: "0.10em" }}
           >
             {h}
           </div>
@@ -136,8 +138,6 @@ function MonthSection({
           const href = isFitnessDay
             ? `/log/fitness?date=${dateStr}`
             : "/";
-          const dot = dotColor(s);
-
           const sheetTarget: "fitness" | "run" | null =
             s.session?.type === "run"     ? "run"
             : s.session?.type === "fitness" ? "fitness"
@@ -149,26 +149,22 @@ function MonthSection({
 
           const cell = (
             <div
-              className="aspect-square flex flex-col items-center justify-center gap-0.5"
-              style={{
-                background:   s.status === "done" ? "var(--color-neon-08)" : "transparent",
-                border:       s.isToday
-                                ? "1px solid rgba(255,255,255,0.85)"
-                                : "1px solid transparent",
-                borderRadius: s.isToday ? "50%" : "10px",
-                boxShadow:    s.isToday ? "0 0 8px rgba(255,255,255,0.15)" : "none",
-                opacity:      s.isCancelled ? 0.4 : 1,
-              }}
+              className="aspect-square flex items-center justify-center"
+              style={{ opacity: s.isCancelled ? 0.4 : 1 }}
             >
-              <span
-                className="text-xs font-medium leading-none"
-                style={{ color: statusColor(s) }}
+              <div
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
+                style={{
+                  ...(s.isToday && { border: `1px solid ${TODAY_RING_COLOR}`, boxShadow: TODAY_GLOW }),
+                }}
               >
-                {date.getDate()}
-              </span>
-              {dot && (
-                <div className="w-1 h-1 rounded-full" style={{ background: dot }} />
-              )}
+                <span
+                  className="text-xs font-medium leading-none"
+                  style={{ color: statusColor(s) }}
+                >
+                  {date.getDate()}
+                </span>
+              </div>
             </div>
           );
 
