@@ -15,7 +15,7 @@ interface BottomNavProps {
 
 const NAV_ITEMS = [
   {
-    href: "/",
+    href: "/home",
     label: "Home",
     icon: (active: boolean) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -89,7 +89,7 @@ export default function BottomNav({ state = "nav" }: BottomNavProps) {
     >
       <nav className="flex items-center justify-around px-2 pt-3 pb-2">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           const isActivating = activating === item.href;
           return (
             <Link
