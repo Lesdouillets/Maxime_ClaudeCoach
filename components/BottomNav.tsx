@@ -15,7 +15,7 @@ interface BottomNavProps {
 
 const NAV_ITEMS = [
   {
-    href: "/home",
+    href: "/",
     label: "Home",
     icon: (active: boolean) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

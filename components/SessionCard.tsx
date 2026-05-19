@@ -22,7 +22,7 @@ const GRADIENT = "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 
 const TITLE_STYLE: CSSProperties = { ...ARCHIVO_WIDE_BOLD, fontSize: 32, lineHeight: "36px", letterSpacing: "-0.03em" };
 const CONTENT_COL_STYLE: CSSProperties = { padding: 12, display: "flex", flexDirection: "column", gap: 8 };
 const TITLE_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "center", gap: 6 };
-const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" };
+const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" };
 const STAT_GROUP_STYLE: CSSProperties = { display: "flex", alignItems: "baseline", gap: 4 };
 const SEPARATOR_STYLE: CSSProperties = { color: "var(--color-dim)", fontSize: 14, lineHeight: "22px" };
 const CHECK_ICON_STYLE: CSSProperties = { display: "inline", verticalAlign: "middle", marginLeft: 8, flexShrink: 0 };
@@ -84,7 +84,7 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
       onClick={onOpenRun}
       style={{
         height: CARD_HEIGHT,
-        border: `1px solid ${isRace ? `${RACE_COLOR}55` : `${accent}45`}`,
+        border: `1px solid color-mix(in srgb, ${isRace ? RACE_COLOR : accent} 50%, transparent)`,
         boxShadow: isRace ? `0 0 24px rgba(254,237,0,0.08)` : undefined,
       }}
     >
@@ -172,7 +172,7 @@ function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<Se
     <button
       className="w-full text-left rounded-2xl overflow-hidden relative press-effect"
       onClick={onOpenSession}
-      style={{ height: CARD_HEIGHT, border: `1px solid ${accent}45` }}
+      style={{ height: CARD_HEIGHT, border: `1px solid color-mix(in srgb, ${accent} 50%, transparent)` }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={IMAGES[isUpper ? "upper" : "lower"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
