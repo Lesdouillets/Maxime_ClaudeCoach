@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr } from "@/lib/plan";
 import { WingLeft, WingRight, RACE_COLOR } from "@/components/RaceBadge";
@@ -10,163 +9,115 @@ import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import { syncFull } from "@/lib/sync";
 import { useSession } from "@/contexts/SessionContext";
 import { useRunSheet } from "@/contexts/RunSheetContext";
-import type { WorkoutSession, CancelledDay as CancelledDayType } from "@/lib/types";
+import type { WorkoutSession, CancelledDay } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-const GRID_HEADERS = ["LUN.", "MAR.", "MER.", "JEU.", "VEN.", "SAM.", "DIM."];
-const TODAY_RING_COLOR  = "rgba(255,255,255,0.85)";
-const TODAY_GLOW        = "0 0 8px rgba(255,255,255,0.15)";
-const MONTH_LABEL_COLOR = "rgba(255,255,255,0.65)";
-const TOP_GRADIENT_STYLE = {
-  position:      "fixed" as const,
-  top: 0, left: 0, right: 0,
-  height:        "calc(env(safe-area-inset-top, 44px) + 56px)",
-  background:    "linear-gradient(to top, rgba(0,0,0,0) 0%, var(--color-background) 55%)",
-  pointerEvents: "none" as const,
-  zIndex:        10,
-};
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-// ── Type ───────────────────────────────────────────────────────────────────
+type PlanType   = "run" | "fitness" | null;
+type StatusKind = "done" | "missed" | "upcoming" | "today-planned" | "today-rest" | "rest";
+
 interface DayStatus {
-  session: WorkoutSession | undefined;
-  isCancelled: boolean;
-  hasPlan: boolean;
-  planType: "run" | "fitness" | null;
-  effectiveWorkout: CoachWorkout | null;
+  session:      WorkoutSession | undefined;
+  isCancelled:  boolean;
+  hasPlan:      boolean;
+  planType:     PlanType;
   effectiveRun: CoachRun | null;
-  isToday: boolean;
-  isPast: boolean;
-  status: "done" | "missed" | "upcoming" | "today-planned" | "today-rest" | "rest";
-  planLabel: string;
-  planDistanceKm: number | null;
-  planPaceStr: string | null;
-  planZone: string | null;
-  planHR: string | null;
+  isToday:      boolean;
+  status:       StatusKind;
+  isRace:       boolean;
 }
 
-// ── Pure helpers (module-level, no state dependency) ──────────────────────
-const planColor = (type: string | null) =>
-  type === "run" ? "var(--color-blue)" : "var(--color-orange)";
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-function statusColor(s: DayStatus): string {
-  if (s.status === "done")                                return "var(--color-neon)";
-  if (s.status === "missed")                              return "var(--color-error)";
-  if (s.status === "today-rest" || s.status === "rest")  return "var(--color-muted)";
-  return planColor(s.planType);
+const MONTH_OFFSETS = [-3, -2, -1, 0, 1, 2, 3] as const;
+const DAY_HEADERS   = ["LUN.", "MAR.", "MER.", "JEU.", "VEN.", "SAM.", "DIM."];
+const SCROLL_OFFSET = 64; // hauteur du gradient fixe + safe-area-inset-top
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function statusColor(status: StatusKind, planType: PlanType): string {
+  if (status === "done")                                  return "var(--color-neon)";
+  if (status === "missed")                                return "var(--color-error)";
+  if (status === "today-rest" || status === "rest")       return "var(--color-muted)";
+  return planType === "run" ? "var(--color-blue)" : "var(--color-orange)";
 }
 
-// ── Calendar utilities ─────────────────────────────────────────────────────
-function getVisibleMonths(): number[] {
-  return [-3, -2, -1, 0, 1, 2, 3];
-}
-
-function getMonthLabel(monthOffset: number): string {
+function getMonthLabel(offset: number): string {
   const d = new Date();
   d.setDate(1);
-  d.setMonth(d.getMonth() + monthOffset);
+  d.setMonth(d.getMonth() + offset);
   return `${d.toLocaleDateString("fr-FR", { month: "long" })} ${d.getFullYear()}`;
 }
 
-function getMonthCells(monthOffset: number): (Date | null)[] {
+function getMonthDays(offset: number): (Date | null)[] {
   const now   = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth() + monthOffset;
-  const first = new Date(year, month, 1);
-  const last  = new Date(year, month + 1, 0);
-  const startPad = (first.getDay() + 6) % 7;
-  const cells: (Date | null)[] = Array(startPad).fill(null);
+  const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const last  = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+  const pad   = (first.getDay() + 6) % 7; // décalage lundi = 0
+  const days: (Date | null)[] = Array(pad).fill(null);
   for (let d = 1; d <= last.getDate(); d++) {
-    cells.push(new Date(year, month, d));
+    days.push(new Date(now.getFullYear(), now.getMonth() + offset, d));
   }
-  return cells;
+  return days;
 }
 
-// ── MonthSection ───────────────────────────────────────────────────────────
-interface MonthSectionProps {
-  monthOffset: number;
-  isFirst: boolean;
+// ── Month component ───────────────────────────────────────────────────────────
+
+interface MonthProps {
+  offset:       number;
+  todayRef?:    React.RefObject<HTMLDivElement>;
   getDayStatus: (dateStr: string) => DayStatus;
-  handleDayClick: (
-    e: React.MouseEvent,
-    href: string,
-    target: "fitness" | "run" | null,
-    dateStr: string
-  ) => void;
-  scrollRef?: React.RefObject<HTMLDivElement>;
+  onDayClick:   (dateStr: string, planType: PlanType) => void;
 }
 
-function MonthSection({
-  monthOffset,
-  isFirst,
-  getDayStatus,
-  handleDayClick,
-  scrollRef,
-}: MonthSectionProps) {
-  const monthCells = getMonthCells(monthOffset);
+function Month({ offset, todayRef, getDayStatus, onDayClick }: MonthProps) {
+  const days = getMonthDays(offset);
 
   return (
-    <div ref={scrollRef} className={isFirst ? "" : "mt-8"}>
-      {/* Header mois */}
+    <div ref={todayRef} className={offset > -3 ? "mt-8" : ""}>
+
+      {/* En-tête du mois */}
       <div
         className="font-display font-bold mb-3"
         style={{
-          fontSize: "20px",
-          lineHeight: "22px",
-          letterSpacing: "-0.43px",
-          fontVariationSettings: "'wdth' 100",
-          color: MONTH_LABEL_COLOR,
+          fontSize: 20, lineHeight: "22px",
+          letterSpacing: "-0.43px", fontVariationSettings: "'wdth' 100",
+          color: "rgba(255,255,255,0.65)",
         }}
       >
-        {getMonthLabel(monthOffset)}
+        {getMonthLabel(offset)}
       </div>
 
-      {/* Headers colonnes */}
+      {/* En-têtes colonnes */}
       <div className="grid grid-cols-7 mb-1">
-        {GRID_HEADERS.map((h, i) => (
+        {DAY_HEADERS.map((h) => (
           <div
             key={h}
-            className="text-center font-mono font-bold text-subtle py-1"
-            style={{ fontSize: "12px", letterSpacing: "0.10em" }}
+            className="text-center font-mono font-bold py-1"
+            style={{ fontSize: 12, letterSpacing: "0.10em", color: "var(--color-muted)" }}
           >
             {h}
           </div>
         ))}
       </div>
 
-      {/* Grille jours */}
+      {/* Grille des jours */}
       <div className="grid grid-cols-7 gap-1">
-        {monthCells.map((date, i) => {
+        {days.map((date, i) => {
           if (!date) return <div key={`pad-${i}`} />;
 
-          const dateStr     = toLocalDateStr(date);
-          const s           = getDayStatus(dateStr);
-          const isClickable = s.hasPlan || !!s.session;
-          const isFitnessDay =
-            s.planType === "fitness" || s.session?.type === "fitness";
-          const href = isFitnessDay
-            ? `/log/fitness?date=${dateStr}`
-            : "/plan";
-          const sheetTarget: "fitness" | "run" | null =
-            s.session?.type === "run"     ? "run"
-            : s.session?.type === "fitness" ? "fitness"
-            : s.hasPlan
-              ? isFitnessDay              ? "fitness"
-                : s.planType === "run"    ? "run"
-                : null
-              : null;
+          const dateStr = toLocalDateStr(date);
+          const s       = getDayStatus(dateStr);
+          const color   = statusColor(s.status, s.planType);
 
-          const isRace = s.effectiveRun?.isRace ?? false;
-          const cell = (
+          const dayCircle = (
             <div
               className="aspect-square flex items-center justify-center"
               style={{ opacity: s.isCancelled ? 0.4 : 1 }}
             >
-              {isRace ? (
-                <div
-                  className="w-7 h-7 flex items-center justify-center"
-                  style={{ gap: 3, color: RACE_COLOR }}
-                >
+              {s.isRace ? (
+                <div className="w-7 h-7 flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR }}>
                   <WingLeft size={6} />
                   <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR }}>
                     {date.getDate()}
@@ -176,9 +127,11 @@ function MonthSection({
               ) : (
                 <div
                   className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
-                  style={s.isToday ? { border: `1px solid ${TODAY_RING_COLOR}`, boxShadow: TODAY_GLOW } : undefined}
+                  style={s.isToday
+                    ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" }
+                    : undefined}
                 >
-                  <span className="text-xs font-medium leading-none" style={{ color: statusColor(s) }}>
+                  <span className="text-xs font-medium leading-none" style={{ color }}>
                     {date.getDate()}
                   </span>
                 </div>
@@ -186,17 +139,16 @@ function MonthSection({
             </div>
           );
 
-          return isClickable ? (
-            <Link
+          return (s.hasPlan || s.session) ? (
+            <button
               key={dateStr}
-              href={href}
-              onClick={(e) => handleDayClick(e, href, sheetTarget, dateStr)}
               className="press-effect"
+              onClick={() => onDayClick(dateStr, s.planType)}
             >
-              {cell}
-            </Link>
+              {dayCircle}
+            </button>
           ) : (
-            <div key={dateStr}>{cell}</div>
+            <div key={dateStr}>{dayCircle}</div>
           );
         })}
       </div>
@@ -204,93 +156,66 @@ function MonthSection({
   );
 }
 
-// ── PlanPage ───────────────────────────────────────────────────────────────
+// ── Page principale ───────────────────────────────────────────────────────────
+
 export default function PlanPage() {
   const router     = useRouter();
   const sessionCtx = useSession();
   const runSheet   = useRunSheet();
-  const [mounted, setMounted] = useState(false);
 
-  const todayMonthRef = useRef<HTMLDivElement>(null);
+  const [mounted,       setMounted]       = useState(false);
+  const [sessions,      setSessions]      = useState<WorkoutSession[]>([]);
+  const [cancelled,     setCancelled]     = useState<CancelledDay[]>([]);
+  const [rescheduled,   setRescheduled]   = useState<{ from: string; to: string }[]>([]);
+  const [coachWorkouts, setCoachWorkouts] = useState<CoachWorkout[]>([]);
+  const [coachRuns,     setCoachRuns]     = useState<CoachRun[]>([]);
 
-  const handleDayClick = (
-    e: React.MouseEvent,
-    href: string,
-    target: "fitness" | "run" | null,
-    dateStr: string
-  ) => {
-    e.preventDefault();
-    if (!target) return;
-    if (target === "fitness") {
-      const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
-      if (result === "no-plan") router.push(href);
-      return;
-    }
-    runSheet.open(dateStr, { originRoute: "/plan" });
-  };
-
-  const [sessions,        setSessions]        = useState<WorkoutSession[]>([]);
-  const [cancelledDays,   setCancelledDays]   = useState<CancelledDayType[]>([]);
-  const [rescheduledDays, setRescheduledDays] = useState<{ from: string; to: string }[]>([]);
-  const [coachWorkouts,   setCoachWorkouts]   = useState<CoachWorkout[]>([]);
-  const [coachRuns,       setCoachRuns]       = useState<CoachRun[]>([]);
-
+  const todayRef = useRef<HTMLDivElement>(null);
   const todayStr = toLocalDateStr(new Date());
 
-  const refresh = () => {
-    setSessions(getSessions());
-    setCancelledDays(getCancelledDays());
-    setRescheduledDays(getRescheduledDays());
-    setCoachWorkouts(getCoachWorkouts());
-    setCoachRuns(getCoachRuns());
-  };
-
   useEffect(() => {
+    const load = () => {
+      setSessions(getSessions());
+      setCancelled(getCancelledDays());
+      setRescheduled(getRescheduledDays());
+      setCoachWorkouts(getCoachWorkouts());
+      setCoachRuns(getCoachRuns());
+    };
+    load();
     setMounted(true);
-    refresh();
-    syncFull().then(() => refresh()).catch((err) => console.error("[plan] sync failed", err));
+    syncFull().then(load).catch(console.error);
   }, []);
 
+  // Scroll vers le mois courant après le premier rendu
   useEffect(() => {
-    if (!mounted) return;
-    let cancelled = false;
-    // Attend que les fonts soient chargées avant de scroller : sans ça,
-    // le layout est calculé avec les fonts de fallback (hauteurs différentes)
-    // et scrollIntoView se trompe de position au premier accès.
-    document.fonts.ready.then(() => {
-      if (cancelled) return;
-      requestAnimationFrame(() => {
-        todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
-      });
-    });
-    return () => { cancelled = true; };
+    if (!mounted || !todayRef.current) return;
+    const top = todayRef.current.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
+    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
   }, [mounted]);
 
   function getDayStatus(dateStr: string): DayStatus {
-    const session      = sessions.find((s) => s.date.slice(0, 10) === dateStr);
-    const isCancelled  = cancelledDays.some((d) => d.date === dateStr);
-    const reschedule   = rescheduledDays.find((r) => r.from === dateStr);
-    const reschHere    = rescheduledDays.find((r) => r.to === dateStr);
-    const coachWorkout = coachWorkouts.find((w) => w.date === dateStr) ?? null;
-    const coachRun     = coachRuns.find((r) => r.date === dateStr) ?? null;
-    const reschFromW   = reschHere
-      ? coachWorkouts.find((w) => w.date === reschHere.from) ?? null
-      : null;
-    const reschFromR   = reschHere
-      ? coachRuns.find((r) => r.date === reschHere.from) ?? null
-      : null;
+    const session     = sessions.find((s) => s.date.slice(0, 10) === dateStr);
+    const isCancelled = cancelled.some((d) => d.date === dateStr);
+    const movedAway   = rescheduled.some((r) => r.from === dateStr);
+    const movedHere   = rescheduled.find((r) => r.to === dateStr);
 
-    const effectiveWorkout = isCancelled ? null : reschedule ? reschFromW : (coachWorkout ?? reschFromW);
-    const effectiveRun     = isCancelled ? null : reschedule ? reschFromR : (coachRun     ?? reschFromR);
-    const hasPlan          = !!(effectiveWorkout || effectiveRun);
-    const planType         = effectiveRun ? "run" : effectiveWorkout ? "fitness" : null;
+    const effectiveWorkout = isCancelled || movedAway
+      ? null
+      : (coachWorkouts.find((w) => w.date === dateStr)
+          ?? (movedHere ? coachWorkouts.find((w) => w.date === movedHere.from) ?? null : null));
 
-    const d       = new Date(dateStr + "T00:00:00");
-    const isToday = dateStr === todayStr;
-    const isPast  = d < new Date(todayStr + "T00:00:00");
+    const effectiveRun = isCancelled || movedAway
+      ? null
+      : (coachRuns.find((r) => r.date === dateStr)
+          ?? (movedHere ? coachRuns.find((r) => r.date === movedHere.from) ?? null : null));
 
-    let status: DayStatus["status"];
-    if (session)       status = "done";
+    const hasPlan  = !!(effectiveWorkout || effectiveRun);
+    const planType = effectiveRun ? "run" : effectiveWorkout ? "fitness" : null;
+    const isToday  = dateStr === todayStr;
+    const isPast   = dateStr < todayStr;
+
+    let status: StatusKind;
+    if      (session)  status = "done";
     else if (isToday)  status = hasPlan ? "today-planned" : "today-rest";
     else if (!hasPlan) status = "rest";
     else if (isPast)   status = "missed";
@@ -298,38 +223,47 @@ export default function PlanPage() {
 
     return {
       session, isCancelled, hasPlan, planType,
-      effectiveWorkout: effectiveWorkout ?? null,
-      effectiveRun:     effectiveRun     ?? null,
-      isToday, isPast, status,
-      planLabel:      effectiveRun?.label ?? effectiveWorkout?.label ?? "",
-      planDistanceKm: effectiveRun?.distanceKm ?? null,
-      planPaceStr:    effectiveRun?.pace       ?? null,
-      planZone:       effectiveRun?.targetZone ?? null,
-      planHR:         effectiveRun?.targetHR   ?? null,
+      effectiveRun, isToday, status,
+      isRace: effectiveRun?.isRace ?? false,
     };
+  }
+
+  function handleDayClick(dateStr: string, planType: PlanType) {
+    if (planType === "run") {
+      runSheet.open(dateStr, { originRoute: "/plan" });
+    } else {
+      const result = sessionCtx.open(dateStr, { originRoute: "/plan" });
+      if (result === "no-plan") router.push(`/log/fitness?date=${dateStr}`);
+    }
   }
 
   if (!mounted) return null;
 
-  const months = getVisibleMonths();
-
   return (
     <>
-      {/* Gradient fixe en haut — même logique que la nav bar en bas */}
-      <div aria-hidden style={TOP_GRADIENT_STYLE} />
+      {/* Gradient fixe masquant le défilement sous la safe area */}
+      <div
+        aria-hidden
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0,
+          height: "calc(env(safe-area-inset-top, 44px) + 56px)",
+          background: "linear-gradient(to top, rgba(0,0,0,0) 0%, var(--color-background) 55%)",
+          pointerEvents: "none",
+          zIndex: 10,
+        }}
+      />
 
       <div
-        className="max-w-md mx-auto animate-fade-in px-4 pb-nav"
+        className="max-w-md mx-auto px-4 pb-nav"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 44px) + 20px)" }}
       >
-        {months.map((offset, idx) => (
-          <MonthSection
+        {MONTH_OFFSETS.map((offset) => (
+          <Month
             key={offset}
-            monthOffset={offset}
-            isFirst={idx === 0}
+            offset={offset}
+            todayRef={offset === 0 ? todayRef : undefined}
             getDayStatus={getDayStatus}
-            handleDayClick={handleDayClick}
-            scrollRef={offset === 0 ? todayMonthRef : undefined}
+            onDayClick={handleDayClick}
           />
         ))}
       </div>
