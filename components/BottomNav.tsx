@@ -95,6 +95,7 @@ export default function BottomNav({ state = "nav" }: BottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className="flex flex-col items-center gap-0.5 press-effect"
               style={{
                 animation: isActivating ? "nav-activate 0.35s ease-out" : undefined,
