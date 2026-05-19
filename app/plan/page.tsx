@@ -189,8 +189,7 @@ export default function PlanPage() {
   // Scroll vers le mois courant après le premier rendu
   useEffect(() => {
     if (!mounted || !todayRef.current) return;
-    const top = todayRef.current.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
-    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+    todayRef.current.scrollIntoView({ behavior: "instant", block: "start" });
   }, [mounted]);
 
   function getDayStatus(dateStr: string): DayStatus {
