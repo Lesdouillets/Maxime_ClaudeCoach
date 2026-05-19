@@ -2,14 +2,14 @@ import type { CSSProperties } from "react";
 
 // Base partagée Archivo 700 wdth=110 — si la valeur wdth change dans Figma, modifier ici uniquement
 export const ARCHIVO_WIDE_BOLD: CSSProperties = {
-  fontFamily: "'Archivo', sans-serif",
+  fontFamily: "var(--font-display)",
   fontWeight: 700,
   fontVariationSettings: '"wdth" 110',
 };
 
 // Label monospace 12px — titres de section, étiquettes
 export const JETBRAINS_MONO_LABEL: CSSProperties = {
-  fontFamily: "'JetBrains Mono', monospace",
+  fontFamily: "var(--font-mono)",
   fontWeight: 700,
   fontSize: 12,
   lineHeight: "12px",
@@ -20,7 +20,7 @@ export const JETBRAINS_MONO_LABEL: CSSProperties = {
 
 // Label monospace 9px — légendes, unités de stats
 export const JETBRAINS_MONO_TINY: CSSProperties = {
-  fontFamily: "'JetBrains Mono', monospace",
+  fontFamily: "var(--font-mono)",
   fontWeight: 700,
   fontSize: 9,
   lineHeight: "12px",

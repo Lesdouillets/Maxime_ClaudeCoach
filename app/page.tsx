@@ -156,7 +156,7 @@ export default function HomePage() {
         <div className="flex flex-col gap-1">
           {/* Date */}
           <p style={{
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "var(--font-mono)",
             fontWeight: 300,
             fontSize: 10.5,
             lineHeight: "12px",

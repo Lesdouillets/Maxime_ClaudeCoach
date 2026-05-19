@@ -2,11 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts are loaded via <link> in layout.tsx (runtime, works offline build) */
 :root {
-  --font-display: 'Archivo', system-ui, sans-serif;
-  --font-body: 'Archivo', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: var(--font-archivo), system-ui, sans-serif;
+  --font-body: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-mono-nf), monospace;
 
   /* Palette — source de vérité pour les styles inline et les SVGs */
   --color-neon: #CDFF00;

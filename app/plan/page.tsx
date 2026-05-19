@@ -253,10 +253,17 @@ export default function PlanPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    // RAF : laisse le navigateur iOS finaliser le layout avant de scroller
-    requestAnimationFrame(() => {
-      todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+    let cancelled = false;
+    // Attend que les fonts soient chargées avant de scroller : sans ça,
+    // le layout est calculé avec les fonts de fallback (hauteurs différentes)
+    // et scrollIntoView se trompe de position au premier accès.
+    document.fonts.ready.then(() => {
+      if (cancelled) return;
+      requestAnimationFrame(() => {
+        todayMonthRef.current?.scrollIntoView({ behavior: "instant", block: "start" });
+      });
     });
+    return () => { cancelled = true; };
   }, [mounted]);
 
   function getDayStatus(dateStr: string): DayStatus {
