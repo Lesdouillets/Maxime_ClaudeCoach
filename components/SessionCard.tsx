@@ -6,6 +6,7 @@ import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 import type { WorkoutSession } from "@/lib/types";
 import { ARCHIVO_WIDE_BOLD, STAT_VALUE_STYLE, STAT_UNIT_STYLE } from "@/lib/typography";
 import { RaceBadge, RACE_COLOR } from "@/components/RaceBadge";
+import { getRunBadge } from "@/lib/coachPlan";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -120,11 +121,11 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
                 <Separator />
                 <RaceBadge wingSize={8} fontSize={9} />
               </>
-            ) : todayCoachRun.targetZone ? (
+            ) : getRunBadge(todayCoachRun) ? (
               <>
                 <Separator />
                 <span style={{ ...STAT_UNIT_STYLE, color: accent, fontSize: 10, letterSpacing: "0.12em" }}>
-                  {todayCoachRun.targetZone}
+                  {getRunBadge(todayCoachRun)}
                 </span>
               </>
             ) : null}

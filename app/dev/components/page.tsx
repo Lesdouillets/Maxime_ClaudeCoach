@@ -254,7 +254,7 @@ export default function ComponentsPage() {
           <ComponentBlock noPad title="SessionCard — Run complété" description="Run fait : 16.2 km, 5:41/km">
             <SessionCard
               todayCoachWorkout={null}
-              todayCoachRun={{ id: "r3", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, targetZone: "ZONE 2" }}
+              todayCoachRun={{ id: "r3", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, runType: "z2" }}
               todaySession={{ id: "s3", type: "run", date: "2026-05-15T08:30:00", distanceKm: 16.2, durationSeconds: 5530, avgPaceSecPerKm: 341, comment: "" }}
               onOpenSession={() => {}}
               onOpenRun={() => alert("Ouvrir run")}
