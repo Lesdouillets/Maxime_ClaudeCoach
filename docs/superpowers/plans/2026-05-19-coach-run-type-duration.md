@@ -244,22 +244,42 @@ export default function CoachRunPlan({ coachRun }: Props) {
 
 > Note : le badge `targetZone` qui existait sur les runs simples est supprimé — remplacé par le badge `runType` en en-tête, valable pour tous les cas.
 
-- [ ] **Étape 3 : Lancer le dev server et vérifier manuellement**
+- [ ] **Étape 3 : Mettre à jour le seed data pour inclure `runType`**
+
+Dans `app/dev/components/page.tsx`, les runs du seed data utilisent `targetZone` comme badge (ex: `targetZone: "ZONE 2"`). Ajouter `runType` sur chacun pour tester le nouveau système :
+
+```typescript
+// Run Z2 (ligne ~237)
+todayCoachRun={{ id: "r1", type: "run", date: "2026-05-15", runType: "z2",
+  label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90 }}
+
+// Run fractionné (ligne ~247) — avec intervals si présent, sinon :
+todayCoachRun={{ id: "r2", type: "run", date: "2026-05-15", runType: "fractionne",
+  label: "10×400m", distanceKm: 8.5, durationMin: 54 }}
+
+// Run course (ligne ~227)
+todayCoachRun={{ id: "r0", type: "run", date: "2026-05-15", runType: "course",
+  label: "Semi-marathon", distanceKm: 21.1, pace: "5:10", durationMin: 110, isRace: true }}
+```
+
+> Note : supprimer `targetZone: "ZONE 2"` et `targetZone: "FRACTIONNÉ"` du seed data — ce n'était pas du vrai `targetZone` mais un détournement pour afficher un badge. `runType` le remplace proprement.
+
+- [ ] **Étape 4 : Lancer le dev server et vérifier manuellement**
 
 ```bash
 npm run dev
 ```
 
-Ouvrir `http://localhost:3000/dev/components` → onglet **Cartes**.
+`CoachRunPlan` s'affiche dans `RunSheet`. Ouvrir `http://localhost:3000/dev/components` → onglet **Cartes** → taper sur une carte run pour ouvrir la sheet.
 
-Vérifier sur les runs du seed data :
-- [ ] Un run avec `runType` affiche le badge correct (Zone 2, Fractionné, etc.)
-- [ ] Le `label` apparaît comme titre à côté du badge
-- [ ] `durationMin` s'affiche en `~XX min` à droite si présent
-- [ ] Un run sans `runType` (runs legacy) affiche le titre sans badge — pas d'erreur
-- [ ] Les intervals s'affichent comme avant
+Vérifier :
+- [ ] Un run avec `runType: "z2"` affiche le badge "Zone 2"
+- [ ] Le `label` ("Sortie Longue") apparaît comme titre à côté du badge
+- [ ] `durationMin` s'affiche en `~90 min` à droite
+- [ ] Un run sans `runType` n'affiche pas de badge (pas d'erreur)
+- [ ] Les intervals s'affichent comme avant sur un fractionné
 
-- [ ] **Étape 4 : Vérifier la compilation complète**
+- [ ] **Étape 5 : Vérifier la compilation complète**
 
 ```bash
 npm run build
@@ -267,10 +287,10 @@ npm run build
 
 Résultat attendu : build sans erreur.
 
-- [ ] **Étape 5 : Commit**
+- [ ] **Étape 6 : Commit**
 
 ```bash
-git add components/CoachRunPlan.tsx
+git add components/CoachRunPlan.tsx app/dev/components/page.tsx
 git commit -m "CoachRunPlan : badge runType, titre label, durée durationMin"
 ```
 
