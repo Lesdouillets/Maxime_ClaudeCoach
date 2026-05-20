@@ -1,0 +1,643 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import BottomNav, { type BottomNavState } from "@/components/BottomNav";
+import { SessionTag } from "@/components/SessionTag";
+import type { SessionType, SessionStatus, SessionTagSize } from "@/components/SessionTag";
+import Badge from "@/components/Badge";
+import { StreakBar } from "@/components/StreakBar";
+import { WeekProgram } from "@/components/WeekProgram";
+import { SessionCard } from "@/components/SessionCard";
+import { WingLeft, WingRight } from "@/components/RaceBadge";
+import { StreakCard } from "@/components/StreakCard";
+import { computeStreak } from "@/lib/streak";
+import { buildWeekDays } from "@/lib/weekProgram";
+import type { DaySlot } from "@/lib/weekProgram";
+import { getSessions } from "@/lib/storage";
+import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
+import type { WeekStatus } from "@/lib/streak";
+
+type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan";
+
+const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
+  { id: "atoms",   label: "Atoms",      ready: true },
+  { id: "semaine", label: "Semaine",    ready: true },
+  { id: "streak",  label: "Streak",     ready: true },
+  { id: "cartes",  label: "Cartes",     ready: true },
+  { id: "home",    label: "Home",       ready: true },
+  { id: "nav",     label: "Nav & CTA",  ready: true },
+  { id: "plan",    label: "Plan",       ready: true },
+];
+
+export default function ComponentsPage() {
+  const [active, setActive] = useState<Section>("atoms");
+  const [navPreview, setNavPreview] = useState<BottomNavState>("nav");
+
+  return (
+    <>
+    <div className="min-h-screen p-6 pb-32" style={{ background: "#0d0d0d" }}>
+
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/dev" className="text-xs press-effect" style={{ color: "#555" }}>
+          ← DEV
+        </Link>
+        <h1 className="font-display text-2xl" style={{ color: "#CDFF00" }}>COMPOSANTS</h1>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-2 mb-8 flex-wrap">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => s.ready && setActive(s.id)}
+            className="px-4 py-1.5 rounded-full text-xs font-bold press-effect"
+            style={{
+              background: active === s.id ? "#CDFF00" : "#1a1a1a",
+              color:      active === s.id ? "#000"    : s.ready ? "#666" : "#333",
+              border:     active === s.id ? "none"    : "1px solid #222",
+              cursor:     s.ready ? "pointer" : "default",
+            }}
+          >
+            {s.label}{!s.ready && <span className="ml-1 opacity-40">·</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* ── ATOMS ── */}
+      {active === "atoms" && (
+        <div className="space-y-10">
+
+          {/* SessionTag */}
+          <ComponentBlock title="SessionTag" description="Tag de séance — type × statut × taille">
+
+            {(["run", "fitness", "rest"] as SessionType[]).map((type) => {
+              const statuses: SessionStatus[] =
+                type === "rest" ? ["planned", "today"] : ["planned", "today", "done", "missed"];
+              return (
+                <Row key={type} label={type}>
+                  {statuses.map((status) => (
+                    <Cell key={status} label={status}>
+                      <SessionTag type={type} status={status} size="md" />
+                    </Cell>
+                  ))}
+                </Row>
+              );
+            })}
+
+            <Row label="tailles (run / done)">
+              {(["sm", "md", "lg"] as SessionTagSize[]).map((size) => (
+                <Cell key={size} label={size}>
+                  <SessionTag type="run" status="done" size={size} />
+                </Cell>
+              ))}
+            </Row>
+          </ComponentBlock>
+
+          {/* Badge */}
+          <ComponentBlock title="Badge" description="Étiquette inline — 4 variantes, 2 tailles">
+            <Row label="variantes">
+              {(["neon", "orange", "muted", "surface"] as const).map((v) => (
+                <Cell key={v} label={v}>
+                  <Badge label={v.toUpperCase()} variant={v} />
+                </Cell>
+              ))}
+            </Row>
+            <Row label="tailles (neon)">
+              {(["sm", "md"] as const).map((s) => (
+                <Cell key={s} label={s}>
+                  <Badge label="ZONE 2" variant="neon" size={s} />
+                </Cell>
+              ))}
+            </Row>
+          </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── STREAK ── */}
+      {active === "streak" && (
+        <div className="space-y-10">
+          <ComponentBlock title="StreakBar" description="Barre de 8 semaines — données réelles du localStorage">
+            <StreakBar streakResult={computeStreak(getSessions(), getCoachWorkouts(), getCoachRuns())} />
+          </ComponentBlock>
+
+          <ComponentBlock title="StreakBar — états mockés" description="Toutes les combinaisons de statut">
+            {(
+              [
+                { label: "5 validées + 1 partielle",    weeks: ["empty","empty","validated","validated","validated","validated","validated","partial"] },
+                { label: "Streak cassé",                 weeks: ["validated","validated","empty","empty","validated","validated","empty","partial"] },
+                { label: "Aucun streak",                 weeks: ["empty","empty","empty","empty","empty","empty","empty","partial"] },
+                { label: "Semaines futures",             weeks: ["validated","validated","validated","validated","validated","partial","future","future"] },
+              ] as { label: string; weeks: WeekStatus[] }[]
+            ).map(({ label, weeks }) => (
+              <Row key={label} label={label}>
+                <div className="w-full">
+                  <StreakBar streakResult={{
+                    streakCount: weeks.filter((w, i) => {
+                      if (w !== "validated") return false;
+                      for (let j = i + 1; j < weeks.length; j++) {
+                        if (weeks[j] === "empty") return false;
+                      }
+                      return true;
+                    }).length,
+                    weeks: weeks.map((status, i) => ({
+                      weekStart: `2026-0${i + 1}-01`,
+                      weekEnd:   `2026-0${i + 1}-07`,
+                      status,
+                      plannedCount: status === "future" ? 0 : 3,
+                      doneCount: status === "validated" ? 3 : status === "partial" ? 1 : 0,
+                      isCurrent: i === weeks.length - 1,
+                    })),
+                  }} />
+                </div>
+              </Row>
+            ))}
+          </ComponentBlock>
+        </div>
+      )}
+
+      {/* ── SEMAINE ── */}
+      {active === "semaine" && (
+        <div className="space-y-10">
+
+          <ComponentBlock title="WeekProgram — données réelles" description="Calculé depuis le localStorage">
+            <WeekProgram
+              days={buildWeekDays(
+                new Date().toISOString().slice(0, 10),
+                getCoachWorkouts(),
+                getCoachRuns(),
+                getSessions(),
+              ).days}
+              weekLabel={buildWeekDays(
+                new Date().toISOString().slice(0, 10),
+                getCoachWorkouts(),
+                getCoachRuns(),
+                getSessions(),
+              ).weekLabel}
+              onDayClick={(date, type) => alert(`Jour cliqué : ${date} (${type})`)}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="WeekProgram — scénarios mockés" description="Toutes les combinaisons de statut">
+            {WEEK_SCENARIOS.map(({ label, days }) => (
+              <Row key={label} label={label}>
+                <div className="w-full">
+                  <WeekProgram
+                    days={days}
+                    weekLabel="SEMAINE DU 14 AU 20 AVRIL"
+                    onDayClick={(date, type) => alert(`Jour cliqué : ${date} (${type})`)}
+                  />
+                </div>
+              </Row>
+            ))}
+          </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── CARTES ── */}
+      {active === "cartes" && (
+        <div className="space-y-8">
+
+          <ComponentBlock noPad title="SessionCard — Fitness planifié (upper)" description="Haut du corps, 6 exos, montée en charge">
+            <SessionCard
+              todayCoachWorkout={{ id: "1", type: "fitness", date: "2026-05-15", category: "upper", label: "Haut du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "MONTEE EN CHARGE" }}
+              todayCoachRun={null}
+              todaySession={null}
+              onOpenSession={() => alert("Ouvrir session")}
+              onOpenRun={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — Fitness complété (lower)" description="Bas du corps fait, 6 exos, décharge">
+            <SessionCard
+              todayCoachWorkout={{ id: "2", type: "fitness", date: "2026-05-15", category: "lower", label: "Bas du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "DECHARGE" }}
+              todayCoachRun={null}
+              todaySession={{ id: "s2", type: "fitness", date: "2026-05-15", category: "lower", exercises: Array(6).fill({ name: "Ex", sets: [], comment: "" }), comment: "", coachWorkoutId: "2" }}
+              onOpenSession={() => alert("Ouvrir session")}
+              onOpenRun={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — COURSE (semi-marathon)" description="21.1 km, 5:10/km — badge ailes dorées, bordure dorée">
+            <SessionCard
+              todayCoachWorkout={null}
+              todayCoachRun={{ id: "r0", type: "run", date: "2026-05-15", label: "Semi-marathon", distanceKm: 21.1, pace: "5:10", durationMin: 110, isRace: true, runType: "course" }}
+              todaySession={null}
+              onOpenSession={() => {}}
+              onOpenRun={() => alert("Ouvrir course")}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — Run planifié (sortie longue)" description="16 km, 90 min, 5:37/km, Zone 2">
+            <SessionCard
+              todayCoachWorkout={null}
+              todayCoachRun={{ id: "r1", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, runType: "z2" }}
+              todaySession={null}
+              onOpenSession={() => {}}
+              onOpenRun={() => alert("Ouvrir run")}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — Run planifié (fractionné)" description="8.5 km, ~48 min, sans pace, FRACTIONNÉ">
+            <SessionCard
+              todayCoachWorkout={null}
+              todayCoachRun={{ id: "r2", type: "run", date: "2026-05-15", label: "10x400m", distanceKm: 8.5, durationMin: 48, runType: "fractionne" }}
+              todaySession={null}
+              onOpenSession={() => {}}
+              onOpenRun={() => alert("Ouvrir run")}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — Run complété" description="Run fait : 16.2 km, 5:41/km">
+            <SessionCard
+              todayCoachWorkout={null}
+              todayCoachRun={{ id: "r3", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, targetZone: "ZONE 2" }}
+              todaySession={{ id: "s3", type: "run", date: "2026-05-15T08:30:00", distanceKm: 16.2, durationSeconds: 5530, avgPaceSecPerKm: 341, comment: "" }}
+              onOpenSession={() => {}}
+              onOpenRun={() => alert("Ouvrir run")}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock noPad title="SessionCard — Repos" description="Aucune séance planifiée">
+            <SessionCard
+              todayCoachWorkout={null}
+              todayCoachRun={null}
+              todaySession={null}
+              onOpenSession={() => {}}
+              onOpenRun={() => {}}
+            />
+          </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── PLAN ── */}
+      {active === "plan" && (
+        <div className="space-y-10">
+
+          <ComponentBlock title="Cellule jour — tous les états" description="Couleur du chiffre selon le statut du jour">
+            <Row label="fitness">
+              {PLAN_DAY_STATES.filter(d => d.group === "fitness").map(({ label, color, ring }) => (
+                <Cell key={label} label={label}>
+                  <PlanDayCell day={18} color={color} ring={ring} />
+                </Cell>
+              ))}
+            </Row>
+            <Row label="run">
+              {PLAN_DAY_STATES.filter(d => d.group === "run").map(({ label, color, ring }) => (
+                <Cell key={label} label={label}>
+                  <PlanDayCell day={18} color={color} ring={ring} />
+                </Cell>
+              ))}
+            </Row>
+            <Row label="course (isRace)">
+              {PLAN_DAY_STATES.filter(d => d.group === "course").map(({ label, color, raceRing }) => (
+                <Cell key={label} label={label}>
+                  <PlanDayCell day={18} color={color} raceRing={raceRing} />
+                </Cell>
+              ))}
+            </Row>
+            <Row label="repos / commun">
+              {PLAN_DAY_STATES.filter(d => d.group === "rest").map(({ label, color, ring, cancelled }) => (
+                <Cell key={label} label={label}>
+                  <PlanDayCell day={18} color={color} ring={ring} cancelled={cancelled} />
+                </Cell>
+              ))}
+            </Row>
+          </ComponentBlock>
+
+          <ComponentBlock title="Grille mois" description="Rendu calendaire — structure réelle de /plan">
+            <div className="w-full">
+              <PlanMonthMock />
+            </div>
+          </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── NAV & CTA ── */}
+      {active === "nav" && (
+        <div className="space-y-6 pb-48">
+          <ComponentBlock title="BottomNav" description="2 états — tab bar fixe toutes pages">
+            <Row label="état affiché">
+              <div className="flex gap-2 flex-wrap">
+                {(["nav", "hidden"] as BottomNavState[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setNavPreview(s)}
+                    className="px-4 py-2 rounded-full text-xs font-bold press-effect"
+                    style={{
+                      background: navPreview === s ? "#CDFF00" : "#1a1a1a",
+                      color:      navPreview === s ? "#000"    : "#666",
+                      border:     navPreview === s ? "none"    : "1px solid #222",
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </Row>
+            <Row label="description">
+              <p className="text-xs" style={{ color: "#555" }}>
+                {navPreview === "nav"    && "Nav classique — pages Home / Plan / Stats / Coach"}
+                {navPreview === "hidden" && "Invisible — quand une sheet modale est ouverte"}
+              </p>
+            </Row>
+          </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── HOME ── */}
+      {active === "home" && (
+        <div className="space-y-8">
+          <ComponentBlock title="StreakCard — données réelles" description="Calculé depuis le localStorage">
+            <StreakCard streakResult={computeStreak(getSessions(), getCoachWorkouts(), getCoachRuns())} />
+          </ComponentBlock>
+          <ComponentBlock title="StreakCard — 6 semaines (mocké)" description="Streak en cours">
+            <StreakCard streakResult={{
+              streakCount: 6,
+              weeks: [
+                { weekStart: "2026-03-09", weekEnd: "2026-03-15", status: "empty",     plannedCount: 3, doneCount: 0, isCurrent: false },
+                { weekStart: "2026-03-16", weekEnd: "2026-03-22", status: "empty",     plannedCount: 3, doneCount: 0, isCurrent: false },
+                { weekStart: "2026-03-23", weekEnd: "2026-03-29", status: "validated", plannedCount: 3, doneCount: 3, isCurrent: false },
+                { weekStart: "2026-03-30", weekEnd: "2026-04-05", status: "validated", plannedCount: 3, doneCount: 3, isCurrent: false },
+                { weekStart: "2026-04-06", weekEnd: "2026-04-12", status: "validated", plannedCount: 3, doneCount: 3, isCurrent: false },
+                { weekStart: "2026-04-13", weekEnd: "2026-04-19", status: "validated", plannedCount: 3, doneCount: 3, isCurrent: false },
+                { weekStart: "2026-04-20", weekEnd: "2026-04-26", status: "validated", plannedCount: 3, doneCount: 3, isCurrent: false },
+                { weekStart: "2026-04-27", weekEnd: "2026-05-03", status: "validated", plannedCount: 3, doneCount: 2, isCurrent: true  },
+              ],
+            }} />
+          </ComponentBlock>
+          <ComponentBlock title="StreakCard — 0 semaine" description="Aucun streak">
+            <StreakCard streakResult={{
+              streakCount: 0,
+              weeks: Array(8).fill(null).map((_, i) => ({
+                weekStart: `2026-03-${9 + i * 7}`, weekEnd: `2026-03-${15 + i * 7}`,
+                status: (i === 7 ? "partial" : "empty") as "partial" | "empty",
+                plannedCount: 3, doneCount: 0, isCurrent: i === 7,
+              })),
+            }} />
+          </ComponentBlock>
+        </div>
+      )}
+
+    </div>
+
+    <BottomNav state={active === "nav" ? navPreview : "nav"} />
+    </>
+  );
+}
+
+// ── WeekProgram mock scenarios ────────────────────────────────────────────────
+
+function mockDay(i: number, type: DaySlot["type"], status: DaySlot["status"], isToday = false): DaySlot {
+  const letters = ["L", "M", "M", "J", "V", "S", "D"];
+  return { date: `2026-04-${14 + i}`, letter: letters[i], type, status, isToday };
+}
+
+const WEEK_SCENARIOS: { label: string; days: DaySlot[] }[] = [
+  {
+    label: "semaine type (fitness + run + repos)",
+    days: [
+      mockDay(0, "rest",    "planned"),
+      mockDay(1, "fitness", "done"),
+      mockDay(2, "run",     "done"),
+      mockDay(3, "rest",    "planned"),
+      mockDay(4, "fitness", "today", true),
+      mockDay(5, "rest",    "planned"),
+      mockDay(6, "run",     "planned"),
+    ],
+  },
+  {
+    label: "semaine avec séances manquées",
+    days: [
+      mockDay(0, "fitness", "missed"),
+      mockDay(1, "rest",    "planned"),
+      mockDay(2, "run",     "missed"),
+      mockDay(3, "fitness", "missed"),
+      mockDay(4, "rest",    "today", true),
+      mockDay(5, "run",     "planned"),
+      mockDay(6, "fitness", "planned"),
+    ],
+  },
+  {
+    label: "semaine tout repos",
+    days: [
+      mockDay(0, "rest", "planned"),
+      mockDay(1, "rest", "planned"),
+      mockDay(2, "rest", "today", true),
+      mockDay(3, "rest", "planned"),
+      mockDay(4, "rest", "planned"),
+      mockDay(5, "rest", "planned"),
+      mockDay(6, "rest", "planned"),
+    ],
+  },
+];
+
+// ── Plan mock data ────────────────────────────────────────────────────────────
+
+const RACE_COLOR_MOCK = "#FEED00";
+
+const PLAN_DAY_STATES: {
+  label: string;
+  group: "fitness" | "run" | "rest" | "course";
+  color: string;
+  ring?: boolean;
+  raceRing?: boolean;
+  cancelled?: boolean;
+}[] = [
+  { label: "done",          group: "fitness", color: "var(--color-neon)" },
+  { label: "missed",        group: "fitness", color: "var(--color-error)" },
+  { label: "upcoming",      group: "fitness", color: "var(--color-orange)" },
+  { label: "today-planned", group: "fitness", color: "var(--color-orange)", ring: true },
+  { label: "done",          group: "run",     color: "var(--color-neon)" },
+  { label: "missed",        group: "run",     color: "var(--color-error)" },
+  { label: "upcoming",      group: "run",     color: "var(--color-blue)" },
+  { label: "today-planned", group: "run",     color: "var(--color-blue)", ring: true },
+  { label: "upcoming",      group: "course",  color: RACE_COLOR_MOCK, raceRing: true },
+  { label: "today",         group: "course",  color: RACE_COLOR_MOCK, raceRing: true },
+  { label: "done",          group: "course",  color: "var(--color-neon)" },
+  { label: "today-rest",    group: "rest",    color: "var(--color-muted)", ring: true },
+  { label: "rest",          group: "rest",    color: "var(--color-muted)" },
+  { label: "annulé",        group: "rest",    color: "var(--color-orange)", cancelled: true },
+];
+
+function PlanDayCell({
+  day,
+  color,
+  ring,
+  raceRing,
+  cancelled,
+}: {
+  day: number;
+  color: string;
+  ring?: boolean;
+  raceRing?: boolean;
+  cancelled?: boolean;
+}) {
+  return (
+    <div
+      className="aspect-square flex items-center justify-center"
+      style={{ opacity: cancelled ? 0.4 : 1, width: 36, height: 36 }}
+    >
+      {raceRing ? (
+        <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR_MOCK }}>
+          <WingLeft size={6} />
+          <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR_MOCK }}>{day}</span>
+          <WingRight size={6} />
+        </div>
+      ) : (
+        <div
+          className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
+          style={ring ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" } : undefined}
+        >
+          <span className="text-xs font-medium leading-none" style={{ color }}>{day}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const GRID_HEADERS_MOCK = ["LUN.", "MAR.", "MER.", "JEU.", "VEN.", "SAM.", "DIM."];
+
+// Grille mai 2026 avec statuts représentatifs
+const PLAN_MONTH_CELLS: { day: number | null; color: string; ring?: boolean; raceRing?: boolean; cancelled?: boolean }[] = [
+  { day: null,  color: "" },
+  { day: null,  color: "" },
+  { day: null,  color: "" },
+  { day: null,  color: "" },
+  { day: 1,     color: "var(--color-muted)" },
+  { day: 2,     color: "var(--color-muted)" },
+  { day: 3,     color: "var(--color-muted)" },
+  { day: 4,     color: "var(--color-muted)" },
+  { day: 5,     color: "var(--color-neon)" },
+  { day: 6,     color: "var(--color-neon)" },
+  { day: 7,     color: "var(--color-muted)" },
+  { day: 8,     color: "var(--color-neon)" },
+  { day: 9,     color: "var(--color-error)" },
+  { day: 10,    color: "var(--color-muted)" },
+  { day: 11,    color: "var(--color-muted)" },
+  { day: 12,    color: "var(--color-neon)" },
+  { day: 13,    color: "var(--color-neon)" },
+  { day: 14,    color: "var(--color-muted)" },
+  { day: 15,    color: "var(--color-error)" },
+  { day: 16,    color: "var(--color-error)" },
+  { day: 17,    color: "var(--color-muted)" },
+  { day: 18,    color: "var(--color-orange)", ring: true },
+  { day: 19,    color: "var(--color-blue)" },
+  { day: 20,    color: "var(--color-muted)" },
+  { day: 21,    color: "var(--color-muted)" },
+  { day: 22,    color: "var(--color-orange)" },
+  { day: 23,    color: "var(--color-muted)" },
+  { day: 24,    color: "var(--color-blue)" },
+  { day: 25,    color: RACE_COLOR_MOCK, raceRing: true },
+  { day: 26,    color: "var(--color-orange)", cancelled: true },
+  { day: 27,    color: "var(--color-muted)" },
+  { day: 28,    color: "var(--color-orange)" },
+  { day: 29,    color: "var(--color-muted)" },
+  { day: 30,    color: "var(--color-blue)" },
+  { day: 31,    color: "var(--color-muted)" },
+];
+
+function PlanMonthMock() {
+  return (
+    <div>
+      <div
+        className="font-display font-bold mb-3"
+        style={{ fontSize: "20px", lineHeight: "22px", letterSpacing: "-0.43px", color: "rgba(255,255,255,0.65)" }}
+      >
+        mai 2026
+      </div>
+      <div className="grid grid-cols-7 mb-1">
+        {GRID_HEADERS_MOCK.map((h) => (
+          <div
+            key={h}
+            className="text-center font-mono font-bold text-subtle py-1"
+            style={{ fontSize: "12px", letterSpacing: "0.10em" }}
+          >
+            {h}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {PLAN_MONTH_CELLS.map((cell, i) =>
+          cell.day === null ? (
+            <div key={`pad-${i}`} />
+          ) : (
+            <div
+              key={cell.day}
+              className="aspect-square flex items-center justify-center"
+              style={{ opacity: cell.cancelled ? 0.4 : 1 }}
+            >
+              {cell.raceRing ? (
+                <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR_MOCK }}>
+                  <WingLeft size={6} />
+                  <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR_MOCK }}>{cell.day}</span>
+                  <WingRight size={6} />
+                </div>
+              ) : (
+                <div
+                  className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
+                  style={cell.ring ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" } : undefined}
+                >
+                  <span className="text-xs font-medium leading-none" style={{ color: cell.color }}>{cell.day}</span>
+                </div>
+              )}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Layout helpers ─────────────────────────────────────────────────────────────
+
+function ComponentBlock({
+  title,
+  description,
+  children,
+  noPad = false,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  noPad?: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="font-display text-xl" style={{ color: "#fff" }}>{title}</p>
+        <p className="text-xs mt-0.5" style={{ color: "#444" }}>{description}</p>
+      </div>
+      <div
+        className={noPad ? "rounded-2xl overflow-hidden" : "rounded-2xl p-5 space-y-5"}
+        style={{ background: "#111", border: "1px solid #1a1a1a" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] uppercase tracking-widest" style={{ color: "#444" }}>{label}</p>
+      <div className="flex gap-4 flex-wrap items-end">{children}</div>
+    </div>
+  );
+}
+
+function Cell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      {children}
+      <span className="text-[9px]" style={{ color: "#444" }}>{label}</span>
+    </div>
+  );
+}

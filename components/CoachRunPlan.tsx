@@ -1,6 +1,7 @@
 "use client";
 
 import Badge from "@/components/Badge";
+import { getRunBadge } from "@/lib/coachPlan";
 import type { CoachRun, CoachRunInterval } from "@/lib/coachPlan";
 
 interface Props {
@@ -27,9 +28,21 @@ function segDistLabel(seg: CoachRunInterval): string {
 }
 
 export default function CoachRunPlan({ coachRun }: Props) {
+  const badge = getRunBadge(coachRun);
+
   return (
     <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.15)" }}>
       <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#CDFF00" }}>PLAN COACH</p>
+
+      {/* En-tête : badge + titre + durée */}
+      <div className="flex items-center gap-2 mb-3">
+        {badge && <Badge label={badge} variant="neon" />}
+        <span className="text-sm font-bold">{coachRun.label}</span>
+        {coachRun.durationMin && (
+          <span className="text-xs ml-auto" style={{ color: "#888" }}>~{coachRun.durationMin} min</span>
+        )}
+      </div>
+
       {coachRun.intervals && coachRun.intervals.length > 0 ? (
         <div className="space-y-3">
           {coachRun.intervals.map((seg, i) => (
@@ -61,7 +74,6 @@ export default function CoachRunPlan({ coachRun }: Props) {
           </div>
           <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>{coachRun.pace}/km</span>
           {coachRun.targetHR && <span className="text-sm text-muted self-end mb-1">♥ {coachRun.targetHR}</span>}
-          {coachRun.targetZone && <Badge label={coachRun.targetZone} variant="neon" />}
         </div>
       )}
     </div>
