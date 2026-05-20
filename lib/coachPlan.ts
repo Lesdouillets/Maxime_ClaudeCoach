@@ -197,6 +197,7 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
     category: data.category === "lower" ? "lower" : "upper",
     label: String(data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS")),
     coachNote: data.coachNote != null ? String(data.coachNote) : (data.note != null ? String(data.note) : undefined),
+    sessionBrief: data.sessionBrief != null ? String(data.sessionBrief) : undefined,
     exercises: (data.exercises as Record<string, unknown>[]).map((ex) => {
       const setPlans = Array.isArray(ex.setPlans)
         ? (ex.setPlans as Record<string, unknown>[]).map((sp) => ({

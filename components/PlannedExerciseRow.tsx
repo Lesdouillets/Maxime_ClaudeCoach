@@ -8,6 +8,9 @@ interface Props {
 }
 
 function PlannedPills({ count }: { count: number }) {
+  if (count <= 0) {
+    return <span className="text-xs" style={{ color: "#444" }}>—</span>;
+  }
   return (
     <div className="flex items-center gap-1">
       {Array.from({ length: count }).map((_, i) => (

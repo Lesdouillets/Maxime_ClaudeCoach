@@ -24,12 +24,12 @@ export default function SessionBriefCard({ brief }: Props) {
           }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="#CDFF00" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M12 5v14M5 12h14" stroke="var(--color-neon)" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
         </div>
         <span
           className="text-[11px] font-bold tracking-widest"
-          style={{ color: "#CDFF00" }}
+          style={{ color: "var(--color-neon)" }}
         >
           LE MOT DU COACH
         </span>

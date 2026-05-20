@@ -835,7 +835,7 @@ export default function SessionSheet() {
                   className="text-[11px] font-bold tracking-widest"
                   style={{ color: "#555" }}
                 >
-                  {session.state!.exercises.length} EXERCICE{session.state!.exercises.length > 1 ? "S" : ""}
+                  {(session.state?.exercises.length ?? 0)} EXERCICE{(session.state?.exercises.length ?? 0) > 1 ? "S" : ""}
                 </span>
               </div>
             </div>
