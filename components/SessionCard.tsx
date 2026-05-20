@@ -78,6 +78,7 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
   const isDone = run !== null;
   const isRace = todayCoachRun?.isRace ?? false;
   const accent = isRace ? RACE_COLOR : "var(--color-blue)";
+  const runBadge = todayCoachRun ? getRunBadge(todayCoachRun) : null;
 
   return (
     <button
@@ -121,11 +122,11 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
                 <Separator />
                 <RaceBadge wingSize={8} fontSize={9} />
               </>
-            ) : getRunBadge(todayCoachRun) ? (
+            ) : runBadge ? (
               <>
                 <Separator />
                 <span style={{ ...STAT_UNIT_STYLE, color: accent, fontSize: 10, letterSpacing: "0.12em" }}>
-                  {getRunBadge(todayCoachRun)}
+                  {runBadge}
                 </span>
               </>
             ) : null}

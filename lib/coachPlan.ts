@@ -159,6 +159,8 @@ export function getTodayCoachWorkout(): CoachWorkout | null {
 
 // ─── Run badge ────────────────────────────────────────────────────────────────
 
+const RUN_TYPE_VALUES = ["z2", "tempo", "fractionne", "progressif", "course"] as const;
+
 const RUN_BADGE_LABELS: Record<NonNullable<CoachRun["runType"]>, string> = {
   z2: "Zone 2",
   tempo: "Tempo",
@@ -166,6 +168,10 @@ const RUN_BADGE_LABELS: Record<NonNullable<CoachRun["runType"]>, string> = {
   progressif: "Progressif",
   course: "Course",
 };
+
+function isRunType(value: unknown): value is CoachRun["runType"] {
+  return typeof value === "string" && (RUN_TYPE_VALUES as readonly string[]).includes(value);
+}
 
 export function getRunBadge(run: CoachRun): string | null {
   return run.runType ? RUN_BADGE_LABELS[run.runType] : null;
@@ -226,11 +232,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     targetZone: data.targetZone != null ? String(data.targetZone) : undefined,
     durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
     isRace: data.isRace === true,
-    runType: (["z2", "tempo", "fractionne", "progressif", "course"] as const).includes(
-      data.runType as any
-    )
-      ? (data.runType as CoachRun["runType"])
-      : undefined,
+    runType: isRunType(data.runType) ? data.runType : undefined,
     intervals: Array.isArray(data.intervals)
       ? (data.intervals as Record<string, unknown>[]).map((seg) => ({
           label: seg.label != null ? String(seg.label) : undefined,
