@@ -158,7 +158,7 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
   );
 }
 
-function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<SessionCardProps, "todayCoachWorkout" | "todaySession" | "onOpenSession">) {
+export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<SessionCardProps, "todayCoachWorkout" | "todaySession" | "onOpenSession">) {
   const fitness = todaySession?.type === "fitness" ? todaySession : null;
   const isDone = fitness !== null;
   const isUpper = isDone ? fitness?.category === "upper" : todayCoachWorkout?.category === "upper";
