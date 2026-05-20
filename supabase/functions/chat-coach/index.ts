@@ -35,27 +35,38 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 
 ## FORMATS DE SÉANCE (pour modified_plans)
 
-**Run continu (Z2, long run)**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","label":"RUN Z2","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"}
+## RÈGLES OBLIGATOIRES POUR LES RUNS
 
-**Fractionné (intervals)**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","label":"FRACTIONNÉ 400m","distanceKm":8,"pace":"5:00",
+- \`runType\` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
+- \`durationMin\` est OBLIGATOIRE : temps total terrain en minutes entières (course + repos)
+  - Run continu : Math.round(distanceKm × pace_en_secondes_par_km / 60)
+  - Avec intervals : somme pour chaque segment de (distanceKm × pace_sec × (reps ?? 1) / 60) + total des restSeconds / 60, arrondi
+- \`label\` est un TITRE COURT descriptif, jamais le type seul :
+  - Z2 long → "Sortie Longue" | Z2 moyen → "Footing" | Tempo → "Seuil Xkm"
+  - Fractionné → "N×Xm" (ex: "10×400m") | Progressif → "Z2>Z3>Z4"
+  - Le coach peut proposer librement si ces exemples ne matchent pas (ex: "Fartlek 30min", "Reprise légère")
+
+**Run continu Z2**
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"Sortie Longue","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149","durationMin":72}
+
+**Fractionné**
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"fractionne","label":"10×400m","distanceKm":8,"durationMin":54,
  "intervals":[
    {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
-   {"label":"400m rapide","reps":8,"distanceKm":0.4,"pace":"4:00","targetZone":"Z4","restSeconds":90},
+   {"label":"400m rapide","reps":10,"distanceKm":0.4,"pace":"4:00","targetZone":"Z4","restSeconds":90},
    {"label":"Retour au calme","distanceKm":1.5,"pace":"6:30","targetZone":"Z2"}
  ]}
 
-**Run progressif (multi-allures)**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","label":"RUN PROGRESSIF","distanceKm":9,"pace":"5:30",
+**Run progressif**
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"progressif","label":"Z2>Z3>Z4","distanceKm":9,"durationMin":49,
  "intervals":[
    {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2"},
    {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3"},
    {"label":"Phase 3","distanceKm":2,"pace":"4:50","targetZone":"Z4"}
  ]}
 
-**Tempo (seuil)**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","label":"TEMPO","distanceKm":9,"pace":"5:10",
+**Tempo**
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"tempo","label":"Seuil 6km","distanceKm":9,"durationMin":49,
  "intervals":[
    {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
    {"label":"Tempo","distanceKm":6,"pace":"4:50","targetZone":"Z3","targetHR":"149-168"},
