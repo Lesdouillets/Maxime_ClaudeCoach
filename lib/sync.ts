@@ -424,7 +424,10 @@ let isSyncing = false;
  * Sync bidirectionnel : pull toutes les tables → merge → write local → push.
  * Les entrées local-only ne sont jamais supprimées.
  */
+export const SYNC_DISABLED = process.env.NEXT_PUBLIC_DISABLE_SYNC === "true";
+
 export async function syncFull(): Promise<SyncResult> {
+  if (SYNC_DISABLED) return { ok: false };
   if (isSyncing) return { ok: false };
   isSyncing = true; // posé de façon synchrone avant tout await
   try {
@@ -447,6 +450,7 @@ export async function syncFull(): Promise<SyncResult> {
  * pull les données du profil cible avant qu'il devienne actif.
  */
 export async function syncFullForProfile(profileId: string): Promise<SyncResult> {
+  if (SYNC_DISABLED) return { ok: false };
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false };
   try {
@@ -465,6 +469,7 @@ export async function syncFullForProfile(profileId: string): Promise<SyncResult>
  * DELETE→INSERT concurrentes sur day_events et ex_notes.
  */
 export async function autoSyncPush(): Promise<void> {
+  if (SYNC_DISABLED) return;
   if (isSyncing) return;
   isSyncing = true; // posé de façon synchrone avant tout await
   try {

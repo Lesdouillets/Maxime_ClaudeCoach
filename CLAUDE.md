@@ -9,6 +9,9 @@ npm run dev      # Dev server (localhost:3000)
 npm run build    # Static export to ./out (used for GitHub Pages)
 npm run lint     # ESLint
 
+# Dev local — sync Supabase désactivé par défaut via NEXT_PUBLIC_DISABLE_SYNC=true dans .env.local
+# Mettre à false ou supprimer pour tester le sync (⚠️ écrit dans la base prod)
+
 # Edge Functions (Deno, requires Supabase CLI)
 supabase functions deploy chat-coach --no-verify-jwt
 supabase functions deploy analyze-session --no-verify-jwt

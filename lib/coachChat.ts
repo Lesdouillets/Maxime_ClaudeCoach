@@ -6,7 +6,7 @@ import { getSessions } from "./storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, deleteCoachWorkout, deleteCoachRun, parseCoachWorkoutJSON } from "./coachPlan";
 import { getActiveProfile, getActiveProfileId } from "./profiles";
 import { getRecentCoachAnalyses, compactSession } from "./coachAnalyzer";
-import { autoSyncPush } from "./sync";
+import { autoSyncPush, SYNC_DISABLED } from "./sync";
 import type { CoachPlan } from "./coachPlan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -46,6 +46,7 @@ function _saveChatLocal(messages: ChatMessage[]): void {
 // ─── Supabase push / pull ─────────────────────────────────────────────────────
 
 export async function pushChatToSupabase(): Promise<void> {
+  if (SYNC_DISABLED) return;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   const profileId = getActiveProfileId();
@@ -60,6 +61,7 @@ export async function pushChatToSupabase(): Promise<void> {
 }
 
 export async function pullChatFromSupabase(): Promise<void> {
+  if (SYNC_DISABLED) return;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   const profileId = getActiveProfileId();

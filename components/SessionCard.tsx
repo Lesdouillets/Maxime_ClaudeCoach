@@ -23,8 +23,8 @@ const GRADIENT = "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 
 const TITLE_STYLE: CSSProperties = { ...ARCHIVO_WIDE_BOLD, fontSize: 32, lineHeight: "36px", letterSpacing: "-0.03em" };
 const CONTENT_COL_STYLE: CSSProperties = { padding: 12, display: "flex", flexDirection: "column", gap: 8 };
 const TITLE_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "center", gap: 6 };
-const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" };
-const STAT_GROUP_STYLE: CSSProperties = { display: "flex", alignItems: "baseline", gap: 4 };
+const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "nowrap" };
+const STAT_GROUP_STYLE: CSSProperties = { display: "flex", alignItems: "baseline", gap: 4, flexShrink: 0 };
 const SEPARATOR_STYLE: CSSProperties = { color: "var(--color-dim)", fontSize: 14, lineHeight: "22px" };
 const CHECK_ICON_STYLE: CSSProperties = { display: "inline", verticalAlign: "middle", marginLeft: 8, flexShrink: 0 };
 const DIVIDER_STYLE: CSSProperties = { height: 1, background: "rgba(255,255,255,0.12)" };
@@ -108,7 +108,7 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
             {todayCoachRun.durationMin && (
               <>
                 <Separator />
-                <StatGroup value={`${!todayCoachRun.pace ? "~" : ""}${todayCoachRun.durationMin}`} unit="min" />
+                <StatGroup value={`~${todayCoachRun.durationMin}`} unit="min" />
               </>
             )}
             {todayCoachRun.pace && (
