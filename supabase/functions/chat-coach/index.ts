@@ -33,18 +33,14 @@ Tu peux modifier les séances existantes ET créer de nouvelles séances sur des
 Pour les nouveaux plans créés en conversation, utilise des IDs au format "coach-chat-{YYYY-MM-DD}-{n}" (ex: "coach-chat-2024-01-22-0").
 Tu peux générer autant de séances que nécessaire pour un objectif ambitieux (marathon, bloc musculaire, etc.).
 
-## FORMATS DE SÉANCE (pour modified_plans)
-
-## RÈGLES OBLIGATOIRES POUR LES RUNS
+## FORMATS DE SÉANCE ET RÈGLES OBLIGATOIRES
 
 - \`runType\` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
-- \`durationMin\` est OBLIGATOIRE : temps total terrain en minutes entières (course + repos)
-  - Run continu : Math.round(distanceKm × pace_en_secondes_par_km / 60)
-  - Avec intervals : somme pour chaque segment de (distanceKm × pace_sec × (reps ?? 1) / 60) + total des restSeconds / 60, arrondi
+- \`durationMin\` est OBLIGATOIRE : temps total terrain en minutes entières, arrondi. Inclut la course ET les temps de repos. Estime-le de manière cohérente avec les distances et allures indiquées.
 - \`label\` est un TITRE COURT descriptif, jamais le type seul :
   - Z2 long → "Sortie Longue" | Z2 moyen → "Footing" | Tempo → "Seuil Xkm"
   - Fractionné → "N×Xm" (ex: "10×400m") | Progressif → "Z2>Z3>Z4"
-  - Le coach peut proposer librement si ces exemples ne matchent pas (ex: "Fartlek 30min", "Reprise légère")
+  - Le coach peut proposer librement si ces exemples ne matchent pas (ex: "Fartlek 30min", "Reprise légère") — max 25 caractères
 
 **Run continu Z2**
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"Sortie Longue","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149","durationMin":72}
