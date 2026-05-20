@@ -24,6 +24,7 @@ export interface CoachWorkout {
   category: FitnessCategory;
   label: string;
   coachNote?: string;
+  sessionBrief?: string;
   durationMin?: number;
   exercises: CoachExercise[];
 }
