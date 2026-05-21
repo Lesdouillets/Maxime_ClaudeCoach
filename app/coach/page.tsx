@@ -9,6 +9,7 @@ import {
   applyPendingPlans,
   type ChatMessage,
 } from "@/lib/coachChat";
+import { TrashIcon } from "@/components/icons";
 
 const SUGGESTIONS = [
   "Développer les épaules",
@@ -139,10 +140,7 @@ export default function CoachPage() {
             style={{ padding: "8px", opacity: clearing ? 0.4 : 1 }}
             aria-label="Effacer l'historique"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
-                stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <TrashIcon size={18} color="#555" />
           </button>
         )}
       </div>

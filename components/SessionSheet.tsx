@@ -8,6 +8,10 @@ import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
 import NoteModal from "@/components/NoteModal";
+import { FitnessCard } from "@/components/SessionCard";
+import SessionBriefCard from "@/components/SessionBriefCard";
+import PlannedExerciseRow from "@/components/PlannedExerciseRow";
+import { OptionsIcon } from "@/components/icons";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -177,11 +181,7 @@ function CollapsedCardImpl({
           style={{ color: "#777" }}
           aria-label="Options"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <OptionsIcon size={20} color="currentColor" />
         </button>
       )}
       {showMenu && menuOpen && (
@@ -235,11 +235,7 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
           style={{ color: "#aaa" }}
           aria-label="Options"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <OptionsIcon size={20} color="currentColor" />
         </button>
         {menuOpen && (
           <ExerciseMenu
@@ -654,11 +650,7 @@ export default function SessionSheet() {
                 style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
                 aria-label="Options"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
-                </svg>
+                <OptionsIcon size={20} color="currentColor" />
               </button>
               {sheetOptionsOpen && (
                 <>
@@ -814,9 +806,28 @@ export default function SessionSheet() {
             </div>
           )}
           {!isArchive && !isStarted && (
-            <p className="px-1 pb-1 text-[11px] tracking-widest font-bold" style={{ color: "#CDFF00" }}>
-              À FAIRE · {session.state!.exercises.length} exercice{session.state!.exercises.length > 1 ? "s" : ""}
-            </p>
+            <div className="space-y-3">
+              <FitnessCard
+                todayCoachWorkout={sessionCoachWorkout}
+                todaySession={null}
+                onOpenSession={() => {}}
+              />
+              <SessionBriefCard brief={sessionCoachWorkout?.sessionBrief} />
+              <div className="flex items-center justify-between px-1 pt-1">
+                <span
+                  className="text-[11px] font-bold tracking-widest"
+                  style={{ color: "#555" }}
+                >
+                  PROGRAMME
+                </span>
+                <span
+                  className="text-[11px] font-bold tracking-widest"
+                  style={{ color: "#555" }}
+                >
+                  {(session.state?.exercises.length ?? 0)} EXERCICE{(session.state?.exercises.length ?? 0) > 1 ? "S" : ""}
+                </span>
+              </div>
+            </div>
           )}
           {!isArchive && session.state!.exercises.map((ex, i) => {
             const isActive = isStarted && i === session.state!.activeExIdx;
@@ -826,6 +837,17 @@ export default function SessionSheet() {
                   key={ex.id}
                   exercise={ex}
                   onOpenNote={() => setNoteModalExId(ex.id)}
+                />
+              );
+            }
+            if (!isStarted) {
+              return (
+                <PlannedExerciseRow
+                  key={ex.id}
+                  name={ex.name}
+                  sets={ex.setLogs?.length ?? ex.sets ?? 0}
+                  reps={ex.reps ?? 0}
+                  weight={ex.weight ?? 0}
                 />
               );
             }

@@ -1,6 +1,7 @@
 "use client";
 
 import Badge from "./Badge";
+import { ArrowForwardIcon } from "./icons";
 
 interface DayHeaderProps {
   dateLabel: string;
@@ -16,9 +17,7 @@ export default function DayHeader({ dateLabel, titleLine, isDone, isCancelled, h
   return (
     <div className="px-5 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
       <button onClick={onBack} className="flex items-center gap-1.5 text-xs mb-5 press-effect text-muted">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+        <ArrowForwardIcon size={14} color="currentColor" rotate={180} />
         Retour
       </button>
 

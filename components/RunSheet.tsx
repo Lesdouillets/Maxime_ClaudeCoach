@@ -12,6 +12,7 @@ import { RaceBadge } from "@/components/RaceBadge";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
+import { OptionsIcon } from "@/components/icons";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
   analyzeSession,
@@ -329,11 +330,7 @@ export default function RunSheet() {
                 style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
                 aria-label="Options"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
-                </svg>
+                <OptionsIcon size={20} color="currentColor" />
               </button>
               {optionsMenuOpen && (
                 <>

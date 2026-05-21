@@ -17,8 +17,10 @@ import type { DaySlot } from "@/lib/weekProgram";
 import { getSessions } from "@/lib/storage";
 import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WeekStatus } from "@/lib/streak";
+import SessionBriefCard from "@/components/SessionBriefCard";
+import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 
-type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan";
+type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail";
 
 const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "atoms",   label: "Atoms",      ready: true },
@@ -28,6 +30,7 @@ const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "home",    label: "Home",       ready: true },
   { id: "nav",     label: "Nav & CTA",  ready: true },
   { id: "plan",    label: "Plan",       ready: true },
+  { id: "detail",  label: "Détail",     ready: true },
 ];
 
 export default function ComponentsPage() {
@@ -314,6 +317,46 @@ export default function ComponentsPage() {
               <PlanMonthMock />
             </div>
           </ComponentBlock>
+
+        </div>
+      )}
+
+      {/* ── DÉTAIL SÉANCE ── */}
+      {active === "detail" && (
+        <div className="space-y-10">
+
+          {/* SessionBriefCard */}
+          <div className="space-y-4">
+            <div>
+              <p className="font-display text-xl" style={{ color: "#fff" }}>SessionBriefCard</p>
+              <p className="text-xs mt-0.5" style={{ color: "#444" }}>Mot du coach pré-séance — cachée si pas de brief</p>
+            </div>
+            <div className="rounded-2xl px-3 py-4 space-y-3" style={{ background: "#0a0a0a" }}>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: "#444" }}>alimentée</p>
+              <SessionBriefCard brief="Montée en charge sur le développé haltères, le rowing assis et le tirage vertical. C'est ta séance la plus exigeante de la semaine — elle est là pour ça. On y va." />
+              <p className="text-[10px] uppercase tracking-widest pt-2" style={{ color: "#444" }}>vide (return null)</p>
+              <div
+                className="rounded-xl px-3 py-2 text-xs"
+                style={{ background: "#111", border: "1px dashed #2a2a2a", color: "#333" }}
+              >
+                SessionBriefCard sans brief → invisible (ce bloc est un indicateur dev)
+              </div>
+            </div>
+          </div>
+
+          {/* PlannedExerciseRow */}
+          <div className="space-y-4">
+            <div>
+              <p className="font-display text-xl" style={{ color: "#fff" }}>PlannedExerciseRow</p>
+              <p className="text-xs mt-0.5" style={{ color: "#444" }}>Exercice planifié — état lecture seule, pills vides</p>
+            </div>
+            <div className="rounded-2xl px-3 py-4 space-y-2" style={{ background: "#0a0a0a" }}>
+              <PlannedExerciseRow name="Développé haltères" sets={4} reps={8} weight={22} />
+              <PlannedExerciseRow name="Rowing assis" sets={4} reps={8} weight={42} />
+              <PlannedExerciseRow name="Tirage vertical" sets={3} reps={10} weight={60} />
+              <PlannedExerciseRow name="Curl biceps" sets={3} reps={12} weight={14} />
+            </div>
+          </div>
 
         </div>
       )}
