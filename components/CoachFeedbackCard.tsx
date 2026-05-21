@@ -1,6 +1,7 @@
 "use client";
 
 import type { CoachAnalysisResult } from "@/lib/coachAnalyzer";
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface Props {
   state: "analyzing" | "done";
@@ -20,7 +21,7 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
           <circle cx="12" cy="12" r="10" stroke="#CDFF00" strokeWidth="1.5"/>
           <path d="M12 8v4l3 3" stroke="#CDFF00" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <span className="text-[11px] font-bold tracking-widest" style={{ color: "#CDFF00" }}>
+        <span style={{ ...JETBRAINS_MONO_LABEL, color: "#CDFF00" }}>
           ALEX — COACH
         </span>
         {state === "done" && result && result.modifiedCount > 0 && (

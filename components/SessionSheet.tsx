@@ -12,6 +12,7 @@ import { FitnessCard } from "@/components/SessionCard";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 import { OptionsIcon } from "@/components/icons";
+import { EXERCISE_NAME_STYLE, JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -171,7 +172,7 @@ function CollapsedCardImpl({
     >
       <ExerciseThumb name={exercise.name} />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-base truncate">{exercise.name}</p>
+        <p className="truncate" style={EXERCISE_NAME_STYLE}>{exercise.name}</p>
         <div className="mt-1.5"><ProgressDots exercise={exercise} /></div>
       </div>
       {showMenu && (
@@ -228,7 +229,7 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
       {/* Header */}
       <div className="flex items-center gap-3 p-3">
         <ExerciseThumb name={exercise.name} />
-        <p className="flex-1 font-bold text-base leading-tight">{exercise.name}</p>
+        <p className="flex-1" style={EXERCISE_NAME_STYLE}>{exercise.name}</p>
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="w-9 h-9 rounded-full flex items-center justify-center press-effect flex-shrink-0"
@@ -707,7 +708,7 @@ export default function SessionSheet() {
           >
             {sheetPanel === "reschedule" && (
               <div className="p-4 space-y-3">
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>DÉCALER LA SÉANCE</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>DÉCALER LA SÉANCE</p>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -734,7 +735,7 @@ export default function SessionSheet() {
             )}
             {sheetPanel === "cancel" && (
               <div className="p-4 space-y-3">
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>ANNULER LA SÉANCE</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>ANNULER LA SÉANCE</p>
                 <input
                   type="text"
                   value={sheetCancelReason}
@@ -811,19 +812,12 @@ export default function SessionSheet() {
                 todayCoachWorkout={sessionCoachWorkout}
                 todaySession={null}
                 onOpenSession={() => {}}
+                variant="embedded"
               />
               <SessionBriefCard brief={sessionCoachWorkout?.sessionBrief} />
               <div className="flex items-center justify-between px-1 pt-1">
-                <span
-                  className="text-[11px] font-bold tracking-widest"
-                  style={{ color: "#555" }}
-                >
-                  PROGRAMME
-                </span>
-                <span
-                  className="text-[11px] font-bold tracking-widest"
-                  style={{ color: "#555" }}
-                >
+                <span style={JETBRAINS_MONO_LABEL}>PROGRAMME</span>
+                <span style={JETBRAINS_MONO_LABEL}>
                   {(session.state?.exercises.length ?? 0)} EXERCICE{(session.state?.exercises.length ?? 0) > 1 ? "S" : ""}
                 </span>
               </div>

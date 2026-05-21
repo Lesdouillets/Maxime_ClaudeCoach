@@ -1,3 +1,5 @@
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
+
 interface Props {
   brief: string | null | undefined;
 }
@@ -27,10 +29,7 @@ export default function SessionBriefCard({ brief }: Props) {
             <path d="M12 5v14M5 12h14" stroke="var(--color-neon)" strokeWidth="2.2" strokeLinecap="round" />
           </svg>
         </div>
-        <span
-          className="text-[11px] font-bold tracking-widest"
-          style={{ color: "var(--color-neon)" }}
-        >
+        <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon)" }}>
           LE MOT DU COACH
         </span>
       </div>

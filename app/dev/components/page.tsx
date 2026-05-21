@@ -8,7 +8,7 @@ import type { SessionType, SessionStatus, SessionTagSize } from "@/components/Se
 import Badge from "@/components/Badge";
 import { StreakBar } from "@/components/StreakBar";
 import { WeekProgram } from "@/components/WeekProgram";
-import { SessionCard } from "@/components/SessionCard";
+import { SessionCard, FitnessCard } from "@/components/SessionCard";
 import { WingLeft, WingRight } from "@/components/RaceBadge";
 import { StreakCard } from "@/components/StreakCard";
 import { computeStreak } from "@/lib/streak";
@@ -324,6 +324,16 @@ export default function ComponentsPage() {
       {/* ── DÉTAIL SÉANCE ── */}
       {active === "detail" && (
         <div className="space-y-10">
+
+          {/* FitnessCard — variant embedded */}
+          <ComponentBlock noPad title="FitnessCard — variant embedded" description="Affichée dans le sheet de détail — sans &laquo; Voir le détail &raquo;">
+            <FitnessCard
+              todayCoachWorkout={{ id: "1", type: "fitness", date: "2026-05-21", category: "upper", label: "Haut du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "MONTEE EN CHARGE" }}
+              todaySession={null}
+              onOpenSession={() => {}}
+              variant="embedded"
+            />
+          </ComponentBlock>
 
           {/* SessionBriefCard */}
           <div className="space-y-4">

@@ -2,6 +2,7 @@
 
 import Badge from "./Badge";
 import { ArrowForwardIcon } from "./icons";
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface DayHeaderProps {
   dateLabel: string;
@@ -21,7 +22,7 @@ export default function DayHeader({ dateLabel, titleLine, isDone, isCancelled, h
         Retour
       </button>
 
-      <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-muted">{dateLabel}</p>
+      <p className="mb-1" style={JETBRAINS_MONO_LABEL}>{dateLabel}</p>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-4xl leading-none">{titleLine}</h1>
         <div className="flex flex-col items-end gap-1">

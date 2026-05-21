@@ -158,7 +158,11 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
   );
 }
 
-export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<SessionCardProps, "todayCoachWorkout" | "todaySession" | "onOpenSession">) {
+interface FitnessCardProps extends Pick<SessionCardProps, "todayCoachWorkout" | "todaySession" | "onOpenSession"> {
+  variant?: "default" | "embedded";
+}
+
+export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession, variant = "default" }: FitnessCardProps) {
   const fitness = todaySession?.type === "fitness" ? todaySession : null;
   const isDone = fitness !== null;
   const isUpper = isDone ? fitness?.category === "upper" : todayCoachWorkout?.category === "upper";
@@ -218,8 +222,12 @@ export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: 
           )}
         </div>
 
-        <div style={DIVIDER_STYLE} />
-        <p className="text-center text-sm font-semibold" style={{ color: "#aaa" }}>Voir le détail ›</p>
+        {variant === "default" && (
+          <>
+            <div style={DIVIDER_STYLE} />
+            <p className="text-center text-sm font-semibold" style={{ color: "#aaa" }}>Voir le détail ›</p>
+          </>
+        )}
       </div>
     </button>
   );

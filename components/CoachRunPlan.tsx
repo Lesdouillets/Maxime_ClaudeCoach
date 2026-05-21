@@ -3,6 +3,7 @@
 import Badge from "@/components/Badge";
 import { getRunBadge } from "@/lib/coachPlan";
 import type { CoachRun, CoachRunInterval } from "@/lib/coachPlan";
+import { JETBRAINS_MONO_LABEL, JETBRAINS_MONO_DATA } from "@/lib/typography";
 
 interface Props {
   coachRun: CoachRun;
@@ -32,7 +33,7 @@ export default function CoachRunPlan({ coachRun }: Props) {
 
   return (
     <div className="rounded-2xl p-4" style={{ background: "rgba(205,255,0,0.04)", border: "1px solid rgba(205,255,0,0.15)" }}>
-      <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#CDFF00" }}>PLAN COACH</p>
+      <p className="mb-3" style={{ ...JETBRAINS_MONO_LABEL, color: "#CDFF00" }}>PLAN COACH</p>
 
       <div className="flex items-center gap-2 mb-3">
         {badge && <Badge label={badge} variant="neon" />}
@@ -49,17 +50,17 @@ export default function CoachRunPlan({ coachRun }: Props) {
               <div>
                 <p className="text-sm font-medium">{seg.label ?? segDistLabel(seg)}</p>
                 {seg.label && (
-                  <p className="text-xs mt-0.5" style={{ color: "#555" }}>{segDistLabel(seg)}</p>
+                  <p className="mt-0.5" style={JETBRAINS_MONO_DATA}>{segDistLabel(seg)}</p>
                 )}
               </div>
               <div className="text-right ml-4">
                 <p className="text-sm font-semibold" style={{ color: "#ccc" }}>{segDuration(seg)}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#555" }}>
+                <p className="mt-0.5" style={JETBRAINS_MONO_DATA}>
                   {seg.pace}/km
                   {seg.targetHR && ` · ♥ ${seg.targetHR}`}
                 </p>
                 {seg.restSeconds && (
-                  <p className="text-xs" style={{ color: "#555" }}>récup {seg.restSeconds}s</p>
+                  <p style={JETBRAINS_MONO_DATA}>récup {seg.restSeconds}s</p>
                 )}
               </div>
             </div>

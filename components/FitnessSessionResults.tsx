@@ -1,6 +1,7 @@
 "use client";
 
 import type { FitnessSession } from "@/lib/types";
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface Props {
   session: FitnessSession;
@@ -11,7 +12,7 @@ export default function FitnessSessionResults({ session }: Props) {
     <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
       {session.exercises.length > 0 ? (
         <>
-          <p className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#555" }}>EXERCICES</p>
+          <p className="mb-3" style={JETBRAINS_MONO_LABEL}>EXERCICES</p>
           <div className="space-y-2">
             {session.exercises.map((ex) => (
               <div key={ex.id} className="text-sm">

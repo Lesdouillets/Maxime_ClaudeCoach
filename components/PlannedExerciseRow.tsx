@@ -1,4 +1,4 @@
-import { ARCHIVO_WIDE_BOLD } from "@/lib/typography";
+import { EXERCISE_NAME_STYLE, JETBRAINS_MONO_DATA } from "@/lib/typography";
 
 interface Props {
   name: string;
@@ -32,13 +32,13 @@ export default function PlannedExerciseRow({ name, sets, reps, weight }: Props) 
     >
       <p
         className="text-base mb-2"
-        style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 17, lineHeight: "22px", color: "#fff" }}
+        style={EXERCISE_NAME_STYLE}
       >
         {name}
       </p>
       <div className="flex items-center gap-2">
         <PlannedPills count={sets} />
-        <span className="text-xs" style={{ color: "#555" }}>
+        <span style={JETBRAINS_MONO_DATA}>
           · {reps} reps{weight > 0 ? ` · ${weight} kg` : ""}
         </span>
       </div>

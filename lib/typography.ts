@@ -7,16 +7,29 @@ export const ARCHIVO_WIDE_BOLD: CSSProperties = {
   fontVariationSettings: '"wdth" 110',
 };
 
-// Label monospace 12px — titres de section, étiquettes
-export const JETBRAINS_MONO_LABEL: CSSProperties = {
+// Nom d'exercice — Archivo Wide Bold 18px
+export const EXERCISE_NAME_STYLE: CSSProperties = {
+  ...ARCHIVO_WIDE_BOLD,
+  fontSize: 18,
+  lineHeight: "22px",
+  color: "#fff",
+};
+
+// Base partagée JetBrains Mono 12px — LABEL et DATA en dérivent
+const JETBRAINS_MONO_12: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontWeight: 700,
   fontSize: 12,
   lineHeight: "12px",
   letterSpacing: "0.10em",
-  textTransform: "uppercase",
   color: "var(--color-muted)",
 };
+
+// Label monospace 12px — titres de section, étiquettes (toujours uppercase)
+export const JETBRAINS_MONO_LABEL: CSSProperties = { ...JETBRAINS_MONO_12, textTransform: "uppercase" };
+
+// Données mono 12px — reps, poids, pace, métadonnées (pas d'uppercase)
+export const JETBRAINS_MONO_DATA: CSSProperties = JETBRAINS_MONO_12;
 
 // Label monospace 9px — légendes, unités de stats
 export const JETBRAINS_MONO_TINY: CSSProperties = {

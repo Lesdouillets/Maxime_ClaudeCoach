@@ -13,6 +13,7 @@ import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } fr
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
 import { OptionsIcon } from "@/components/icons";
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
   analyzeSession,
@@ -387,7 +388,7 @@ export default function RunSheet() {
           >
             {optionsPanel === "reschedule" && (
               <div className="p-4 space-y-3">
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>DÉCALER LE RUN</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>DÉCALER LE RUN</p>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -414,7 +415,7 @@ export default function RunSheet() {
             )}
             {optionsPanel === "cancel" && (
               <div className="p-4 space-y-3">
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#888" }}>ANNULER LE RUN</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>ANNULER LE RUN</p>
                 <input
                   type="text"
                   value={cancelReason}
