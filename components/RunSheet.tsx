@@ -12,7 +12,7 @@ import { RaceBadge } from "@/components/RaceBadge";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
-import { OptionsIcon } from "@/components/icons";
+import { CalendarIcon, OptionsIcon, TrashIcon } from "@/components/icons";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
@@ -336,12 +336,12 @@ export default function RunSheet() {
               {optionsMenuOpen && (
                 <>
                   <div
-                    className="fixed inset-0 z-[60]"
+                    className="fixed inset-0 z-sheet"
                     style={{ background: "transparent" }}
                     onClick={() => setOptionsMenuOpen(false)}
                   />
                   <div
-                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden"
+                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden animate-fade-in"
                     style={{
                       width: 220,
                       background: "rgba(28,28,30,0.96)",
@@ -353,23 +353,18 @@ export default function RunSheet() {
                   >
                     <button
                       onClick={() => { setOptionsPanel("reschedule"); setOptionsMenuOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-                      style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white hover:bg-surface-2 transition-colors duration-150 press-effect"
                     >
+                      <CalendarIcon size={16} color="currentColor" />
                       <span>Décaler la séance</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M8 7H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 7h8" stroke="#888" strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
                     </button>
+                    <div className="border-t border-surface-3" />
                     <button
                       onClick={() => { setOptionsPanel("cancel"); setOptionsMenuOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-                      style={{ color: "#ff4d4d" }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-error hover:bg-surface-2 transition-colors duration-150 press-effect"
                     >
+                      <TrashIcon size={16} color="currentColor" />
                       <span>Annuler la séance</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="#ff4d4d" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
                     </button>
                   </div>
                 </>
