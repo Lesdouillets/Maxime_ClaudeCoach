@@ -18,6 +18,7 @@ import { WeekProgram } from "@/components/WeekProgram";
 import type { WorkoutSession } from "@/lib/types";
 import type { CoachWorkout, CoachRun } from "@/lib/coachPlan";
 import type { User } from "@supabase/supabase-js";
+import { AccountIcon, ArrowForwardIcon } from "@/components/icons";
 import type { StreakResult } from "@/lib/streak";
 import { ARCHIVO_WIDE_BOLD, JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
@@ -183,10 +184,7 @@ export default function HomePage() {
             marginTop: 2,
           }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="8" r="4" stroke="#aaa" strokeWidth="1.8"/>
-            <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
+          <AccountIcon size={20} color="#aaa" />
           <span style={{
             position: "absolute", bottom: 2, right: 2,
             width: 8, height: 8, borderRadius: "50%",
@@ -220,9 +218,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <p style={MONO_LABEL}>{weekRangeLabel}</p>
             <Link href="/plan">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <ArrowForwardIcon size={16} color="#555" />
             </Link>
           </div>
           <WeekProgram

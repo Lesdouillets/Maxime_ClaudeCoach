@@ -11,6 +11,7 @@ import NoteModal from "@/components/NoteModal";
 import { FitnessCard } from "@/components/SessionCard";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
+import { OptionsIcon } from "@/components/icons";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -180,11 +181,7 @@ function CollapsedCardImpl({
           style={{ color: "#777" }}
           aria-label="Options"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <OptionsIcon size={20} color="currentColor" />
         </button>
       )}
       {showMenu && menuOpen && (
@@ -238,11 +235,7 @@ function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
           style={{ color: "#aaa" }}
           aria-label="Options"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
-          </svg>
+          <OptionsIcon size={20} color="currentColor" />
         </button>
         {menuOpen && (
           <ExerciseMenu
@@ -657,11 +650,7 @@ export default function SessionSheet() {
                 style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
                 aria-label="Options"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
-                </svg>
+                <OptionsIcon size={20} color="currentColor" />
               </button>
               {sheetOptionsOpen && (
                 <>
