@@ -27,6 +27,7 @@ import RunPlanProgressive from "@/components/RunPlanProgressive";
 import RunPlanInterval from "@/components/RunPlanInterval";
 import RunPlanSection from "@/components/RunPlanSection";
 import RunHeroCard from "@/components/RunHeroCard";
+import RunSessionRecap from "@/components/RunSessionRecap";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -524,6 +525,11 @@ export default function ComponentsPage() {
               <p className="text-xs" style={{ color: "#555" }}>Post-sync (doneSession)</p>
               <RunHeroCard coachRun={FIXTURE_RUN_CLASSIC} doneSession={FIXTURE_DONE_RUN} />
             </div>
+          </ComponentBlock>
+
+          {/* RunSessionRecap */}
+          <ComponentBlock title="RunSessionRecap" description="Rappel des objectifs — visible uniquement post-sync">
+            <RunSessionRecap coachRun={FIXTURE_RUN_CLASSIC} />
           </ComponentBlock>
 
         </div>
