@@ -10,6 +10,17 @@ import { useTimer } from "@/contexts/TimerContext";
 const ACTIVE = "#FFFFFF";
 const MUTED  = "var(--color-muted)";
 
+const STRIP_STYLE: CSSProperties = {
+  height: 40,
+  display: "flex",
+  alignItems: "center",
+  padding: "0 16px",
+  gap: 8,
+  borderBottom: "1px solid var(--color-white-08)",
+  cursor: "pointer",
+  position: "relative",
+};
+
 export type BottomNavState = "nav" | "hidden";
 
 interface BottomNavProps {
@@ -70,9 +81,10 @@ const NAV_ITEMS = [
   },
 ];
 
-function formatMMSS(sec: number) {
+function formatMMSS(rawSec: number) {
+  const sec = Math.max(0, rawSec);
   const m = Math.floor(sec / 60);
-  const s = Math.max(0, sec) % 60;
+  const s = sec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
@@ -90,25 +102,14 @@ function SessionStrip() {
   if (!ex) return null;
 
   const isResting = !!timerKey && timerSec > 0;
-  const timerColor =
-    timerSec > 10 ? "var(--color-neon)" :
-    timerSec > 3  ? "var(--color-orange)" :
-                    "var(--color-error)";
-  const restProgress =
-    timerTotalSec > 0
-      ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
-      : 0;
-
-  const STRIP_STYLE: CSSProperties = {
-    height: 40,
-    display: "flex",
-    alignItems: "center",
-    padding: "0 16px",
-    gap: 8,
-    borderBottom: "1px solid var(--color-white-08)",
-    cursor: "pointer",
-    position: "relative",
-  };
+  const timerColor = isResting
+    ? timerSec > 10 ? "var(--color-neon)"
+      : timerSec > 3 ? "var(--color-orange)"
+      : "var(--color-error)"
+    : undefined;
+  const restProgress = isResting && timerTotalSec > 0
+    ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
+    : 0;
 
   return (
     <button
@@ -123,9 +124,9 @@ function SessionStrip() {
       />
 
       {/* Nom de l'exercice */}
-      <p className="flex-1 text-left text-sm font-semibold truncate">
+      <span className="flex-1 text-left text-sm font-semibold truncate block">
         {ex.name}
-      </p>
+      </span>
 
       {/* Timer ou badge EN COURS */}
       {isResting ? (
