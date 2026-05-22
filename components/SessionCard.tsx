@@ -73,7 +73,11 @@ function RestCard() {
   );
 }
 
-function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardProps, "todayCoachRun" | "todaySession" | "onOpenRun">) {
+interface RunCardProps extends Pick<SessionCardProps, "todayCoachRun" | "todaySession" | "onOpenRun"> {
+  variant?: "default" | "embedded";
+}
+
+export function RunCard({ todayCoachRun, todaySession, onOpenRun, variant = "default" }: RunCardProps) {
   const run = todaySession?.type === "run" ? todaySession : null;
   const isDone = run !== null;
   const isRace = todayCoachRun?.isRace ?? false;
@@ -151,8 +155,12 @@ function RunCard({ todayCoachRun, todaySession, onOpenRun }: Pick<SessionCardPro
           </div>
         )}
 
-        <div style={DIVIDER_STYLE} />
-        <p className="text-center text-sm font-semibold" style={{ color: "#aaa" }}>Voir le détail ›</p>
+        {variant === "default" && (
+          <>
+            <div style={DIVIDER_STYLE} />
+            <p className="text-center text-sm font-semibold" style={{ color: "#aaa" }}>Voir le détail ›</p>
+          </>
+        )}
       </div>
     </button>
   );

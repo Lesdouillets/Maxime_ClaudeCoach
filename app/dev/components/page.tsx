@@ -26,7 +26,7 @@ import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
 import RunPlanInterval from "@/components/RunPlanInterval";
 import RunPlanSection from "@/components/RunPlanSection";
-import RunHeroCard from "@/components/RunHeroCard";
+import { RunCard } from "@/components/SessionCard";
 import RunSessionRecap from "@/components/RunSessionRecap";
 import {
   FIXTURE_RUN_CLASSIC,
@@ -515,15 +515,15 @@ export default function ComponentsPage() {
             </div>
           </ComponentBlock>
 
-          {/* RunHeroCard */}
-          <ComponentBlock title="RunHeroCard" description="Carte hero — état prévu vs post-sync">
+          {/* RunCard (variant embedded — hero dans RunSheet) */}
+          <ComponentBlock title="RunCard (embedded)" description="Carte hero de RunSheet — même composant que la home, sans 'Voir le détail'">
             <div className="space-y-4">
               <p className="text-xs" style={{ color: "#555" }}>Prévu — z2</p>
-              <RunHeroCard coachRun={FIXTURE_RUN_CLASSIC} />
+              <RunCard todayCoachRun={FIXTURE_RUN_CLASSIC} todaySession={null} onOpenRun={() => {}} variant="embedded" />
               <p className="text-xs" style={{ color: "#555" }}>Prévu — fractionné</p>
-              <RunHeroCard coachRun={FIXTURE_RUN_INTERVAL} />
+              <RunCard todayCoachRun={FIXTURE_RUN_INTERVAL} todaySession={null} onOpenRun={() => {}} variant="embedded" />
               <p className="text-xs" style={{ color: "#555" }}>Post-sync (doneSession)</p>
-              <RunHeroCard coachRun={FIXTURE_RUN_CLASSIC} doneSession={FIXTURE_DONE_RUN} />
+              <RunCard todayCoachRun={FIXTURE_RUN_CLASSIC} todaySession={FIXTURE_DONE_RUN} onOpenRun={() => {}} variant="embedded" />
             </div>
           </ComponentBlock>
 

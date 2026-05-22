@@ -6,7 +6,7 @@ import { useRunSheet } from "@/contexts/RunSheetContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
-import RunHeroCard from "@/components/RunHeroCard";
+import { RunCard } from "@/components/SessionCard";
 import RunPlanSection from "@/components/RunPlanSection";
 import RunSessionRecap from "@/components/RunSessionRecap";
 import SessionBriefCard from "@/components/SessionBriefCard";
@@ -423,7 +423,12 @@ export default function RunSheet() {
         <div className={`flex-1 overflow-y-auto px-5 pt-2 space-y-4 ${coachRun && !doneSession ? "pb-32" : "pb-12"}`}>
           {/* Carte hero — visible si coachRun existe */}
           {coachRun && (
-            <RunHeroCard coachRun={coachRun} doneSession={doneSession} />
+            <RunCard
+              todayCoachRun={coachRun}
+              todaySession={doneSession}
+              onOpenRun={() => {}}
+              variant="embedded"
+            />
           )}
 
           {doneSession ? (
