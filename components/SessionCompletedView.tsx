@@ -1,45 +1,42 @@
-// components/SessionCompletedView.tsx
 "use client";
 
 import { FitnessCard } from "@/components/SessionCard";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
-import type { FinishingState } from "@/contexts/SessionContext";
+import type { CoachAnalysisResult } from "@/lib/coachAnalyzer";
 import type { CoachWorkout } from "@/lib/coachPlan";
+import type { FitnessSession } from "@/lib/types";
 
 interface Props {
-  finishing: FinishingState;
-  sessionCoachWorkout: CoachWorkout | null;
-  onRetry: () => void;
-  onContinue: () => void;
+  session: FitnessSession | null;
+  coachWorkout: CoachWorkout | null;
+  coachState: "analyzing" | "done";
+  coachResult: CoachAnalysisResult | null;
+  onRetry?: () => void;
 }
 
-export default function SessionCompletedView({ finishing, sessionCoachWorkout, onRetry, onContinue }: Props) {
-  const fitnessSession = finishing.session ?? null;
-  const coachState: "analyzing" | "done" =
-    finishing.status === "done" || finishing.status === "error" ? "done" : "analyzing";
-  const showContinue = finishing.status === "done" || finishing.status === "error";
-  const exercises = fitnessSession?.exercises ?? [];
+export default function SessionCompletedView({ session, coachWorkout, coachState, coachResult, onRetry }: Props) {
+  const exercises = session?.exercises ?? [];
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 pt-2 pb-32 space-y-3">
+    <div className="flex-1 overflow-y-auto px-3 pt-2 pb-8 space-y-3">
       <FitnessCard
-        todayCoachWorkout={sessionCoachWorkout}
-        todaySession={fitnessSession}
+        todayCoachWorkout={coachWorkout}
+        todaySession={session}
         onOpenSession={() => {}}
         variant="embedded"
       />
 
       <CoachFeedbackCard
         state={coachState}
-        result={finishing.result ?? null}
-        onRetry={finishing.status === "error" ? onRetry : undefined}
+        result={coachResult}
+        onRetry={onRetry}
       />
 
       {exercises.length > 0 && (
         <>
-          <p className="px-1 pt-1" style={{ ...JETBRAINS_MONO_LABEL, color: "#555" }}>
+          <p className="px-1 pt-1" style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-muted)" }}>
             RAPPEL DE LA SÉANCE
           </p>
           {exercises.map((ex) => (
@@ -52,35 +49,6 @@ export default function SessionCompletedView({ finishing, sessionCoachWorkout, o
             />
           ))}
         </>
-      )}
-
-      {showContinue && (
-        <div
-          className="fixed left-0 right-0 px-4 pt-3"
-          style={{
-            bottom: 0,
-            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-            background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
-            zIndex: 10,
-          }}
-        >
-          <button
-            type="button"
-            onClick={onContinue}
-            className="w-full flex items-center justify-center gap-2 press-effect"
-            style={{
-              background: "rgba(205,255,0,0.12)",
-              border: "1px solid rgba(205,255,0,0.4)",
-              color: "var(--color-neon)",
-              borderRadius: "12px",
-              padding: "15px 24px",
-              fontWeight: 600,
-              fontSize: "15px",
-            }}
-          >
-            Continuer →
-          </button>
-        </div>
       )}
     </div>
   );

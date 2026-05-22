@@ -77,7 +77,7 @@ Rendu quand `finishing.status` est `saving | analyzing | done | error`.
 └─────────────────────────────┘
   RAPPEL DE LA SÉANCE          ← label JETBRAINS_MONO_LABEL color #555
 ┌─────────────────────────────┐
-│  ExerciseRowCard ×N         │  variant="completed" pour chaque exercice
+│  PlannedExerciseRow ×N      │  un par exercice dans finishing.session.exercises
 └─────────────────────────────┘
 ```
 
@@ -112,7 +112,7 @@ Le bouton "Continuer →" inline existant est supprimé (il est dans `SessionCom
 ## Hors scope
 
 - **#103** — Format structuré du contenu `done` de `CoachFeedbackCard` (texte brut pour l'instant)
-- Design des exercise cards du récap : `ExerciseRowCard variant="completed"` existant, pas de nouveau variant
+- Design des exercise cards du récap : `PlannedExerciseRow` existant (wrapper `ExerciseRowCard variant="planned"`), pas de nouveau composant
 
 ---
 

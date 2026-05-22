@@ -49,16 +49,16 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
       </div>
 
       {state === "analyzing" ? (
-        <p className="text-sm" style={{ color: "#444" }}>
+        <p className="text-sm" style={{ color: "var(--color-dim)" }}>
           En cours, l&apos;analyse peut prendre plusieurs secondes
         </p>
       ) : result?.analysis ? (
-        <p className="text-sm leading-relaxed" style={{ color: "#888" }}>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--color-secondary)" }}>
           {result.analysis}
         </p>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm" style={{ color: "#444" }}>
+          <p className="text-sm" style={{ color: "var(--color-dim)" }}>
             Analyse temporairement indisponible.
           </p>
           {onRetry && (

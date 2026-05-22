@@ -5,10 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import { useTimer } from "@/contexts/TimerContext";
-import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import SessionCompletedView from "@/components/SessionCompletedView";
 import FinishSessionModal from "@/components/FinishSessionModal";
-import FitnessSessionResults from "@/components/FitnessSessionResults";
 import NoteModal from "@/components/NoteModal";
 import { FitnessCard } from "@/components/SessionCard";
 import SessionBriefCard from "@/components/SessionBriefCard";
@@ -96,10 +94,10 @@ export default function SessionSheet() {
   }, [archiveSession]);
 
   // Drag-down / Réduire: minimize live sessions (so they can be resumed),
-  // but fully close archive views (nothing to resume).
+  // but fully close archive views and finished sessions (nothing to resume).
   const handleClose = useCallback(() => {
     const origin = session.state?.originRoute ?? session.archive?.originRoute;
-    if (session.archive && !session.state) {
+    if ((session.archive && !session.state) || (session.finishing.status !== "idle" && session.finishing.status !== "confirm")) {
       session.close();
     } else {
       session.minimize();
@@ -163,27 +161,11 @@ export default function SessionSheet() {
   const isArchive = !session.state && !!session.archive;
   const isExpanded = session.view === "expanded" && hasEntered;
   const backdropVisible = session.view === "expanded";
-  const isFinishingRunning =
-    !isArchive && (
-      session.finishing.status === "saving" ||
-      session.finishing.status === "analyzing" ||
-      session.finishing.status === "done" ||
-      session.finishing.status === "error"
-    );
+  const isFinishingRunning = !isArchive && session.finishing.status !== "idle" && session.finishing.status !== "confirm";
   const isStarted = !isArchive && (session.state?.started ?? false);
   const showRestBar = isStarted && !!timerKey && timerSec > 0;
   const activeExIdx = session.state?.activeExIdx ?? 0;
   const liveExercises = session.state?.exercises ?? [];
-
-  const archiveDateStr = session.archive?.date ?? null;
-  const archiveDateLabel = archiveDateStr
-    ? new Date(archiveDateStr + "T12:00:00").toLocaleDateString("fr-FR", {
-        weekday: "long", day: "numeric", month: "long",
-      })
-    : "";
-  const archiveTitle = archiveSession
-    ? archiveSession.category === "upper" ? "HAUT DU CORPS" : "BAS DU CORPS"
-    : "SÉANCE";
 
   const restProgress =
     timerKey && timerTotalSec > 0
@@ -191,10 +173,17 @@ export default function SessionSheet() {
       : 0;
 
   const sessionCoachWorkoutId = !isArchive ? (session.state?.coachWorkoutId ?? null) : null;
+  const coachWorkouts = getCoachWorkouts();
   const sessionCoachWorkout: CoachWorkout | null = sessionCoachWorkoutId
-    ? (getCoachWorkouts().find((w) => w.id === sessionCoachWorkoutId) ?? null)
+    ? (coachWorkouts.find((w) => w.id === sessionCoachWorkoutId) ?? null)
+    : null;
+  const archiveCoachWorkout: CoachWorkout | null = isArchive && archiveSession?.coachWorkoutId
+    ? (coachWorkouts.find((w) => w.id === archiveSession.coachWorkoutId) ?? null)
     : null;
   const sessionDate = !isArchive ? (session.state?.date ?? "") : "";
+  const completedCoachState: "analyzing" | "done" = isFinishingRunning
+    ? (session.finishing.status === "analyzing" || session.finishing.status === "saving" ? "analyzing" : "done")
+    : archiveCoachState;
 
   const handleRescheduleWorkout = () => {
     if (!sheetRescheduleDate || !sessionCoachWorkout) return;
@@ -433,57 +422,17 @@ export default function SessionSheet() {
         )}
 
         {/* Body */}
-        {isFinishingRunning ? (
+        {(isFinishingRunning || isArchive) ? (
           <SessionCompletedView
-            finishing={session.finishing}
-            sessionCoachWorkout={sessionCoachWorkout}
-            onRetry={session.retryAnalysis}
-            onContinue={() => { session.close(); router.push("/"); }}
+            session={isFinishingRunning ? (session.finishing.session ?? null) : archiveSession}
+            coachWorkout={isFinishingRunning ? sessionCoachWorkout : archiveCoachWorkout}
+            coachState={completedCoachState}
+            coachResult={isFinishingRunning ? (session.finishing.result ?? null) : archiveCoachResult}
+            onRetry={isFinishingRunning ? session.retryAnalysis : handleArchiveRetry}
           />
         ) : (
           <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
-          {isArchive && (
-            <div className="px-2 pb-2">
-              <p
-                className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
-                style={{ color: "#CDFF00" }}
-              >
-                {archiveDateLabel}
-              </p>
-              <h1
-                className="font-display text-5xl leading-none"
-                style={{ textShadow: "0 0 30px rgba(205,255,0,0.3)" }}
-              >
-                {archiveTitle} ✓
-              </h1>
-            </div>
-          )}
-          {isArchive && archiveSession && (
-            <div className="px-2 space-y-3">
-              <CoachFeedbackCard
-                state={archiveCoachState}
-                result={archiveCoachResult}
-                onRetry={handleArchiveRetry}
-              />
-              <FitnessSessionResults session={archiveSession} />
-              <button
-                onClick={session.deleteArchivedSession}
-                className="w-full py-2 rounded-xl text-xs press-effect"
-                style={{ background: "transparent", border: "1px solid #111", color: "#2a2a2a" }}
-              >
-                Supprimer la séance
-              </button>
-            </div>
-          )}
-          {isArchive && !archiveSession && (
-            <div
-              className="rounded-2xl p-4 mx-2"
-              style={{ background: "#111", border: "1px solid #1a1a1a" }}
-            >
-              <p className="text-sm text-muted">Séance introuvable.</p>
-            </div>
-          )}
-          {!isArchive && !isStarted && (
+          {!isStarted && (
             <div className="space-y-3">
               <FitnessCard
                 todayCoachWorkout={sessionCoachWorkout}
@@ -501,7 +450,7 @@ export default function SessionSheet() {
             </div>
           )}
           {/* Avant démarrage : liste planifiée */}
-          {!isArchive && !isStarted && liveExercises.map((ex) => (
+          {!isStarted && liveExercises.map((ex) => (
             <ExerciseRowCard
               key={ex.id}
               name={ex.name}
@@ -512,7 +461,7 @@ export default function SessionSheet() {
             />
           ))}
 
-          {!isArchive && isStarted && liveExercises.slice(0, activeExIdx).map((ex, i) => {
+          {isStarted && liveExercises.slice(0, activeExIdx).map((ex, i) => {
             const doneSets = ex.setLogs?.filter(s => s.done).length ?? 0;
             const totalSets = ex.setLogs?.length ?? ex.sets ?? 0;
             const allDone = totalSets > 0 && doneSets === totalSets;
@@ -531,7 +480,7 @@ export default function SessionSheet() {
           })}
 
           {/* Exercice actif */}
-          {!isArchive && isStarted && liveExercises[activeExIdx] && (
+          {isStarted && liveExercises[activeExIdx] && (
             <ActiveExerciseCard
               exercise={liveExercises[activeExIdx]}
               onOpenNote={() => setNoteModalExId(liveExercises[activeExIdx].id)}
@@ -539,7 +488,7 @@ export default function SessionSheet() {
           )}
 
           {/* À suivre */}
-          {!isArchive && isStarted && liveExercises.slice(activeExIdx + 1).length > 0 && (
+          {isStarted && liveExercises.slice(activeExIdx + 1).length > 0 && (
             <>
               <div className="px-1 pt-2">
                 <span style={{ ...JETBRAINS_MONO_LABEL, color: "#555" }}>À suivre</span>

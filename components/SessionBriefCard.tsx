@@ -23,7 +23,7 @@ export default function SessionBriefCard({ brief }: Props) {
       <div className="mb-2">
         <CardIconHeader icon={<PlusIcon />} label="LE MOT DU COACH" />
       </div>
-      <p className="text-sm leading-relaxed" style={{ color: "#888" }}>
+      <p className="text-sm leading-relaxed" style={{ color: "var(--color-secondary)" }}>
         {brief}
       </p>
     </div>
