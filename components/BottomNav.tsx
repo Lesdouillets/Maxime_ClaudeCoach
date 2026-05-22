@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { useSession } from "@/contexts/SessionContext";
+import { useTimer } from "@/contexts/TimerContext";
 
 const ACTIVE = "#FFFFFF";
 const MUTED  = "var(--color-muted)";
@@ -67,6 +70,100 @@ const NAV_ITEMS = [
   },
 ];
 
+function formatMMSS(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.max(0, sec) % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function SessionStrip() {
+  const session = useSession();
+  const { timerKey, timerSec, timerTotalSec } = useTimer();
+
+  if (
+    session.view !== "minimized" ||
+    !session.state?.started ||
+    session.finishing.status !== "idle"
+  ) return null;
+
+  const ex = session.state.exercises[session.state.activeExIdx];
+  if (!ex) return null;
+
+  const isResting = !!timerKey && timerSec > 0;
+  const timerColor =
+    timerSec > 10 ? "var(--color-neon)" :
+    timerSec > 3  ? "var(--color-orange)" :
+                    "var(--color-error)";
+  const restProgress =
+    timerTotalSec > 0
+      ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
+      : 0;
+
+  const STRIP_STYLE: CSSProperties = {
+    height: 40,
+    display: "flex",
+    alignItems: "center",
+    padding: "0 16px",
+    gap: 8,
+    borderBottom: "1px solid var(--color-white-08)",
+    cursor: "pointer",
+    position: "relative",
+  };
+
+  return (
+    <button
+      onClick={session.expand}
+      className="w-full press-effect"
+      style={STRIP_STYLE}
+    >
+      {/* Point indicateur */}
+      <div
+        className="flex-shrink-0 rounded-full"
+        style={{ width: 6, height: 6, background: "var(--color-neon)" }}
+      />
+
+      {/* Nom de l'exercice */}
+      <p className="flex-1 text-left text-sm font-semibold truncate">
+        {ex.name}
+      </p>
+
+      {/* Timer ou badge EN COURS */}
+      {isResting ? (
+        <span
+          className="font-display text-base leading-none tabular-nums flex-shrink-0"
+          style={{ color: timerColor }}
+        >
+          {formatMMSS(timerSec)}
+        </span>
+      ) : (
+        <span
+          className="text-xs font-medium flex-shrink-0"
+          style={{ color: "var(--color-neon)", opacity: 0.5 }}
+        >
+          EN COURS
+        </span>
+      )}
+
+      {/* Progress bar en bas de la strip (visible seulement si timer actif) */}
+      {isResting && (
+        <div
+          className="absolute bottom-0 left-0 right-0"
+          style={{ height: 2, background: "var(--color-surface-3)" }}
+        >
+          <div
+            style={{
+              height: 2,
+              width: `${restProgress * 100}%`,
+              background: timerColor,
+              transition: "width 600ms linear",
+            }}
+          />
+        </div>
+      )}
+    </button>
+  );
+}
+
 export default function BottomNav({ state = "nav" }: BottomNavProps) {
   const pathname = usePathname();
   const [activating, setActivating] = useState<string | null>(null);
@@ -87,6 +184,7 @@ export default function BottomNav({ state = "nav" }: BottomNavProps) {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
+      <SessionStrip />
       <nav className="flex items-center justify-around px-2 pt-3 pb-2">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
