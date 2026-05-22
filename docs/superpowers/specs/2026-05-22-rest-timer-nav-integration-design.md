@@ -62,6 +62,10 @@ Le timer **dans** la session sheet (quand elle est ouverte) reste identique. Cet
 
 ---
 
+## Conservé tel quel
+
+- `TimerHalo` dans `GlobalUI.tsx` — l'effet de glow en fin de timer (≤10s) reste inchangé
+
 ## Hors scope
 
 - Animations de transition (slide-in/out de la strip)
