@@ -24,6 +24,7 @@ import ExerciseRowCard from "@/components/ExerciseRowCard";
 import type { LiveExercise } from "@/contexts/SessionContext";
 import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
+import RunPlanInterval from "@/components/RunPlanInterval";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -486,6 +487,11 @@ export default function ComponentsPage() {
           {/* RunPlanProgressive */}
           <ComponentBlock title="RunPlanProgressive" description="Séance progressive — zones empilées Z2/Z3/Z4">
             <RunPlanProgressive coachRun={FIXTURE_RUN_PROGRESSIVE} />
+          </ComponentBlock>
+
+          {/* RunPlanInterval */}
+          <ComponentBlock title="RunPlanInterval" description="Fractionné — échauffement + bloc reps + retour au calme">
+            <RunPlanInterval coachRun={FIXTURE_RUN_INTERVAL} />
           </ComponentBlock>
 
         </div>
