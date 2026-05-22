@@ -2,30 +2,12 @@
 
 import Badge from "@/components/Badge";
 import { getRunBadge } from "@/lib/coachPlan";
-import type { CoachRun, CoachRunInterval } from "@/lib/coachPlan";
+import type { CoachRun } from "@/lib/coachPlan";
+import { segDuration, segDistLabel } from "@/lib/runPlanUtils";
 import { JETBRAINS_MONO_LABEL, JETBRAINS_MONO_DATA } from "@/lib/typography";
 
 interface Props {
   coachRun: CoachRun;
-}
-
-function parsePaceSec(pace: string): number {
-  const [m, s] = pace.split(":").map(Number);
-  return m * 60 + (s || 0);
-}
-
-function segDuration(seg: CoachRunInterval): string {
-  const totalSec = seg.distanceKm * parsePaceSec(seg.pace) * (seg.reps ?? 1);
-  const min = Math.floor(totalSec / 60);
-  const sec = Math.round(totalSec % 60);
-  return sec === 0 ? `~${min} min` : `~${min}min${sec.toString().padStart(2, "0")}`;
-}
-
-function segDistLabel(seg: CoachRunInterval): string {
-  const d = seg.distanceKm < 1
-    ? `${seg.distanceKm * 1000}m`
-    : `${seg.distanceKm}km`;
-  return seg.reps ? `${seg.reps}×${d}` : d;
 }
 
 export default function CoachRunPlan({ coachRun }: Props) {
