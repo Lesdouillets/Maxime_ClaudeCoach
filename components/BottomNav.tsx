@@ -120,16 +120,16 @@ function SessionStrip() {
       className="w-full press-effect"
       style={STRIP_STYLE}
     >
-      {/* Nom de l'exercice + label repos */}
-      <div className="flex-1 flex flex-col justify-center gap-0.5 min-w-0">
+      {/* Nom de l'exercice + label repos sur la même ligne */}
+      <div className="flex-1 flex items-baseline gap-1.5 min-w-0 overflow-hidden">
         <span
-          className="truncate"
+          className="truncate flex-shrink-0 max-w-[55%]"
           style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "17px", color: "#fff" }}
         >
           {ex.name}
         </span>
         {isResting && setLabel && (
-          <span style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-orange)" }}>
+          <span className="flex-shrink-0" style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-orange)" }}>
             {setLabel}
           </span>
         )}
