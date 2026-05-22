@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
-import CoachRunPlan from "@/components/CoachRunPlan";
 import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
-import { formatPace, toLocalDateStr } from "@/lib/plan";
+import RunHeroCard from "@/components/RunHeroCard";
+import RunPlanSection from "@/components/RunPlanSection";
+import RunSessionRecap from "@/components/RunSessionRecap";
+import SessionBriefCard from "@/components/SessionBriefCard";
+import { toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
-import { RaceBadge } from "@/components/RaceBadge";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
@@ -246,10 +248,6 @@ export default function RunSheet() {
   const isExpanded = sheet.view === "expanded" && hasEntered;
   const backdropVisible = sheet.view === "expanded";
 
-  const dateLabel = new Date(dateStr + "T12:00:00").toLocaleDateString("fr-FR", {
-    weekday: "long", day: "numeric", month: "long",
-  });
-
   return (
     <>
       {/* Backdrop */}
@@ -421,39 +419,15 @@ export default function RunSheet() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="px-5 pb-3">
-          <p
-            className="text-xs font-medium tracking-[0.2em] uppercase mb-1"
-            style={{ color: "#CDFF00" }}
-          >
-            {dateLabel}
-          </p>
-          <div className="flex items-center gap-3">
-            <h1
-              className="font-display text-5xl leading-none"
-              style={{ textShadow: coachRun?.isRace ? "0 0 30px rgba(254,237,0,0.25)" : "0 0 30px rgba(205,255,0,0.3)" }}
-            >
-              RUN{doneSession ? " ✓" : ""}
-            </h1>
-            {coachRun?.isRace && <RaceBadge wingSize={10} fontSize={11} />}
-          </div>
-        </div>
-
         {/* Body */}
         <div className={`flex-1 overflow-y-auto px-5 pt-2 space-y-4 ${coachRun && !doneSession ? "pb-32" : "pb-12"}`}>
-          {doneSession ? (
-            // Archive view: results + coach feedback (same widgets as /day)
-            <>
-              {doneSession.importedFromStrava && (
-                <div
-                  className="flex items-center gap-1.5 text-xs"
-                  style={{ color: "var(--color-orange)" }}
-                >
-                  <StravaIcon /> Importé depuis Strava
-                </div>
-              )}
+          {/* Carte hero — visible si coachRun existe */}
+          {coachRun && (
+            <RunHeroCard coachRun={coachRun} doneSession={doneSession} />
+          )}
 
+          {doneSession ? (
+            <>
               {(analysisAttempted || coachState === "analyzing" || !!coachResult) && (
                 <CoachFeedbackCard state={coachState} result={coachResult} />
               )}
@@ -483,7 +457,8 @@ export default function RunSheet() {
 
               <RunSessionResults session={doneSession} runType={coachRun?.runType} />
 
-              {/* Strava sync button */}
+              {coachRun && <RunSessionRecap coachRun={coachRun} />}
+
               <button
                 onClick={handleStravaSync}
                 disabled={stravaSyncing}
@@ -502,7 +477,10 @@ export default function RunSheet() {
               )}
             </>
           ) : coachRun ? (
-            <CoachRunPlan coachRun={coachRun} />
+            <>
+              <SessionBriefCard brief={coachRun.coachNote} />
+              <RunPlanSection coachRun={coachRun} />
+            </>
           ) : (
             <div
               className="rounded-2xl p-4"
