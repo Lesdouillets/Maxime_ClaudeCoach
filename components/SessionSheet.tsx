@@ -6,6 +6,7 @@ import { useSession } from "@/contexts/SessionContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
+import SessionCompletedView from "@/components/SessionCompletedView";
 import FinishSessionModal from "@/components/FinishSessionModal";
 import FitnessSessionResults from "@/components/FitnessSessionResults";
 import NoteModal from "@/components/NoteModal";
@@ -432,7 +433,15 @@ export default function SessionSheet() {
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
+        {isFinishingRunning ? (
+          <SessionCompletedView
+            finishing={session.finishing}
+            sessionCoachWorkout={sessionCoachWorkout}
+            onRetry={session.retryAnalysis}
+            onContinue={() => { session.close(); router.push("/"); }}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto px-3 pt-2 pb-40 space-y-3">
           {isArchive && (
             <div className="px-2 pb-2">
               <p
@@ -548,26 +557,8 @@ export default function SessionSheet() {
               ))}
             </>
           )}
-
-          {isFinishingRunning && (
-            <div className="pt-2">
-              <CoachFeedbackCard
-                state={session.finishing.status === "analyzing" || session.finishing.status === "saving" ? "analyzing" : "done"}
-                result={session.finishing.result ?? null}
-                onRetry={session.finishing.status === "error" ? session.retryAnalysis : undefined}
-              />
-              {(session.finishing.status === "done" || session.finishing.status === "error") && (
-                <button
-                  onClick={() => { session.close(); router.push("/"); }}
-                  className="mt-3 w-full py-3 rounded-2xl font-bold press-effect"
-                  style={{ background: "rgba(205,255,0,0.12)", border: "1px solid rgba(205,255,0,0.4)", color: "#CDFF00" }}
-                >
-                  Continuer →
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Bottom: "Commencer" CTA while not started, or rest progress while running */}
         {!isArchive && !isStarted && !isFinishingRunning && (
