@@ -135,6 +135,16 @@ body {
   100% { transform: scale(1);    opacity: 1; }
 }
 
+/* Suppression du spinner natif sur les inputs numériques */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Input base */
 input[type="text"],
 input[type="number"],

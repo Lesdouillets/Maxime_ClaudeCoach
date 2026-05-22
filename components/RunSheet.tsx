@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
+import { ContextMenu } from "@/components/ui/ContextMenu";
 import CoachRunPlan from "@/components/CoachRunPlan";
 import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
@@ -334,40 +335,22 @@ export default function RunSheet() {
                 <OptionsIcon size={20} color="currentColor" />
               </button>
               {optionsMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-sheet"
-                    style={{ background: "transparent" }}
-                    onClick={() => setOptionsMenuOpen(false)}
-                  />
-                  <div
-                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden animate-fade-in"
-                    style={{
-                      width: 220,
-                      background: "rgba(28,28,30,0.96)",
-                      border: "1px solid #2a2a2a",
-                      backdropFilter: "blur(40px)",
-                      WebkitBackdropFilter: "blur(40px)",
-                      boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
-                    }}
-                  >
-                    <button
-                      onClick={() => { setOptionsPanel("reschedule"); setOptionsMenuOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white hover:bg-surface-2 transition-colors duration-150 press-effect"
-                    >
-                      <CalendarIcon size={16} color="currentColor" />
-                      <span>Décaler la séance</span>
-                    </button>
-                    <div className="border-t border-surface-3" />
-                    <button
-                      onClick={() => { setOptionsPanel("cancel"); setOptionsMenuOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-error hover:bg-surface-2 transition-colors duration-150 press-effect"
-                    >
-                      <TrashIcon size={16} color="currentColor" />
-                      <span>Annuler la séance</span>
-                    </button>
-                  </div>
-                </>
+                <ContextMenu
+                  onClose={() => setOptionsMenuOpen(false)}
+                  items={[
+                    {
+                      label: "Décaler la séance",
+                      icon: <CalendarIcon size={16} color="currentColor" />,
+                      onClick: () => { setOptionsPanel("reschedule"); setOptionsMenuOpen(false); },
+                    },
+                    {
+                      label: "Annuler la séance",
+                      icon: <TrashIcon size={16} color="currentColor" />,
+                      onClick: () => { setOptionsPanel("cancel"); setOptionsMenuOpen(false); },
+                      variant: "destructive",
+                    },
+                  ]}
+                />
               )}
             </div>
           ) : (

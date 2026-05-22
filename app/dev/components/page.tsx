@@ -19,8 +19,11 @@ import { getCoachWorkouts, getCoachRuns } from "@/lib/coachPlan";
 import type { WeekStatus } from "@/lib/streak";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
+import ActiveExerciseCard from "@/components/ActiveExerciseCard";
+import ExerciseRowCard from "@/components/ExerciseRowCard";
+import type { LiveExercise } from "@/contexts/SessionContext";
 
-type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail";
+type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance";
 
 const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "atoms",   label: "Atoms",      ready: true },
@@ -31,6 +34,7 @@ const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "nav",     label: "Nav & CTA",  ready: true },
   { id: "plan",    label: "Plan",       ready: true },
   { id: "detail",  label: "Détail",     ready: true },
+  { id: "seance",  label: "Séance",     ready: true },
 ];
 
 export default function ComponentsPage() {
@@ -438,12 +442,68 @@ export default function ComponentsPage() {
         </div>
       )}
 
+      {/* ── SÉANCE ── */}
+      {active === "seance" && (
+        <div className="space-y-8">
+
+          <SectionLabel title="ActiveExerciseCard" description="Exercice en cours — 2 séries validées, 1 active, 1 à faire" />
+          <ActiveExerciseCard exercise={MOCK_EXERCISE} onOpenNote={() => alert("Ouvrir la note")} />
+
+          <SectionLabel title="ActiveExerciseCard — notes" description="Avec note coach + commentaire utilisateur" />
+          <ActiveExerciseCard exercise={MOCK_EXERCISE_WITH_NOTE} onOpenNote={() => alert("Ouvrir la note")} />
+
+          <SectionLabel title="ExerciseRowCard" description="3 variants : planned / upcoming / completed" />
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest" style={{ color: "#444" }}>planned</p>
+            <ExerciseRowCard name="Rowing assis" sets={4} reps={8} weight={42} variant="planned" />
+            <p className="text-[10px] uppercase tracking-widest pt-2" style={{ color: "#444" }}>upcoming</p>
+            <ExerciseRowCard name="Tirage vertical" sets={3} reps={10} weight={60} variant="upcoming" onTap={() => alert("tap")} />
+            <p className="text-[10px] uppercase tracking-widest pt-2" style={{ color: "#444" }}>completed</p>
+            <ExerciseRowCard name="Curl biceps" sets={3} reps={12} weight={14} variant="completed" onTap={() => alert("tap")} />
+          </div>
+
+        </div>
+      )}
+
     </div>
 
     <BottomNav state={active === "nav" ? navPreview : "nav"} />
     </>
   );
 }
+
+// ── Séance mock data ──────────────────────────────────────────────────────────
+
+const MOCK_EXERCISE: LiveExercise = {
+  id: "dev-mock",
+  name: "Développé haltères",
+  sets: 4,
+  reps: 8,
+  weight: 22,
+  comment: "",
+  setLogs: [
+    { reps: 8, weight: 22, done: true },
+    { reps: 8, weight: 24, done: true },
+    { reps: 8, weight: 24, done: false },
+    { reps: 8, weight: 24, done: false },
+  ],
+};
+
+const MOCK_EXERCISE_WITH_NOTE: LiveExercise = {
+  id: "dev-mock-note",
+  name: "Rowing assis",
+  sets: 4,
+  reps: 8,
+  weight: 42,
+  comment: "Bien garder le dos droit",
+  coachNote: "Progresser si tu te sens fort",
+  setLogs: [
+    { reps: 8, weight: 42, done: true },
+    { reps: 8, weight: 42, done: false },
+    { reps: 8, weight: 42, done: false },
+    { reps: 8, weight: 42, done: false },
+  ],
+};
 
 // ── WeekProgram mock scenarios ────────────────────────────────────────────────
 
@@ -691,6 +751,15 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
     <div className="flex flex-col items-center gap-1.5">
       {children}
       <span className="text-[9px]" style={{ color: "#444" }}>{label}</span>
+    </div>
+  );
+}
+
+function SectionLabel({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="pt-2">
+      <p className="font-display text-xl" style={{ color: "#fff" }}>{title}</p>
+      <p className="text-xs mt-0.5" style={{ color: "#444" }}>{description}</p>
     </div>
   );
 }

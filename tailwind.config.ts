@@ -29,6 +29,7 @@ const config: Config = {
       zIndex: {
         nav: "50",
         sheet: "60",
+        dropdown: "61",
         modal: "70",
         toast: "80",
       },

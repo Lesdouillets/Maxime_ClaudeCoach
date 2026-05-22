@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession, type LiveExercise } from "@/contexts/SessionContext";
+import { useSession } from "@/contexts/SessionContext";
+import { ContextMenu } from "@/components/ui/ContextMenu";
 import { useTimer } from "@/contexts/TimerContext";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import FinishSessionModal from "@/components/FinishSessionModal";
@@ -10,9 +11,10 @@ import FitnessSessionResults from "@/components/FitnessSessionResults";
 import NoteModal from "@/components/NoteModal";
 import { FitnessCard } from "@/components/SessionCard";
 import SessionBriefCard from "@/components/SessionBriefCard";
-import PlannedExerciseRow from "@/components/PlannedExerciseRow";
-import { CalendarIcon, OptionsIcon, TrashIcon } from "@/components/icons";
-import { EXERCISE_NAME_STYLE, JETBRAINS_MONO_LABEL } from "@/lib/typography";
+import ExerciseRowCard from "@/components/ExerciseRowCard";
+import ActiveExerciseCard from "@/components/ActiveExerciseCard";
+import { CalendarIcon, FlagIcon, OptionsIcon, TrashIcon } from "@/components/icons";
+import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import {
   analyzeSession,
   getStoredCoachAnalysis,
@@ -35,358 +37,12 @@ function formatMMSS(sec: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function ExerciseThumb({ name, size = 56 }: { name: string; size?: number }) {
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-  return (
-    <div
-      className="rounded-2xl flex items-center justify-center flex-shrink-0"
-      style={{
-        width: size,
-        height: size,
-        background: "linear-gradient(135deg, #1c1c1c, #0e0e0e)",
-        border: "1px solid #1f1f1f",
-      }}
-    >
-      <span className="font-display text-xl" style={{ color: "#888" }}>
-        {initials || "EX"}
-      </span>
-    </div>
-  );
-}
-
-function ExerciseMenu({
-  onNote,
-  onDelete,
-  onClose,
-}: {
-  onNote: () => void;
-  onDelete: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div
-        className="fixed inset-0 z-sheet"
-        style={{ background: "transparent" }}
-        onClick={onClose}
-      />
-      <div
-        className="absolute right-3 top-12 z-[61] rounded-2xl overflow-hidden animate-fade-in"
-        style={{
-          width: 240,
-          background: "rgba(28,28,30,0.96)",
-          border: "1px solid #2a2a2a",
-          backdropFilter: "blur(40px)",
-          WebkitBackdropFilter: "blur(40px)",
-          boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
-        }}
-      >
-        <button
-          onClick={() => { onNote(); onClose(); }}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-          style={{ color: "#eee", borderBottom: "1px solid #1f1f1f" }}
-        >
-          <span>Ajouter une note</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <rect x="4" y="4" width="16" height="16" rx="2" stroke="#888" strokeWidth="1.6"/>
-            <path d="M8 9h8M8 13h8M8 17h5" stroke="#888" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <button
-          onClick={() => { onDelete(); onClose(); }}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm press-effect"
-          style={{ color: "#ff4d4d" }}
-        >
-          <span>Supprimer l&apos;exercice</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" stroke="#ff4d4d" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </div>
-    </>
-  );
-}
-
-function ProgressDots({ exercise }: { exercise: LiveExercise }) {
-  const logs = exercise.setLogs ?? [];
-  if (logs.length === 0) {
-    return (
-      <span
-        className="inline-block rounded-full"
-        style={{ width: 28, height: 4, background: "#1f1f1f" }}
-      />
-    );
-  }
-  return (
-    <div className="flex items-center gap-1.5">
-      {logs.map((s, i) => (
-        <span
-          key={i}
-          className="inline-block rounded-full"
-          style={{
-            width: 22,
-            height: 4,
-            background: s.done ? "#CDFF00" : "#1f1f1f",
-            boxShadow: s.done ? "0 0 6px rgba(205,255,0,0.4)" : undefined,
-            transition: "background 200ms ease",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-interface CollapsedCardProps {
-  exercise: LiveExercise;
-  onTap: () => void;
-  onMenu: () => void;
-  menuOpen: boolean;
-  onMenuClose: () => void;
-  onAction: (kind: "note" | "delete") => void;
-  /** Hide the kebab + menu when false (e.g. session is in not-started summary mode) */
-  showMenu?: boolean;
-}
-
-function CollapsedCardImpl({
-  exercise,
-  onTap,
-  onMenu,
-  menuOpen,
-  onMenuClose,
-  onAction,
-  showMenu = true,
-}: CollapsedCardProps) {
-  return (
-    <div
-      className="relative rounded-2xl p-3 flex items-center gap-3 press-effect"
-      style={{
-        background: "#141414",
-        border: "1px solid #1d1d1d",
-      }}
-      onClick={onTap}
-    >
-      <ExerciseThumb name={exercise.name} />
-      <div className="flex-1 min-w-0">
-        <p className="truncate" style={EXERCISE_NAME_STYLE}>{exercise.name}</p>
-        <div className="mt-1.5"><ProgressDots exercise={exercise} /></div>
-      </div>
-      {showMenu && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onMenu(); }}
-          className="w-9 h-9 rounded-full flex items-center justify-center press-effect flex-shrink-0"
-          style={{ color: "#777" }}
-          aria-label="Options"
-        >
-          <OptionsIcon size={20} color="currentColor" />
-        </button>
-      )}
-      {showMenu && menuOpen && (
-        <ExerciseMenu
-          onNote={() => onAction("note")}
-          onDelete={() => onAction("delete")}
-          onClose={onMenuClose}
-        />
-      )}
-    </div>
-  );
-}
-
-const CollapsedCard = memo(CollapsedCardImpl);
-
-interface ActiveCardProps {
-  exercise: LiveExercise;
-  onOpenNote: () => void;
-}
-
-function ActiveCardImpl({ exercise, onOpenNote }: ActiveCardProps) {
-  const session = useSession();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const onAction = (kind: "note" | "delete") => {
-    if (kind === "delete") {
-      session.removeExercise(exercise.id);
-      return;
-    }
-    if (kind === "note") {
-      onOpenNote();
-      return;
-    }
-  };
-
-  return (
-    <div
-      className="relative rounded-2xl overflow-visible"
-      style={{
-        background: "#141414",
-        border: "1px solid #232323",
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 p-3">
-        <ExerciseThumb name={exercise.name} />
-        <p className="flex-1" style={EXERCISE_NAME_STYLE}>{exercise.name}</p>
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="w-9 h-9 rounded-full flex items-center justify-center press-effect flex-shrink-0"
-          style={{ color: "#aaa" }}
-          aria-label="Options"
-        >
-          <OptionsIcon size={20} color="currentColor" />
-        </button>
-        {menuOpen && (
-          <ExerciseMenu
-            onNote={() => onAction("note")}
-            onDelete={() => onAction("delete")}
-            onClose={() => setMenuOpen(false)}
-          />
-        )}
-      </div>
-
-      {/* Coach note (read-only, from coach plan) */}
-      {exercise.coachNote && (
-        <p className="px-4 pb-2 text-xs italic" style={{ color: "#666" }}>
-          ↳ {exercise.coachNote}
-        </p>
-      )}
-
-      {/* User note preview — tap to edit */}
-      {exercise.comment && exercise.comment.trim() !== "" && (
-        <button
-          onClick={onOpenNote}
-          className="w-full text-left px-4 pb-2 press-effect"
-        >
-          <p className="text-xs italic" style={{ color: "#aaa" }}>
-            ✎ {exercise.comment}
-          </p>
-        </button>
-      )}
-
-      {/* Set table */}
-      <div className="px-3 pb-3">
-        {/* Headers */}
-        <div
-          className="grid items-center px-2 py-2 text-[11px] tracking-wide"
-          style={{
-            gridTemplateColumns: "44px 1fr 1fr 44px",
-            color: "#888",
-          }}
-        >
-          <span className="text-center">Série</span>
-          <span className="text-center">Reps</span>
-          <span className="text-center">kg <span style={{ color: "#666" }}>x2</span></span>
-          <span className="text-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "inline-block" }}>
-              <path d="M5 12l5 5L20 7" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-        </div>
-
-        {/* Rows */}
-        {(exercise.setLogs ?? []).map((set, idx) => {
-          return (
-            <div
-              key={idx}
-              className="grid items-center px-2 py-2 my-1.5 rounded-xl"
-              style={{
-                gridTemplateColumns: "44px 1fr 1fr 44px",
-                background: set.done ? "rgba(205,255,0,0.06)" : "transparent",
-                border: set.done ? "1px solid rgba(205,255,0,0.18)" : "1px solid #1c1c1c",
-                opacity: set.done ? 0.95 : 1,
-              }}
-            >
-              <span
-                className="text-center font-display text-2xl leading-none"
-                style={{ color: set.done ? "#CDFF00" : "#9aa0a6" }}
-              >
-                {idx + 1}
-              </span>
-
-              <input
-                type="number"
-                value={set.reps === 0 ? "" : set.reps}
-                onChange={(e) =>
-                  session.updateSet(exercise.id, idx, { reps: parseInt(e.target.value) || 0 })
-                }
-                disabled={set.done}
-                inputMode="numeric"
-                className="text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                style={{ color: set.done ? "#CDFF00" : "#cfd2d6" }}
-                min={0}
-                step={1}
-              />
-
-              <input
-                type="number"
-                value={set.weight === 0 ? "" : set.weight}
-                onChange={(e) =>
-                  session.updateSet(exercise.id, idx, { weight: parseFloat(e.target.value) || 0 })
-                }
-                disabled={set.done}
-                inputMode="decimal"
-                className="text-center bg-transparent border-none p-0 font-display text-2xl leading-none focus:outline-none disabled:cursor-default"
-                style={{ color: set.done ? "#CDFF00" : "#cfd2d6" }}
-                min={0}
-                step={0.5}
-              />
-
-              <div className="flex justify-center">
-                {set.done ? (
-                  <button
-                    onClick={() => session.unvalidateSet(exercise.id, idx)}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center press-effect"
-                    style={{ background: "rgba(205,255,0,0.18)", border: "1px solid rgba(205,255,0,0.5)" }}
-                    aria-label="Annuler la validation"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12l5 5L20 7" stroke="#CDFF00" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => session.validateSet(exercise.id, idx)}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center press-effect"
-                    style={{ border: "1px solid #2a2a2a", background: "transparent" }}
-                    aria-label="Valider la série"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 12l5 5L20 7" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add set */}
-        <button
-          onClick={() => session.addSet(exercise.id)}
-          className="mt-1 w-full flex items-center justify-center gap-2 rounded-2xl py-3 press-effect"
-          style={{ background: "#1a1a1a", border: "1px solid #232323", color: "#cfd2d6" }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span className="text-sm font-medium">Ajouter une série</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const ActiveCard = memo(ActiveCardImpl);
 
 export default function SessionSheet() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
   const router = useRouter();
   const pathname = usePathname();
-  const [openMenuExId, setOpenMenuExId] = useState<string | null>(null);
   const [noteModalExId, setNoteModalExId] = useState<string | null>(null);
   // Drives the slide-in animation: starts at translateY(100%) on first render,
   // flips to translateY(0) on the next frame so CSS can interpolate.
@@ -404,10 +60,9 @@ export default function SessionSheet() {
   const [sheetRescheduleDate, setSheetRescheduleDate] = useState("");
   const [sheetCancelReason, setSheetCancelReason] = useState("");
 
-  // Reset menu state on close
+  // Reset panel state on close
   useEffect(() => {
     if (session.view !== "expanded") {
-      setOpenMenuExId(null);
       setSheetOptionsOpen(false);
       setSheetPanel(null);
     }
@@ -516,6 +171,8 @@ export default function SessionSheet() {
     );
   const isStarted = !isArchive && (session.state?.started ?? false);
   const showRestBar = isStarted && !!timerKey && timerSec > 0;
+  const activeExIdx = session.state?.activeExIdx ?? 0;
+  const liveExercises = session.state?.exercises ?? [];
 
   const archiveDateStr = session.archive?.date ?? null;
   const archiveDateLabel = archiveDateStr
@@ -610,38 +267,44 @@ export default function SessionSheet() {
             </svg>
           </button>
 
-          <button
-            onPointerDown={onHandlePointerDown}
-            onPointerMove={onHandlePointerMove}
-            onPointerUp={onHandlePointerEnd}
-            onPointerCancel={onHandlePointerEnd}
-            aria-label="Glisser vers le bas pour fermer"
-            className="flex items-center justify-center"
-            style={{
-              padding: "16px 32px",
-              touchAction: "none",
-              background: "transparent",
-              border: "none",
-              cursor: "grab",
-            }}
-          >
-            <span
-              className="rounded-full block"
-              style={{ width: 36, height: 4, background: "#2a2a2a" }}
-            />
-          </button>
+          {isStarted ? (
+            <div className="flex flex-col items-center gap-0">
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontVariationSettings: '"wdth" 110', fontSize: 15, lineHeight: "18px", color: "#fff" }}>
+                {sessionCoachWorkout?.label ?? "SÉANCE FITNESS"}
+              </p>
+              <p style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 11, lineHeight: "14px", letterSpacing: "0.06em", color: "#555" }}>
+                {liveExercises.length} exercice{liveExercises.length > 1 ? "s" : ""}
+              </p>
+            </div>
+          ) : (
+            <button
+              onPointerDown={onHandlePointerDown}
+              onPointerMove={onHandlePointerMove}
+              onPointerUp={onHandlePointerEnd}
+              onPointerCancel={onHandlePointerEnd}
+              aria-label="Glisser vers le bas pour fermer"
+              className="flex items-center justify-center"
+              style={{
+                padding: "16px 32px",
+                touchAction: "none",
+                background: "transparent",
+                border: "none",
+                cursor: "grab",
+              }}
+            >
+              <span className="rounded-full block" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
+            </button>
+          )}
 
           {isStarted ? (
             <button
               onClick={session.requestFinish}
               disabled={isFinishingRunning}
               className="w-10 h-10 rounded-full flex items-center justify-center press-effect disabled:opacity-50"
-              style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
+              style={{ background: "#CDFF00" }}
               aria-label="Finir la séance"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5 4v16M5 5h12l-2 4 2 4H5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <FlagIcon size={18} color="#000" />
             </button>
           ) : sessionCoachWorkoutId !== null ? (
             <div className="relative">
@@ -654,46 +317,56 @@ export default function SessionSheet() {
                 <OptionsIcon size={20} color="currentColor" />
               </button>
               {sheetOptionsOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-sheet"
-                    style={{ background: "transparent" }}
-                    onClick={() => setSheetOptionsOpen(false)}
-                  />
-                  <div
-                    className="absolute right-0 top-12 z-[61] rounded-2xl overflow-hidden animate-fade-in"
-                    style={{
-                      width: 220,
-                      background: "rgba(28,28,30,0.96)",
-                      border: "1px solid #2a2a2a",
-                      backdropFilter: "blur(40px)",
-                      WebkitBackdropFilter: "blur(40px)",
-                      boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
-                    }}
-                  >
-                    <button
-                      onClick={() => { setSheetPanel("reschedule"); setSheetOptionsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-white hover:bg-surface-2 transition-colors duration-150 press-effect"
-                    >
-                      <CalendarIcon size={16} color="currentColor" />
-                      <span>Décaler la séance</span>
-                    </button>
-                    <div className="border-t border-surface-3" />
-                    <button
-                      onClick={() => { setSheetPanel("cancel"); setSheetOptionsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-error hover:bg-surface-2 transition-colors duration-150 press-effect"
-                    >
-                      <TrashIcon size={16} color="currentColor" />
-                      <span>Annuler la séance</span>
-                    </button>
-                  </div>
-                </>
+                <ContextMenu
+                  onClose={() => setSheetOptionsOpen(false)}
+                  items={[
+                    {
+                      label: "Décaler la séance",
+                      icon: <CalendarIcon size={16} color="currentColor" />,
+                      onClick: () => { setSheetPanel("reschedule"); setSheetOptionsOpen(false); },
+                    },
+                    {
+                      label: "Annuler la séance",
+                      icon: <TrashIcon size={16} color="currentColor" />,
+                      onClick: () => { setSheetPanel("cancel"); setSheetOptionsOpen(false); },
+                      variant: "destructive",
+                    },
+                  ]}
+                />
               )}
             </div>
           ) : (
             <span className="w-10 h-10" aria-hidden />
           )}
         </div>
+
+        {/* Progress bar (séance en cours) */}
+        {isStarted && !isFinishingRunning && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-3">
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "#7A7C7E" }}>
+                EXO {activeExIdx + 1} / {liveExercises.length}
+              </span>
+              <div className="flex gap-1 flex-1">
+                {liveExercises.map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-full"
+                    style={{
+                      height: i === activeExIdx ? 3 : 2,
+                      background: i < activeExIdx
+                        ? "rgba(205,255,0,0.3)"
+                        : i === activeExIdx
+                        ? "#CDFF00"
+                        : "#7A7C7E",
+                      transition: "background 300ms ease",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Options panel */}
         {sheetPanel !== null && !isArchive && (
@@ -818,44 +491,63 @@ export default function SessionSheet() {
               </div>
             </div>
           )}
-          {!isArchive && session.state!.exercises.map((ex, i) => {
-            const isActive = isStarted && i === session.state!.activeExIdx;
-            if (isActive) {
-              return (
-                <ActiveCard
-                  key={ex.id}
-                  exercise={ex}
-                  onOpenNote={() => setNoteModalExId(ex.id)}
-                />
-              );
-            }
-            if (!isStarted) {
-              return (
-                <PlannedExerciseRow
+          {/* Avant démarrage : liste planifiée */}
+          {!isArchive && !isStarted && liveExercises.map((ex) => (
+            <ExerciseRowCard
+              key={ex.id}
+              name={ex.name}
+              sets={ex.setLogs?.length ?? ex.sets ?? 0}
+              reps={ex.reps ?? 0}
+              weight={ex.weight ?? 0}
+              variant="planned"
+            />
+          ))}
+
+          {!isArchive && isStarted && liveExercises.slice(0, activeExIdx).map((ex, i) => {
+            const doneSets = ex.setLogs?.filter(s => s.done).length ?? 0;
+            const totalSets = ex.setLogs?.length ?? ex.sets ?? 0;
+            const allDone = totalSets > 0 && doneSets === totalSets;
+            return (
+              <ExerciseRowCard
+                key={ex.id}
+                name={ex.name}
+                sets={totalSets}
+                reps={ex.reps ?? 0}
+                weight={ex.weight ?? 0}
+                variant={allDone ? "completed" : "in_progress"}
+                doneSets={doneSets}
+                onTap={() => session.setActiveIdx(i)}
+              />
+            );
+          })}
+
+          {/* Exercice actif */}
+          {!isArchive && isStarted && liveExercises[activeExIdx] && (
+            <ActiveExerciseCard
+              exercise={liveExercises[activeExIdx]}
+              onOpenNote={() => setNoteModalExId(liveExercises[activeExIdx].id)}
+            />
+          )}
+
+          {/* À suivre */}
+          {!isArchive && isStarted && liveExercises.slice(activeExIdx + 1).length > 0 && (
+            <>
+              <div className="px-1 pt-2">
+                <span style={{ ...JETBRAINS_MONO_LABEL, color: "#555" }}>À suivre</span>
+              </div>
+              {liveExercises.slice(activeExIdx + 1).map((ex, i) => (
+                <ExerciseRowCard
                   key={ex.id}
                   name={ex.name}
                   sets={ex.setLogs?.length ?? ex.sets ?? 0}
                   reps={ex.reps ?? 0}
                   weight={ex.weight ?? 0}
+                  variant="upcoming"
+                  onTap={() => session.setActiveIdx(activeExIdx + 1 + i)}
                 />
-              );
-            }
-            return (
-              <CollapsedCard
-                key={ex.id}
-                exercise={ex}
-                showMenu={isStarted}
-                menuOpen={openMenuExId === ex.id}
-                onMenuClose={() => setOpenMenuExId(null)}
-                onTap={() => { if (isStarted) session.setActiveIdx(i); }}
-                onMenu={() => setOpenMenuExId(ex.id)}
-                onAction={(kind) => {
-                  if (kind === "delete") session.removeExercise(ex.id);
-                  else if (kind === "note") setNoteModalExId(ex.id);
-                }}
-              />
-            );
-          })}
+              ))}
+            </>
+          )}
 
           {isFinishingRunning && (
             <div className="pt-2">
