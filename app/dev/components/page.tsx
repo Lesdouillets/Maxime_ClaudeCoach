@@ -23,6 +23,7 @@ import ActiveExerciseCard from "@/components/ActiveExerciseCard";
 import ExerciseRowCard from "@/components/ExerciseRowCard";
 import type { LiveExercise } from "@/contexts/SessionContext";
 import RunPlanClassic from "@/components/RunPlanClassic";
+import RunPlanProgressive from "@/components/RunPlanProgressive";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -481,6 +482,13 @@ export default function ComponentsPage() {
           <ComponentBlock title="RunPlanClassic" description="Sortie classique Z2/course — 3 cartes stats">
             <div className="max-w-sm">
               <RunPlanClassic coachRun={FIXTURE_RUN_CLASSIC} />
+            </div>
+          </ComponentBlock>
+
+          {/* RunPlanProgressive */}
+          <ComponentBlock title="RunPlanProgressive" description="Séance progressive — zones empilées Z2/Z3/Z4">
+            <div className="max-w-sm">
+              <RunPlanProgressive coachRun={FIXTURE_RUN_PROGRESSIVE} />
             </div>
           </ComponentBlock>
 
