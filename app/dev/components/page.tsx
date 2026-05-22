@@ -22,6 +22,13 @@ import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 import ActiveExerciseCard from "@/components/ActiveExerciseCard";
 import ExerciseRowCard from "@/components/ExerciseRowCard";
 import type { LiveExercise } from "@/contexts/SessionContext";
+import RunPlanClassic from "@/components/RunPlanClassic";
+import {
+  FIXTURE_RUN_CLASSIC,
+  FIXTURE_RUN_INTERVAL,
+  FIXTURE_RUN_PROGRESSIVE,
+  FIXTURE_DONE_RUN,
+} from "./running-fixtures";
 
 type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance" | "running";
 
@@ -469,7 +476,14 @@ export default function ComponentsPage() {
       {/* ── RUNNING ── */}
       {active === "running" && (
         <div className="space-y-10">
-          <p className="text-xs" style={{ color: "#555" }}>Composants ajoutés tâche par tâche.</p>
+
+          {/* RunPlanClassic */}
+          <ComponentBlock title="RunPlanClassic" description="Sortie classique Z2/course — 3 cartes stats">
+            <div className="max-w-sm">
+              <RunPlanClassic coachRun={FIXTURE_RUN_CLASSIC} />
+            </div>
+          </ComponentBlock>
+
         </div>
       )}
 
