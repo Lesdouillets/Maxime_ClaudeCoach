@@ -480,16 +480,12 @@ export default function ComponentsPage() {
 
           {/* RunPlanClassic */}
           <ComponentBlock title="RunPlanClassic" description="Sortie classique Z2/course — 3 cartes stats">
-            <div className="max-w-sm">
-              <RunPlanClassic coachRun={FIXTURE_RUN_CLASSIC} />
-            </div>
+            <RunPlanClassic coachRun={FIXTURE_RUN_CLASSIC} />
           </ComponentBlock>
 
           {/* RunPlanProgressive */}
           <ComponentBlock title="RunPlanProgressive" description="Séance progressive — zones empilées Z2/Z3/Z4">
-            <div className="max-w-sm">
-              <RunPlanProgressive coachRun={FIXTURE_RUN_PROGRESSIVE} />
-            </div>
+            <RunPlanProgressive coachRun={FIXTURE_RUN_PROGRESSIVE} />
           </ComponentBlock>
 
         </div>
