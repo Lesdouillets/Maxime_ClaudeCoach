@@ -75,14 +75,14 @@ export default function StatsPage() {
         {/* Summary row */}
         <div className="grid grid-cols-2 gap-3">
           <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="#CDFF00" />
-          <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="#D07900" />
+          <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="var(--color-orange)" />
           <BigStat
             value={avgPace ? `${Math.floor(avgPace / 60)}:${String(Math.round(avgPace % 60)).padStart(2, "0")}` : "—"}
             unit="/km"
             label="Allure moyenne"
             accent="#CDFF00"
           />
-          <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="#D07900" />
+          <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="var(--color-orange)" />
         </div>
 
         {/* Tab selector */}
@@ -334,9 +334,9 @@ function ExerciseWeightCard({
               <span className="text-xs" style={{ color: "#444" }}>
                 {ex.sets}×{ex.reps}
               </span>
-              <span className="font-display text-lg leading-none" style={{ color: "#D07900" }}>
+              <span className="font-display text-lg leading-none" style={{ color: "var(--color-orange)" }}>
                 {ex.weight > 0 ? (
-                  <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "#D07900", opacity: 0.6 }}>kg</span></>
+                  <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "var(--color-orange)", opacity: 0.6 }}>kg</span></>
                 ) : (
                   <span className="text-sm" style={{ color: "#444" }}>PC</span>
                 )}

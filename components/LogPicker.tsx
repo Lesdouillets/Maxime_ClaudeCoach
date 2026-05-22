@@ -70,7 +70,7 @@ export default function LogPicker({ onClose }: LogPickerProps) {
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <path d="M6.5 6.5h11M6.5 17.5h11M3 10h18M3 14h18"
-                stroke="#D07900" strokeWidth="1.8" strokeLinecap="round"/>
+                stroke="var(--color-orange)" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           </div>
           <div className="flex-1 text-left">

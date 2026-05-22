@@ -54,7 +54,7 @@ function StravaCallbackInner() {
               animation: "pulse-neon 1.5s ease-in-out infinite",
             }}
           >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="#D07900">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--color-orange)">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066l-2.084 4.116zM11.648 13.828L8.966 8H6.58l5.069 10 5.069-10h-2.386z"/>
             </svg>
           </div>
@@ -98,10 +98,10 @@ function StravaCallbackInner() {
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path d="M12 9V13M12 17H12.01M21 12C21 16.971 16.971 21 12 21C7.029 21 3 16.971 3 12C3 7.029 7.029 3 12 3C16.971 3 21 7.029 21 12Z"
-                stroke="#D07900" strokeWidth="2" strokeLinecap="round"/>
+                stroke="var(--color-orange)" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <h2 className="font-display text-3xl" style={{ color: "#D07900" }}>
+          <h2 className="font-display text-3xl" style={{ color: "var(--color-orange)" }}>
             ERREUR
           </h2>
           <p className="text-sm text-gray-400 max-w-xs">{errorMessage}</p>
@@ -113,7 +113,7 @@ function StravaCallbackInner() {
             onClick={() => router.push("/")}
             className="mt-4 px-6 py-3 rounded-xl font-bold text-sm press-effect"
             style={{
-              background: "#D07900",
+              background: "var(--color-orange)",
               color: "white",
             }}
           >

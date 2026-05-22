@@ -375,13 +375,13 @@ export default function RunSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }}
+                    style={{ background: "#111", border: "1px solid var(--color-orange-shadow)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleRun}
                     disabled={!rescheduleDate}
                     className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                    style={{ background: "#D07900", color: "white" }}
+                    style={{ background: "var(--color-orange)", color: "white" }}
                   >OK</button>
                   <button
                     onClick={() => { setOptionsPanel(null); setRescheduleDate(""); }}
@@ -448,7 +448,7 @@ export default function RunSheet() {
               {doneSession.importedFromStrava && (
                 <div
                   className="flex items-center gap-1.5 text-xs"
-                  style={{ color: "#D07900" }}
+                  style={{ color: "var(--color-orange)" }}
                 >
                   <StravaIcon /> Importé depuis Strava
                 </div>
