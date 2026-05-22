@@ -25,6 +25,7 @@ import type { LiveExercise } from "@/contexts/SessionContext";
 import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
 import RunPlanInterval from "@/components/RunPlanInterval";
+import RunPlanSection from "@/components/RunPlanSection";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -492,6 +493,24 @@ export default function ComponentsPage() {
           {/* RunPlanInterval */}
           <ComponentBlock title="RunPlanInterval" description="Fractionné — échauffement + bloc reps + retour au calme">
             <RunPlanInterval coachRun={FIXTURE_RUN_INTERVAL} />
+          </ComponentBlock>
+
+          {/* RunPlanSection — routeur */}
+          <ComponentBlock title="RunPlanSection" description="Routeur — teste les 3 types">
+            <div className="space-y-6">
+              <div>
+                <p className="text-xs mb-2" style={{ color: "#555" }}>z2 (classic)</p>
+                <RunPlanSection coachRun={FIXTURE_RUN_CLASSIC} />
+              </div>
+              <div>
+                <p className="text-xs mb-2" style={{ color: "#555" }}>fractionne</p>
+                <RunPlanSection coachRun={FIXTURE_RUN_INTERVAL} />
+              </div>
+              <div>
+                <p className="text-xs mb-2" style={{ color: "#555" }}>progressif</p>
+                <RunPlanSection coachRun={FIXTURE_RUN_PROGRESSIVE} />
+              </div>
+            </div>
           </ComponentBlock>
 
         </div>
