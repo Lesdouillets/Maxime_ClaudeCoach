@@ -23,7 +23,7 @@ import ActiveExerciseCard from "@/components/ActiveExerciseCard";
 import ExerciseRowCard from "@/components/ExerciseRowCard";
 import type { LiveExercise } from "@/contexts/SessionContext";
 
-type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance";
+type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance" | "running";
 
 const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "atoms",   label: "Atoms",      ready: true },
@@ -35,6 +35,7 @@ const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "plan",    label: "Plan",       ready: true },
   { id: "detail",  label: "Détail",     ready: true },
   { id: "seance",  label: "Séance",     ready: true },
+  { id: "running", label: "Running",    ready: true },
 ];
 
 export default function ComponentsPage() {
@@ -462,6 +463,13 @@ export default function ComponentsPage() {
             <ExerciseRowCard name="Curl biceps" sets={3} reps={12} weight={14} variant="completed" onTap={() => alert("tap")} />
           </div>
 
+        </div>
+      )}
+
+      {/* ── RUNNING ── */}
+      {active === "running" && (
+        <div className="space-y-10">
+          <p className="text-xs" style={{ color: "#555" }}>Composants ajoutés tâche par tâche.</p>
         </div>
       )}
 
