@@ -12,7 +12,7 @@ const ACTIVE = "#FFFFFF";
 const MUTED  = "var(--color-muted)";
 
 const STRIP_STYLE: CSSProperties = {
-  height: 40,
+  height: 48,
   display: "flex",
   alignItems: "center",
   padding: "0 16px",
