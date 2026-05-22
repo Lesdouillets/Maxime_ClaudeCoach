@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useSession } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
+import { ARCHIVO_WIDE_BOLD, JETBRAINS_MONO_TINY } from "@/lib/typography";
 
 const ACTIVE = "#FFFFFF";
 const MUTED  = "var(--color-muted)";
@@ -102,14 +103,15 @@ function SessionStrip() {
   if (!ex) return null;
 
   const isResting = !!timerKey && timerSec > 0;
-  const timerColor = isResting
-    ? timerSec > 10 ? "var(--color-neon)"
-      : timerSec > 3 ? "var(--color-orange)"
-      : "var(--color-error)"
-    : undefined;
-  const restProgress = isResting && timerTotalSec > 0
-    ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
-    : 0;
+
+  // Extrait le numéro de série depuis la clé "exId-set-N" (0-indexé → affiché en 1-indexé)
+  const setMatch = timerKey?.match(/-set-(\d+)$/);
+  const setLabel = setMatch ? `REPOS S${parseInt(setMatch[1], 10) + 1}` : null;
+
+  const restProgress =
+    isResting && timerTotalSec > 0
+      ? Math.min(1, Math.max(0, (timerTotalSec - timerSec) / timerTotalSec))
+      : 0;
 
   return (
     <button
@@ -118,24 +120,31 @@ function SessionStrip() {
       className="w-full press-effect"
       style={STRIP_STYLE}
     >
-      {/* Point indicateur */}
-      <div
-        className="flex-shrink-0 rounded-full"
-        style={{ width: 6, height: 6, background: "var(--color-neon)" }}
-      />
-
-      {/* Nom de l'exercice */}
-      <span className="flex-1 text-left text-sm font-semibold truncate block">
-        {ex.name}
-      </span>
+      {/* Nom de l'exercice + label repos */}
+      <div className="flex-1 flex flex-col justify-center gap-0.5 min-w-0">
+        <span
+          className="truncate"
+          style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "17px", color: "#fff" }}
+        >
+          {ex.name}
+        </span>
+        {isResting && setLabel && (
+          <span style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-orange)" }}>
+            {setLabel}
+          </span>
+        )}
+      </div>
 
       {/* Timer ou badge EN COURS */}
       {isResting ? (
         <span
-          className="font-display text-base leading-none tabular-nums flex-shrink-0"
-          style={{ color: timerColor }}
+          className="font-display text-sm leading-none tabular-nums flex-shrink-0"
+          style={{ color: "var(--color-orange)" }}
         >
           {formatMMSS(timerSec)}
+          <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>
+            {" "}/ {formatMMSS(timerTotalSec)}
+          </span>
         </span>
       ) : (
         <span
@@ -146,7 +155,7 @@ function SessionStrip() {
         </span>
       )}
 
-      {/* Progress bar en bas de la strip (visible seulement si timer actif) */}
+      {/* Progress bar en bas de la strip */}
       {isResting && (
         <div
           className="absolute bottom-0 left-0 right-0"
@@ -156,7 +165,7 @@ function SessionStrip() {
             style={{
               height: 2,
               width: `${restProgress * 100}%`,
-              background: timerColor,
+              background: "linear-gradient(90deg, var(--color-orange), var(--color-orange-light))",
               transition: "width 600ms linear",
             }}
           />
