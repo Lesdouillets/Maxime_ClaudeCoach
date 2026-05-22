@@ -385,13 +385,13 @@ export default function SessionSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid rgba(208,121,0,0.3)", color: "white" }}
+                    style={{ background: "#111", border: "1px solid var(--color-orange-shadow)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleWorkout}
                     disabled={!sheetRescheduleDate}
                     className="px-3 py-2.5 rounded-xl text-xs font-bold press-effect disabled:opacity-40"
-                    style={{ background: "#D07900", color: "white" }}
+                    style={{ background: "var(--color-orange)", color: "white" }}
                   >OK</button>
                   <button
                     onClick={() => { setSheetPanel(null); setSheetRescheduleDate(""); }}
@@ -610,7 +610,7 @@ export default function SessionSheet() {
             }}
           >
             <div className="flex items-baseline justify-between text-xs mb-1">
-              <span className="font-display text-xl tabular-nums" style={{ color: "#D07900" }}>
+              <span className="font-display text-xl tabular-nums" style={{ color: "var(--color-orange)" }}>
                 {formatMMSS(timerSec)}
               </span>
               <span style={{ color: "#666" }}>/ {formatMMSS(timerTotalSec)}</span>
@@ -620,7 +620,7 @@ export default function SessionSheet() {
                 className="h-full"
                 style={{
                   width: `${restProgress * 100}%`,
-                  background: "linear-gradient(90deg, #D07900, #ff9a3c)",
+                  background: "linear-gradient(90deg, var(--color-orange), var(--color-orange-light))",
                   transition: "width 600ms linear",
                 }}
               />
