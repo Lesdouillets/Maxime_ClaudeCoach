@@ -28,6 +28,7 @@
   --color-error: #ff4d4d;
   --color-error-bg: #511111;
   --color-error-border: #C80514;
+  --color-destructive: #FF5E3D;
 
   /* Variantes d'opacité pré-calculées — fallback pour iOS < 16.2 (color-mix non supporté) */
   --color-neon-08: rgba(205, 255, 0, 0.08);
@@ -37,6 +38,8 @@
   --color-neon-shadow: rgba(205, 255, 0, 0.30);
   --color-orange-glow: rgba(208, 121, 0, 0.60);
   --color-orange-shadow: rgba(208, 121, 0, 0.30);
+  --color-destructive-10: rgba(255, 94, 61, 0.10);
+  --color-destructive-shadow: rgba(255, 94, 61, 0.30);
   --color-neon-input-ring: rgba(205, 255, 0, 0.10);
   --color-bg-blur: rgba(10, 10, 10, 0.70);
   --color-surface-2-blur: rgba(26, 26, 26, 0.92);

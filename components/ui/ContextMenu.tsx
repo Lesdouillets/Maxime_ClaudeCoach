@@ -5,6 +5,7 @@ interface MenuItem {
   icon: ReactNode;
   onClick: () => void;
   variant?: "default" | "destructive";
+  color?: string;
 }
 
 interface Props {
@@ -34,8 +35,9 @@ export function ContextMenu({ onClose, items, width = 220 }: Props) {
             <button
               onClick={(e) => { e.stopPropagation(); item.onClick(); }}
               className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium hover:bg-surface-2 transition-colors duration-150 press-effect ${
-                item.variant === "destructive" ? "text-error" : "text-white"
+                item.color ? "" : item.variant === "destructive" ? "text-error" : "text-white"
               }`}
+              style={item.color ? { color: item.color } : undefined}
             >
               {item.icon}
               <span>{item.label}</span>

@@ -6,13 +6,12 @@ import { useSession } from "@/contexts/SessionContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
 import { useTimer } from "@/contexts/TimerContext";
 import SessionCompletedView from "@/components/SessionCompletedView";
-import FinishSessionModal from "@/components/FinishSessionModal";
 import NoteModal from "@/components/NoteModal";
 import { FitnessCard } from "@/components/SessionCard";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import ExerciseRowCard from "@/components/ExerciseRowCard";
 import ActiveExerciseCard from "@/components/ActiveExerciseCard";
-import { CalendarIcon, FlagIcon, OptionsIcon, TrashIcon } from "@/components/icons";
+import { CalendarIcon, CheckIcon, FlagIcon, OptionsIcon, TrashIcon } from "@/components/icons";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import {
   analyzeSession,
@@ -55,6 +54,7 @@ export default function SessionSheet() {
   const [archiveCoachState, setArchiveCoachState] = useState<"analyzing" | "done">("done");
   const [archiveCoachResult, setArchiveCoachResult] = useState<CoachAnalysisResult | null>(null);
   const [sheetOptionsOpen, setSheetOptionsOpen] = useState(false);
+  const [showFinishMenu, setShowFinishMenu] = useState(false);
   const [sheetPanel, setSheetPanel] = useState<"reschedule" | "cancel" | null>(null);
   const [sheetRescheduleDate, setSheetRescheduleDate] = useState("");
   const [sheetCancelReason, setSheetCancelReason] = useState("");
@@ -63,6 +63,7 @@ export default function SessionSheet() {
   useEffect(() => {
     if (session.view !== "expanded") {
       setSheetOptionsOpen(false);
+      setShowFinishMenu(false);
       setSheetPanel(null);
     }
   }, [session.view]);
@@ -287,15 +288,36 @@ export default function SessionSheet() {
           )}
 
           {isStarted ? (
-            <button
-              onClick={session.requestFinish}
-              disabled={isFinishingRunning}
-              className="w-10 h-10 rounded-full flex items-center justify-center press-effect disabled:opacity-50"
-              style={{ background: "#CDFF00" }}
-              aria-label="Finir la séance"
-            >
-              <FlagIcon size={18} color="#000" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowFinishMenu(!showFinishMenu)}
+                disabled={isFinishingRunning}
+                className="w-10 h-10 rounded-full flex items-center justify-center press-effect disabled:opacity-50"
+                style={{ background: "var(--color-neon)" }}
+                aria-label="Finir la séance"
+              >
+                <FlagIcon size={18} color="#000" />
+              </button>
+              {showFinishMenu && (
+                <ContextMenu
+                  onClose={() => setShowFinishMenu(false)}
+                  items={[
+                    {
+                      label: "Valider la séance",
+                      icon: <CheckIcon size={16} color="var(--color-neon)" />,
+                      color: "var(--color-neon)",
+                      onClick: () => { setShowFinishMenu(false); session.confirmFinish(); },
+                    },
+                    {
+                      label: "Annuler la séance",
+                      icon: <TrashIcon size={16} color="var(--color-destructive)" />,
+                      color: "var(--color-destructive)",
+                      onClick: () => { setShowFinishMenu(false); session.abandon(); },
+                    },
+                  ]}
+                />
+              )}
+            </div>
           ) : sessionCoachWorkoutId !== null ? (
             <div className="relative">
               <button
@@ -568,9 +590,6 @@ export default function SessionSheet() {
           </div>
         )}
       </div>
-
-      {/* Confirm finish modal */}
-      <FinishSessionModal />
 
       {/* Note editor modal */}
       <NoteModal
