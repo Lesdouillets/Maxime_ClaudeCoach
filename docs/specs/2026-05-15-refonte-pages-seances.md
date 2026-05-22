@@ -1,7 +1,7 @@
 # Spec — Refonte des pages de séances ClaudeCoach
 
 **Date :** 2026-05-15  
-**Statut :** Validée  
+**Statut :** En cours — EPIC 1 et 2 livrés (2026-05-22), EPIC 3 à venir  
 **GitHub :** issues #91 à #97, label `refonte-seances`
 
 ---
@@ -63,14 +63,14 @@ L'utilisateur doit pouvoir accéder à une page de détail de séance, démarrer
 
 Les anciens composants (`FitnessSessionResults`, `CoachFeedbackCard`, `ActiveCard`, `CollapsedCard`, `SessionSheet` internals) sont **remplacés**.
 
-| Nouveau composant | Remplace | Issue |
-|---|---|---|
-| `ActiveExerciseCard` | `ActiveCard` | #92 |
-| `CompletedExerciseCard` | `CollapsedCard` | #93 |
-| `RestTimer` | Timer dans `SessionSheet` | #94 |
-| `SessionEndTransition` | Écran de fin ad hoc | #95 |
-| `SessionRecap` | `FitnessSessionResults` | #96 |
-| `CoachAnalysis` | `CoachFeedbackCard` | #97 |
+| Nouveau composant | Remplace | Issue | Statut |
+|---|---|---|---|
+| `ActiveExerciseCard` | `ActiveCard` | #92 | ✅ Livré 2026-05-22 |
+| `ExerciseRowCard` (4 variants) | `CollapsedCard` + `PlannedExerciseRow` | #93 | ✅ Livré 2026-05-22 — architecture diverge de la spec : un seul composant avec variants `planned` / `upcoming` / `completed` / `in_progress` au lieu d'un `CompletedExerciseCard` séparé |
+| `RestTimer` | Timer dans `SessionSheet` | #94 | À faire |
+| `SessionEndTransition` | Écran de fin ad hoc | #95 | À faire |
+| `SessionRecap` | `FitnessSessionResults` | #96 | À faire |
+| `CoachAnalysis` | `CoachFeedbackCard` | #97 | À faire |
 
 > Le design de chaque composant est fourni via Figma au moment du développement de chaque US.
 
@@ -80,35 +80,35 @@ Les anciens composants (`FitnessSessionResults`, `CoachFeedbackCard`, `ActiveCar
 
 ### EPIC 1 — Page de détail séance
 
-| US | Titre | Issue | Complexité | Priorité |
-|---|---|---|---|---|
-| US-01 | Page de détail séance | #91 | Moyenne | Must have |
+| US | Titre | Issue | Complexité | Priorité | Statut |
+|---|---|---|---|---|---|
+| US-01 | Page de détail séance | #91 | Moyenne | Must have | ✅ Livré 2026-05-22 |
 
 ### EPIC 2 — Séance active
 
-| US | Titre | Issue | Complexité | Priorité |
-|---|---|---|---|---|
-| US-02 | Vue exercice en cours (ActiveExerciseCard) | #92 | Moyenne | Must have |
-| US-03 | Vue exercices terminés (CompletedExerciseCard) | #93 | Faible | Must have |
-| US-04 | Timer de repos (RestTimer) | #94 | Faible | Must have |
+| US | Titre | Issue | Complexité | Priorité | Statut |
+|---|---|---|---|---|---|
+| US-02 | Vue exercice en cours (ActiveExerciseCard) | #92 | Moyenne | Must have | ✅ Livré 2026-05-22 |
+| US-03 | Vue exercices terminés/en cours réduits (ExerciseRowCard) | #93 | Faible | Must have | ✅ Livré 2026-05-22 |
+| US-04 | Timer de repos (RestTimer) | #94 | Faible | Must have | À faire |
 
 ### EPIC 3 — Fin de séance et récap
 
-| US | Titre | Issue | Complexité | Priorité |
-|---|---|---|---|---|
-| US-05 | Transition fin de séance (SessionEndTransition) | #95 | Faible | Should have |
-| US-06 | Récap post-séance (SessionRecap) | #96 | Moyenne | Must have |
-| US-07 | Analyse coach post-séance (CoachAnalysis) | #97 | Moyenne | Must have |
+| US | Titre | Issue | Complexité | Priorité | Statut |
+|---|---|---|---|---|---|
+| US-05 | Transition fin de séance (SessionEndTransition) | #95 | Faible | Should have | À faire |
+| US-06 | Récap post-séance (SessionRecap) | #96 | Moyenne | Must have | À faire |
+| US-07 | Analyse coach post-séance (CoachAnalysis) | #97 | Moyenne | Must have | À faire |
 
 ---
 
 ## Ordre de développement suggéré
 
 ```
-1. US-01 — Page de détail séance          (bloque tout le flow)
-2. US-02 — ActiveExerciseCard             (composant central de la séance)
-3. US-04 — RestTimer                      (dépend de US-02)
-4. US-03 — CompletedExerciseCard          (peut aller en parallèle de US-04)
+1. US-01 — Page de détail séance          ✅ (bloque tout le flow)
+2. US-02 — ActiveExerciseCard             ✅ (composant central de la séance)
+3. US-03 — ExerciseRowCard (4 variants)   ✅ (planned / upcoming / completed / in_progress)
+4. US-04 — RestTimer                      ← prochain (dépend de US-02)
 5. US-06 — SessionRecap                   (première page de sortie, bloque US-07)
 6. US-07 — CoachAnalysis                  (s'ajoute sur la page récap)
 7. US-05 — SessionEndTransition           (transition entre séance et récap, intégrée en dernier)

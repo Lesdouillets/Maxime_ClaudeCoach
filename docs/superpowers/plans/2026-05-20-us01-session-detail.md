@@ -1,6 +1,6 @@
 # US-01 — Page de détail séance (pre-session redesign) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Redesigner l'état pré-séance du `SessionSheet` fitness avec un header `FitnessCard`, une carte "Mot du coach" (`SessionBriefCard`) et une liste d'exercices planifiés (`PlannedExerciseRow`).
 
@@ -28,7 +28,7 @@
 **Files:**
 - Modify: `lib/coachPlan.ts:21-29`
 
-- [ ] **Étape 1 : Ajouter le champ**
+- [x] **Étape 1 : Ajouter le champ**
 
 Dans `lib/coachPlan.ts`, modifier `CoachWorkout` :
 
@@ -46,7 +46,7 @@ export interface CoachWorkout {
 }
 ```
 
-- [ ] **Étape 2 : Vérifier que le build ne casse pas**
+- [x] **Étape 2 : Vérifier que le build ne casse pas**
 
 ```bash
 npm run build 2>&1 | tail -20
@@ -54,7 +54,7 @@ npm run build 2>&1 | tail -20
 
 Attendu : `✓ Compiled successfully` ou uniquement des warnings (pas d'erreurs TypeScript).
 
-- [ ] **Étape 3 : Commit**
+- [x] **Étape 3 : Commit**
 
 ```bash
 git add lib/coachPlan.ts
@@ -70,7 +70,7 @@ git commit -m "Ajout du champ sessionBrief sur CoachWorkout"
 
 `FitnessCard` est actuellement une fonction locale non exportée dans `SessionCard.tsx`. Elle doit être accessible depuis `SessionSheet.tsx` pour servir de header read-only.
 
-- [ ] **Étape 1 : Exporter la fonction**
+- [x] **Étape 1 : Exporter la fonction**
 
 Dans `components/SessionCard.tsx`, changer la ligne 161 :
 
@@ -82,7 +82,7 @@ function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<Se
 export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession }: Pick<SessionCardProps, "todayCoachWorkout" | "todaySession" | "onOpenSession">) {
 ```
 
-- [ ] **Étape 2 : Vérifier que le build ne casse pas**
+- [x] **Étape 2 : Vérifier que le build ne casse pas**
 
 ```bash
 npm run build 2>&1 | tail -20
@@ -90,7 +90,7 @@ npm run build 2>&1 | tail -20
 
 Attendu : pas d'erreur TypeScript.
 
-- [ ] **Étape 3 : Commit**
+- [x] **Étape 3 : Commit**
 
 ```bash
 git add components/SessionCard.tsx
@@ -106,7 +106,7 @@ git commit -m "Export FitnessCard pour réutilisation dans SessionSheet"
 
 Carte "LE MOT DU COACH" — même DNA visuel que `StreakCard` (fond `var(--color-neon-bg)` = `#0a1a00`, border `var(--color-neon-08)`). Invisible si `sessionBrief` est null ou undefined.
 
-- [ ] **Étape 1 : Créer le fichier**
+- [x] **Étape 1 : Créer le fichier**
 
 ```typescript
 // components/SessionBriefCard.tsx
@@ -154,7 +154,7 @@ export default function SessionBriefCard({ brief }: Props) {
 }
 ```
 
-- [ ] **Étape 2 : Vérifier que le build ne casse pas**
+- [x] **Étape 2 : Vérifier que le build ne casse pas**
 
 ```bash
 npm run build 2>&1 | tail -20
@@ -162,7 +162,7 @@ npm run build 2>&1 | tail -20
 
 Attendu : pas d'erreur TypeScript.
 
-- [ ] **Étape 3 : Commit**
+- [x] **Étape 3 : Commit**
 
 ```bash
 git add components/SessionBriefCard.tsx
@@ -178,7 +178,7 @@ git commit -m "Ajout du composant SessionBriefCard (mot du coach pré-séance)"
 
 Ligne d'exercice en état "planifié" — lecture seule. Affiche le nom en Archivo 700, N pills vides (N = nombre de séries), les reps et le poids. Même langage visuel que `ProgressDots` dans `SessionSheet.tsx` mais en état non démarré (`#2a2a2a`).
 
-- [ ] **Étape 1 : Créer le fichier**
+- [x] **Étape 1 : Créer le fichier**
 
 ```typescript
 // components/PlannedExerciseRow.tsx
@@ -228,13 +228,13 @@ export default function PlannedExerciseRow({ name, sets, reps, weight }: Props) 
 }
 ```
 
-- [ ] **Étape 2 : Vérifier que le build ne casse pas**
+- [x] **Étape 2 : Vérifier que le build ne casse pas**
 
 ```bash
 npm run build 2>&1 | tail -20
 ```
 
-- [ ] **Étape 3 : Commit**
+- [x] **Étape 3 : Commit**
 
 ```bash
 git add components/PlannedExerciseRow.tsx
@@ -250,7 +250,7 @@ git commit -m "Ajout du composant PlannedExerciseRow (exercice planifié)"
 
 Remplacer dans le body scrollable le bloc `!isArchive && !isStarted` (label "À FAIRE") et adapter le rendu des exercices pour utiliser `PlannedExerciseRow` quand la séance n'est pas encore démarrée.
 
-- [ ] **Étape 1 : Ajouter les imports**
+- [x] **Étape 1 : Ajouter les imports**
 
 En haut de `components/SessionSheet.tsx`, ajouter après les imports existants :
 
@@ -260,7 +260,7 @@ import SessionBriefCard from "@/components/SessionBriefCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 ```
 
-- [ ] **Étape 2 : Remplacer le label "À FAIRE" par le header pré-séance**
+- [x] **Étape 2 : Remplacer le label "À FAIRE" par le header pré-séance**
 
 Dans le body scrollable (vers la ligne 816), remplacer :
 
@@ -301,7 +301,7 @@ par :
 )}
 ```
 
-- [ ] **Étape 3 : Adapter le rendu des exercices**
+- [x] **Étape 3 : Adapter le rendu des exercices**
 
 Juste après le bloc qu'on vient de modifier, le `.map()` des exercices (vers la ligne 821) :
 
@@ -346,7 +346,7 @@ Juste après le bloc qu'on vient de modifier, le `.map()` des exercices (vers la
 })}
 ```
 
-- [ ] **Étape 4 : Vérifier visuellement sur le dev server**
+- [x] **Étape 4 : Vérifier visuellement sur le dev server**
 
 ```bash
 npm run dev
@@ -361,7 +361,7 @@ Ouvrir `http://localhost:3001`. Taper sur une séance fitness planifiée depuis 
 - Le menu "..." fonctionne toujours (Décaler / Annuler)
 - Une fois la séance démarrée, les `CollapsedCard` / `ActiveCard` reprennent normalement
 
-- [ ] **Étape 5 : Commit**
+- [x] **Étape 5 : Commit**
 
 ```bash
 git add components/SessionSheet.tsx
@@ -377,7 +377,7 @@ git commit -m "Refonte de l'état pré-séance : FitnessCard header, SessionBrie
 
 Ajouter un onglet "Détail" dans le showcase avec `SessionBriefCard` en état alimenté et 3 `PlannedExerciseRow` mockés.
 
-- [ ] **Étape 1 : Ajouter les imports**
+- [x] **Étape 1 : Ajouter les imports**
 
 En haut de `app/dev/components/page.tsx` :
 
@@ -386,7 +386,7 @@ import SessionBriefCard from "@/components/SessionBriefCard";
 import PlannedExerciseRow from "@/components/PlannedExerciseRow";
 ```
 
-- [ ] **Étape 2 : Ajouter "detail" dans le type `Section` et le tableau `SECTIONS`**
+- [x] **Étape 2 : Ajouter "detail" dans le type `Section` et le tableau `SECTIONS`**
 
 Modifier :
 
@@ -405,7 +405,7 @@ const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
 ];
 ```
 
-- [ ] **Étape 3 : Ajouter la section de rendu**
+- [x] **Étape 3 : Ajouter la section de rendu**
 
 Avant la fermeture de la `<div className="min-h-screen ...">`, ajouter :
 
@@ -447,14 +447,14 @@ Avant la fermeture de la `<div className="min-h-screen ...">`, ajouter :
 )}
 ```
 
-- [ ] **Étape 4 : Vérifier visuellement**
+- [x] **Étape 4 : Vérifier visuellement**
 
 Ouvrir `http://localhost:3001/dev/components`. Cliquer sur l'onglet "Détail". Vérifier :
 - `SessionBriefCard` s'affiche avec le fond `#0a1a00`, border neon, texte correct
 - L'indicateur "vide" s'affiche bien (la carte réelle est invisible)
 - Les 4 `PlannedExerciseRow` s'affichent avec pills vides et bonne typographie
 
-- [ ] **Étape 5 : Commit**
+- [x] **Étape 5 : Commit**
 
 ```bash
 git add app/dev/components/page.tsx
