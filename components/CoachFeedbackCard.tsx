@@ -1,7 +1,5 @@
-"use client";
-
+import CardIconHeader from "@/components/ui/CardIconHeader";
 import type { CoachAnalysisResult } from "@/lib/coachAnalyzer";
-import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface Props {
   state: "analyzing" | "done";
@@ -9,48 +7,51 @@ interface Props {
   onRetry?: () => void;
 }
 
+const PlusIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+    <path d="M12 5v14M5 12h14" stroke="var(--color-neon)" strokeWidth="2.2" strokeLinecap="round" />
+  </svg>
+);
+
+const PulseDots = () => (
+  <span className="flex gap-1 items-center">
+    {[0, 1, 2].map((i) => (
+      <span
+        key={i}
+        className="w-1 h-1 rounded-full inline-block"
+        style={{
+          background: "var(--color-neon)",
+          animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
+        }}
+      />
+    ))}
+    <style>{`
+      @keyframes pulse-dot {
+        0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1.2); }
+      }
+    `}</style>
+  </span>
+);
+
 export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
   return (
     <div
-      className="rounded-2xl p-4 animate-fade-in"
-      style={{ background: "#0a130a", border: "1px solid rgba(205,255,0,0.2)" }}
+      className="rounded-2xl p-4"
+      style={{ background: "var(--color-neon-bg)", border: "1px solid var(--color-neon-08)" }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#CDFF00" strokeWidth="1.5"/>
-          <path d="M12 8v4l3 3" stroke="#CDFF00" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-        <span style={{ ...JETBRAINS_MONO_LABEL, color: "#CDFF00" }}>
-          ALEX — COACH
-        </span>
-        {state === "done" && result && result.modifiedCount > 0 && (
-          <span
-            className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(205,255,0,0.1)", color: "#CDFF00", border: "1px solid rgba(205,255,0,0.25)" }}
-          >
-            {result.modifiedCount} séance{result.modifiedCount > 1 ? "s" : ""} adaptée{result.modifiedCount > 1 ? "s" : ""} ✓
-          </span>
-        )}
+      <div className="mb-2">
+        <CardIconHeader
+          icon={<PlusIcon />}
+          label="ANALYSE DU COACH"
+          trailing={state === "analyzing" ? <PulseDots /> : undefined}
+        />
       </div>
 
-      {/* Body */}
       {state === "analyzing" ? (
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-sm" style={{ color: "#444" }}>Analyse en cours</span>
-          <span className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="w-1 h-1 rounded-full inline-block"
-                style={{
-                  background: "#CDFF00",
-                  animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
-                }}
-              />
-            ))}
-          </span>
-        </div>
+        <p className="text-sm" style={{ color: "#444" }}>
+          En cours, l&apos;analyse peut prendre plusieurs secondes
+        </p>
       ) : result?.analysis ? (
         <p className="text-sm leading-relaxed" style={{ color: "#888" }}>
           {result.analysis}
@@ -66,7 +67,7 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
               className="flex-shrink-0 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-xl press-effect"
               style={{
                 background: "rgba(205,255,0,0.08)",
-                color: "#CDFF00",
+                color: "var(--color-neon)",
                 border: "1px solid rgba(205,255,0,0.25)",
               }}
             >
@@ -75,13 +76,6 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
           )}
         </div>
       )}
-
-      <style>{`
-        @keyframes pulse-dot {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 }
