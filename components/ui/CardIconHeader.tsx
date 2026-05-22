@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface CardIconHeaderProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  trailing?: React.ReactNode;
+  trailing?: ReactNode;
 }
 
 export default function CardIconHeader({ icon, label, trailing }: CardIconHeaderProps) {
