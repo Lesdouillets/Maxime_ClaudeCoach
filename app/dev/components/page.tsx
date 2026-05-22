@@ -26,6 +26,7 @@ import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
 import RunPlanInterval from "@/components/RunPlanInterval";
 import RunPlanSection from "@/components/RunPlanSection";
+import RunHeroCard from "@/components/RunHeroCard";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -510,6 +511,18 @@ export default function ComponentsPage() {
                 <p className="text-xs mb-2" style={{ color: "#555" }}>progressif</p>
                 <RunPlanSection coachRun={FIXTURE_RUN_PROGRESSIVE} />
               </div>
+            </div>
+          </ComponentBlock>
+
+          {/* RunHeroCard */}
+          <ComponentBlock title="RunHeroCard" description="Carte hero — état prévu vs post-sync">
+            <div className="space-y-4">
+              <p className="text-xs" style={{ color: "#555" }}>Prévu — z2</p>
+              <RunHeroCard coachRun={FIXTURE_RUN_CLASSIC} />
+              <p className="text-xs" style={{ color: "#555" }}>Prévu — fractionné</p>
+              <RunHeroCard coachRun={FIXTURE_RUN_INTERVAL} />
+              <p className="text-xs" style={{ color: "#555" }}>Post-sync (doneSession)</p>
+              <RunHeroCard coachRun={FIXTURE_RUN_CLASSIC} doneSession={FIXTURE_DONE_RUN} />
             </div>
           </ComponentBlock>
 
