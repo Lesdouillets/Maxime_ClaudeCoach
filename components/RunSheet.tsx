@@ -481,7 +481,7 @@ export default function RunSheet() {
                 </button>
               )}
 
-              <RunSessionResults session={doneSession} />
+              <RunSessionResults session={doneSession} runType={coachRun?.runType} />
 
               {/* Strava sync button */}
               <button

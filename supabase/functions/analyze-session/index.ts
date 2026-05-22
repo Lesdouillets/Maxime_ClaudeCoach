@@ -114,7 +114,8 @@ function sessionToText(s: Record<string, unknown>): string {
 
   if (s.type === "run") {
     const dist = s.distanceKm ?? "?";
-    const pace = s.avgPaceSecPerKm
+    const hasLaps = Array.isArray(s.laps) && (s.laps as unknown[]).length > 1;
+    const pace = !hasLaps && s.avgPaceSecPerKm
       ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Math.round(Number(s.avgPaceSecPerKm) % 60)).padStart(2, "0")}/km`
       : "";
     const hr = s.avgHeartRate ? ` FC:${s.avgHeartRate}` : "";
@@ -134,7 +135,8 @@ function sessionToText(s: Record<string, unknown>): string {
           .join(" ")
       : null;
 
-    return `run ${date} | ${dist}km @${pace}${hr}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
+    const paceStr = pace ? ` @${pace}` : "";
+    return `run ${date} | ${dist}km${paceStr}${hr}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
   }
 
   // fitness

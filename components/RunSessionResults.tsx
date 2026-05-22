@@ -2,12 +2,18 @@
 
 import { formatPace, formatDuration } from "@/lib/plan";
 import type { RunSession } from "@/lib/types";
+import type { CoachRun } from "@/lib/coachPlan";
+
+const VARIABLE_PACE_TYPES: Array<CoachRun["runType"]> = ["progressif", "tempo", "fractionne"];
 
 interface Props {
   session: RunSession;
+  runType?: CoachRun["runType"];
 }
 
-export default function RunSessionResults({ session }: Props) {
+export default function RunSessionResults({ session, runType }: Props) {
+  const showAvgPace = !runType || !VARIABLE_PACE_TYPES.includes(runType);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -17,12 +23,14 @@ export default function RunSessionResults({ session }: Props) {
             {session.distanceKm.toFixed(2)}<span className="text-sm text-muted ml-1">km</span>
           </p>
         </div>
+        {showAvgPace && (
         <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
           <p className="text-xs text-muted mb-1">Allure</p>
           <p className="font-display text-3xl" style={{ color: "#CDFF00" }}>
             {session.avgPaceSecPerKm > 0 ? formatPace(session.avgPaceSecPerKm) : "--"}
           </p>
         </div>
+        )}
         {session.durationSeconds > 0 && (
           <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
             <p className="text-xs text-muted mb-1">Durée</p>
