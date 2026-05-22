@@ -16,8 +16,8 @@ const STRIP_STYLE: CSSProperties = {
   alignItems: "center",
   padding: "0 16px",
   gap: 8,
+  background: "#000",
   borderBottom: "1px solid var(--color-white-08)",
-  cursor: "pointer",
   position: "relative",
 };
 
@@ -113,6 +113,7 @@ function SessionStrip() {
 
   return (
     <button
+      type="button"
       onClick={session.expand}
       className="w-full press-effect"
       style={STRIP_STYLE}
