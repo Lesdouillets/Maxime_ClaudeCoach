@@ -17,7 +17,7 @@ const STRIP_STYLE: CSSProperties = {
   alignItems: "center",
   padding: "0 16px",
   gap: 8,
-  background: "#000",
+  background: "var(--color-background)",
   borderBottom: "1px solid var(--color-white-08)",
   position: "relative",
 };
@@ -104,8 +104,8 @@ function SessionStrip() {
 
   const isResting = !!timerKey && timerSec > 0;
 
-  // Extrait le numéro de série depuis la clé "exId-set-N" (0-indexé → affiché en 1-indexé)
-  const setMatch = timerKey?.match(/-set-(\d+)$/);
+  // clé format "exId-set-N" : N est 0-indexé, on affiche en 1-indexé
+  const setMatch = isResting ? timerKey!.match(/-set-(\d+)$/) : null;
   const setLabel = setMatch ? `REPOS S${parseInt(setMatch[1], 10) + 1}` : null;
 
   const restProgress =
@@ -124,7 +124,7 @@ function SessionStrip() {
       <div className="flex-1 flex items-baseline gap-1.5 min-w-0 overflow-hidden">
         <span
           className="truncate flex-shrink-0 max-w-[55%]"
-          style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "17px", color: "#fff" }}
+          style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "17px", color: ACTIVE }}
         >
           {ex.name}
         </span>
