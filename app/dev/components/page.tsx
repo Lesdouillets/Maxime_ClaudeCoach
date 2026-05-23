@@ -505,7 +505,7 @@ export default function ComponentsPage() {
           </ComponentBlock>
 
           {/* RunPlanSection — routeur */}
-          <ComponentBlock title="RunPlanSection" description="Routeur — teste les 3 types">
+          <ComponentBlock title="RunPlanSection" description="Routeur — teste les 4 types">
             <div className="space-y-6">
               <div>
                 <p className="text-xs mb-2" style={{ color: "#555" }}>z2 (classic)</p>
