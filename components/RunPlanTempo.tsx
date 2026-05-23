@@ -4,6 +4,7 @@ import type { CoachRun, CoachRunInterval } from "@/lib/coachPlan";
 import { JETBRAINS_MONO_DATA } from "@/lib/typography";
 import { segDuration, segDistLabel } from "@/lib/runPlanUtils";
 import RunSegmentCard from "@/components/RunSegmentCard";
+import RunPlanClassic from "@/components/RunPlanClassic";
 
 interface Props {
   coachRun: CoachRun;
@@ -40,7 +41,7 @@ function TempoCard({ seg }: { seg: CoachRunInterval }) {
 }
 
 export default function RunPlanTempo({ coachRun }: Props) {
-  if (!coachRun.intervals?.length) return null;
+  if (!coachRun.intervals?.length) return <RunPlanClassic coachRun={coachRun} />;
 
   const isWarmup = (s: CoachRunInterval) => s.label === "Échauffement";
   const isCooldown = (s: CoachRunInterval) => s.label === "Retour au calme" || s.label === "Récup";
