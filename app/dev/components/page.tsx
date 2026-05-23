@@ -519,6 +519,10 @@ export default function ComponentsPage() {
                 <p className="text-xs mb-2" style={{ color: "#555" }}>progressif</p>
                 <RunPlanSection coachRun={FIXTURE_RUN_PROGRESSIVE} />
               </div>
+              <div>
+                <p className="text-xs mb-2" style={{ color: "#555" }}>tempo</p>
+                <RunPlanSection coachRun={FIXTURE_RUN_TEMPO} />
+              </div>
             </div>
           </ComponentBlock>
 
