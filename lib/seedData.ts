@@ -69,28 +69,59 @@ function makeLowerPlan(date: string, weekIndex: number): CoachWorkout {
 }
 
 function makeRunPlan(date: string, weekIndex: number): CoachRun {
-  if (weekIndex === -2) {
-    return {
-      id: `seed-run-${weekIndex}`,
-      type: "run",
-      date,
-      label: "Semi-marathon",
-      distanceKm: 21.1,
-      pace: "5:10",
-      durationMin: 110,
-      isRace: true,
-    };
+  const id = `seed-run-${weekIndex}`;
+  // Rotation sur 5 types : 0=z2, 1=fractionné, 2=progressif, 3=tempo, 4=course
+  // Offset +1 pour que w=-1 (prochaine semaine) soit z2, w=-2 soit course, etc.
+  const rotation = ((weekIndex + 1) % 5 + 5) % 5;
+
+  switch (rotation) {
+    case 0:
+      return {
+        id, type: "run", date,
+        label: "Sortie Longue", distanceKm: 16, pace: "5:37",
+        durationMin: 90, targetHR: "112-149", runType: "z2",
+        coachNote: "Sortie longue en zone 2, rythme confortable",
+      };
+    case 1:
+      return {
+        id, type: "run", date,
+        label: "10×400m", distanceKm: 8.5, durationMin: 54, runType: "fractionne",
+        coachNote: "10 répétitions à allure 5km. Récup 90s entre chaque.",
+        intervals: [
+          { label: "Échauffement", distanceKm: 2, pace: "6:00" },
+          { label: "Répétitions", reps: 10, distanceKm: 0.4, pace: "4:10", restSeconds: 90 },
+          { label: "Retour au calme", distanceKm: 1.5, pace: "6:30" },
+        ],
+      };
+    case 2:
+      return {
+        id, type: "run", date,
+        label: "Z2 > Z3 > Z4", distanceKm: 9, durationMin: 52, runType: "progressif",
+        coachNote: "Montée progressive des zones. Terminer fort sur le Z4.",
+        intervals: [
+          { label: "Z2", distanceKm: 4, pace: "5:50", targetHR: "112-140" },
+          { label: "Z3", distanceKm: 3, pace: "5:10", targetHR: "140-162" },
+          { label: "Z4", distanceKm: 2, pace: "4:40", targetHR: "162-175" },
+        ],
+      };
+    case 3:
+      return {
+        id, type: "run", date,
+        label: "Seuil 6km", distanceKm: 9, durationMin: 49, runType: "tempo",
+        coachNote: "Effort soutenu sur le bloc tempo. Respiration contrôlée.",
+        intervals: [
+          { label: "Échauffement", distanceKm: 2, pace: "6:00" },
+          { label: "Tempo", distanceKm: 6, pace: "4:50", targetHR: "149-168" },
+          { label: "Récup", distanceKm: 1, pace: "6:30" },
+        ],
+      };
+    default: // 4 → course
+      return {
+        id, type: "run", date,
+        label: "Semi-marathon", distanceKm: 21.1, pace: "5:10",
+        durationMin: 110, runType: "course", isRace: true,
+      };
   }
-  return {
-    id: `seed-run-${weekIndex}`,
-    type: "run",
-    date,
-    label: "Long Run",
-    distanceKm: 16,
-    pace: "5:37",
-    targetZone: "LONG RUN",
-    coachNote: "Sortie longue en zone 2, rythme confortable",
-  };
 }
 
 function makeUpperSession(date: string, weekIndex: number): FitnessSession {
@@ -153,12 +184,13 @@ export function seedLocalStorage(): void {
 
   const todayStr = toStr(new Date());
 
-  // Plage : w=7 (7 semaines passées) → w=-3 (3 semaines futures)
+  // Plage : w=7 (7 semaines passées) → w=-5 (5 semaines futures)
   // Semaines w=1 à w=5  : toutes les séances faites → streak intact
   // Semaines w=6 et w=7 : plans seulement, aucune session → streak cassé
   // Semaine courante w=0 : lundi fait (si passé), reste à venir
-  // Semaines w=-1 à w=-3 : plans seulement → état "à venir"
-  for (let w = 7; w >= -3; w--) {
+  // Semaines w=-1 à w=-5 : plans seulement → état "à venir"
+  // Run rotation sur 5 types (z2/fractionné/progressif/tempo/course) × 13 semaines
+  for (let w = 7; w >= -5; w--) {
     const monday = mondayOfWeek(w);
     const upperDate = toStr(monday);
     const lowerDate = toStr(addDays(monday, 2)); // mercredi
