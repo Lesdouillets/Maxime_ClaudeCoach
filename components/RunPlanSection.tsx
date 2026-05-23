@@ -4,6 +4,7 @@ import type { CoachRun } from "@/lib/coachPlan";
 import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanInterval from "@/components/RunPlanInterval";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
+import RunPlanTempo from "@/components/RunPlanTempo";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
 interface Props {
@@ -13,9 +14,8 @@ interface Props {
 export default function RunPlanSection({ coachRun }: Props) {
   const renderPlan = () => {
     if (coachRun.runType === "fractionne") return <RunPlanInterval coachRun={coachRun} />;
-    if (coachRun.runType === "progressif" || coachRun.runType === "tempo") {
-      return <RunPlanProgressive coachRun={coachRun} />;
-    }
+    if (coachRun.runType === "tempo") return <RunPlanTempo coachRun={coachRun} />;
+    if (coachRun.runType === "progressif") return <RunPlanProgressive coachRun={coachRun} />;
     return <RunPlanClassic coachRun={coachRun} />;
   };
 

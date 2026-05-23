@@ -25,6 +25,7 @@ import type { LiveExercise } from "@/contexts/SessionContext";
 import RunPlanClassic from "@/components/RunPlanClassic";
 import RunPlanProgressive from "@/components/RunPlanProgressive";
 import RunPlanInterval from "@/components/RunPlanInterval";
+import RunPlanTempo from "@/components/RunPlanTempo";
 import RunPlanSection from "@/components/RunPlanSection";
 import { RunCard } from "@/components/SessionCard";
 import RunSessionRecap from "@/components/RunSessionRecap";
@@ -32,6 +33,7 @@ import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
   FIXTURE_RUN_PROGRESSIVE,
+  FIXTURE_RUN_TEMPO,
   FIXTURE_DONE_RUN,
 } from "./running-fixtures";
 
@@ -221,7 +223,7 @@ export default function ComponentsPage() {
       {active === "cartes" && (
         <div className="space-y-8">
 
-          <ComponentBlock noPad title="SessionCard — Fitness planifié (upper)" description="Haut du corps, 6 exos, montée en charge">
+          <ComponentBlock title="SessionCard — Fitness planifié (upper)" description="Haut du corps, 6 exos, montée en charge">
             <SessionCard
               todayCoachWorkout={{ id: "1", type: "fitness", date: "2026-05-15", category: "upper", label: "Haut du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "MONTEE EN CHARGE" }}
               todayCoachRun={null}
@@ -231,7 +233,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — Fitness complété (lower)" description="Bas du corps fait, 6 exos, décharge">
+          <ComponentBlock title="SessionCard — Fitness complété (lower)" description="Bas du corps fait, 6 exos, décharge">
             <SessionCard
               todayCoachWorkout={{ id: "2", type: "fitness", date: "2026-05-15", category: "lower", label: "Bas du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "DECHARGE" }}
               todayCoachRun={null}
@@ -241,7 +243,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — COURSE (semi-marathon)" description="21.1 km, 5:10/km — badge ailes dorées, bordure dorée">
+          <ComponentBlock title="SessionCard — COURSE (semi-marathon)" description="21.1 km, 5:10/km — badge ailes dorées, bordure dorée">
             <SessionCard
               todayCoachWorkout={null}
               todayCoachRun={{ id: "r0", type: "run", date: "2026-05-15", label: "Semi-marathon", distanceKm: 21.1, pace: "5:10", durationMin: 110, isRace: true, runType: "course" }}
@@ -251,7 +253,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — Run planifié (sortie longue)" description="16 km, 90 min, 5:37/km, Zone 2">
+          <ComponentBlock title="SessionCard — Run planifié (sortie longue)" description="16 km, 90 min, 5:37/km, Zone 2">
             <SessionCard
               todayCoachWorkout={null}
               todayCoachRun={{ id: "r1", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, runType: "z2" }}
@@ -261,7 +263,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — Run planifié (fractionné)" description="8.5 km, ~48 min, sans pace, FRACTIONNÉ">
+          <ComponentBlock title="SessionCard — Run planifié (fractionné)" description="8.5 km, ~48 min, sans pace, FRACTIONNÉ">
             <SessionCard
               todayCoachWorkout={null}
               todayCoachRun={{ id: "r2", type: "run", date: "2026-05-15", label: "10x400m", distanceKm: 8.5, durationMin: 48, runType: "fractionne" }}
@@ -271,7 +273,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — Run complété" description="Run fait : 16.2 km, 5:41/km">
+          <ComponentBlock title="SessionCard — Run complété" description="Run fait : 16.2 km, 5:41/km">
             <SessionCard
               todayCoachWorkout={null}
               todayCoachRun={{ id: "r3", type: "run", date: "2026-05-15", label: "Sortie Longue", distanceKm: 16, pace: "5:37", durationMin: 90, runType: "z2" }}
@@ -281,7 +283,7 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock noPad title="SessionCard — Repos" description="Aucune séance planifiée">
+          <ComponentBlock title="SessionCard — Repos" description="Aucune séance planifiée">
             <SessionCard
               todayCoachWorkout={null}
               todayCoachRun={null}
@@ -343,7 +345,7 @@ export default function ComponentsPage() {
         <div className="space-y-10">
 
           {/* FitnessCard — variant embedded */}
-          <ComponentBlock noPad title="FitnessCard — variant embedded" description="Affichée dans le sheet de détail — sans &laquo; Voir le détail &raquo;">
+          <ComponentBlock title="FitnessCard — variant embedded" description="Affichée dans le sheet de détail — sans &laquo; Voir le détail &raquo;">
             <FitnessCard
               todayCoachWorkout={{ id: "1", type: "fitness", date: "2026-05-21", category: "upper", label: "Haut du corps", exercises: Array(6).fill({ name: "Ex", sets: 3, reps: 10, weight: 0 }), durationMin: 60, coachNote: "MONTEE EN CHARGE" }}
               todaySession={null}
@@ -495,6 +497,11 @@ export default function ComponentsPage() {
           {/* RunPlanInterval */}
           <ComponentBlock title="RunPlanInterval" description="Fractionné — échauffement + bloc reps + retour au calme">
             <RunPlanInterval coachRun={FIXTURE_RUN_INTERVAL} />
+          </ComponentBlock>
+
+          {/* RunPlanTempo */}
+          <ComponentBlock title="RunPlanTempo" description="Tempo — échauffement + bloc tempo highlighté + récup">
+            <RunPlanTempo coachRun={FIXTURE_RUN_TEMPO} />
           </ComponentBlock>
 
           {/* RunPlanSection — routeur */}
@@ -784,12 +791,10 @@ function ComponentBlock({
   title,
   description,
   children,
-  noPad = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
-  noPad?: boolean;
 }) {
   return (
     <div className="space-y-4">
@@ -797,12 +802,7 @@ function ComponentBlock({
         <p className="font-display text-xl" style={{ color: "#fff" }}>{title}</p>
         <p className="text-xs mt-0.5" style={{ color: "#444" }}>{description}</p>
       </div>
-      <div
-        className={noPad ? "rounded-2xl overflow-hidden" : "rounded-2xl p-5 space-y-5"}
-        style={{ background: "#111", border: "1px solid #1a1a1a" }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

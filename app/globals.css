@@ -31,8 +31,10 @@
   --color-destructive: #FF5E3D;
 
   /* Variantes d'opacité pré-calculées — fallback pour iOS < 16.2 (color-mix non supporté) */
+  --color-neon-04: rgba(205, 255, 0, 0.04);
   --color-neon-08: rgba(205, 255, 0, 0.08);
   --color-neon-10: rgba(205, 255, 0, 0.10);
+  --color-neon-15: rgba(205, 255, 0, 0.15);
   --color-neon-20: rgba(205, 255, 0, 0.20);
   --color-neon-glow: rgba(205, 255, 0, 0.60);
   --color-neon-shadow: rgba(205, 255, 0, 0.30);

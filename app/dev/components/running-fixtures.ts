@@ -44,6 +44,21 @@ export const FIXTURE_RUN_PROGRESSIVE: CoachRun = {
   ],
 };
 
+export const FIXTURE_RUN_TEMPO: CoachRun = {
+  id: "dev-run-tempo",
+  type: "run",
+  date: "2026-05-22",
+  label: "Tempo",
+  distanceKm: 8,
+  durationMin: 42,
+  runType: "tempo",
+  intervals: [
+    { label: "Échauffement", distanceKm: 2, pace: "6:00" },
+    { label: "Tempo", distanceKm: 5, pace: "4:50", targetHR: "148-168" },
+    { label: "Récup", distanceKm: 1, pace: "6:00" },
+  ],
+};
+
 export const FIXTURE_DONE_RUN: RunSession = {
   id: "dev-done-run",
   type: "run",

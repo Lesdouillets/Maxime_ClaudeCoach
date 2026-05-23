@@ -1,7 +1,7 @@
 "use client";
 
 import type { CoachRun } from "@/lib/coachPlan";
-import { JETBRAINS_MONO_LABEL, JETBRAINS_MONO_DATA } from "@/lib/typography";
+import { JETBRAINS_MONO_DATA } from "@/lib/typography";
 import { segDuration, segDistLabel } from "@/lib/runPlanUtils";
 
 interface Props {
@@ -23,20 +23,20 @@ export default function RunPlanProgressive({ coachRun }: Props) {
         return (
           <div
             key={i}
-            className="rounded-2xl px-4 py-3 flex items-center justify-between"
+            className="rounded-2xl px-4 py-4"
             style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)" }}
           >
-            <div>
-              <p className="font-display text-lg" style={{ color: "#fff" }}>
+            <div className="flex items-baseline justify-between">
+              <p className="font-display leading-none" style={{ fontSize: 16, color: "#fff" }}>
                 {seg.label ?? `Bloc ${i + 1}`}
               </p>
-              <p className="mt-0.5" style={{ ...JETBRAINS_MONO_DATA, color: "var(--color-secondary)", fontSize: 11 }}>
-                {parts}
-              </p>
+              <span className="font-display leading-none" style={{ fontSize: 16, color: "#fff" }}>
+                {segDuration(seg)}
+              </span>
             </div>
-            <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-secondary)", fontSize: 11 }}>
-              {segDuration(seg)}
-            </span>
+            <p className="mt-2" style={{ ...JETBRAINS_MONO_DATA, color: "var(--color-secondary)", fontSize: 11 }}>
+              {parts}
+            </p>
           </div>
         );
       })}
