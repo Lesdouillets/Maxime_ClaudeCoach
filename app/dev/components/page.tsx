@@ -28,7 +28,8 @@ import RunPlanInterval from "@/components/RunPlanInterval";
 import RunPlanTempo from "@/components/RunPlanTempo";
 import RunPlanSection from "@/components/RunPlanSection";
 import { RunCard } from "@/components/SessionCard";
-import RunSessionRecap from "@/components/RunSessionRecap";
+import RunSessionResults from "@/components/RunSessionResults";
+import { StravaIcon } from "@/components/icons";
 import {
   FIXTURE_RUN_CLASSIC,
   FIXTURE_RUN_INTERVAL,
@@ -538,9 +539,39 @@ export default function ComponentsPage() {
             </div>
           </ComponentBlock>
 
-          {/* RunSessionRecap */}
-          <ComponentBlock title="RunSessionRecap" description="Rappel des objectifs — visible uniquement post-sync">
-            <RunSessionRecap coachRun={FIXTURE_RUN_CLASSIC} />
+          {/* RunSessionResults */}
+          <ComponentBlock title="RunSessionResults" description="Tableau fractions/tours avec dénivelé et ligne Total">
+            <RunSessionResults session={FIXTURE_DONE_RUN} />
+          </ComponentBlock>
+
+          {/* Strava Sync CTA */}
+          <ComponentBlock title="Strava Sync CTA" description="Bouton de synchronisation Strava — même composant pour import initial et sync post-séance">
+            <div className="space-y-3">
+              <p className="text-xs" style={{ color: "#555" }}>État par défaut</p>
+              <button
+                className="w-full flex items-center justify-center gap-2.5"
+                style={{ background: "#FC4C02", borderRadius: "12px", padding: "15px 20px", fontWeight: 600, fontSize: "15px", color: "white" }}
+              >
+                <StravaIcon size={20} />
+                Sync Strava
+              </button>
+              <p className="text-xs" style={{ color: "#555" }}>Mode dev (simulé)</p>
+              <button
+                className="w-full flex items-center justify-center gap-2.5"
+                style={{ background: "#FC4C02", borderRadius: "12px", padding: "15px 20px", fontWeight: 600, fontSize: "15px", color: "white" }}
+              >
+                <StravaIcon size={20} />
+                Simuler synchro (dev)
+              </button>
+              <p className="text-xs" style={{ color: "#555" }}>En cours</p>
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-2.5"
+                style={{ background: "#7a2500", borderRadius: "12px", padding: "15px 20px", fontWeight: 600, fontSize: "15px", color: "white", opacity: 0.7 }}
+              >
+                Recherche en cours…
+              </button>
+            </div>
           </ComponentBlock>
 
         </div>

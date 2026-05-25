@@ -8,14 +8,14 @@ import RunSessionResults from "@/components/RunSessionResults";
 import CoachFeedbackCard from "@/components/CoachFeedbackCard";
 import { RunCard } from "@/components/SessionCard";
 import RunPlanSection from "@/components/RunPlanSection";
-import RunSessionRecap from "@/components/RunSessionRecap";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import { toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
-import { CalendarIcon, OptionsIcon, TrashIcon } from "@/components/icons";
+import { CalendarIcon, ImageIcon, NoteIcon, OptionsIcon, StravaIcon, TrashIcon } from "@/components/icons";
+import NoteModal from "@/components/NoteModal";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
 import {
@@ -24,20 +24,30 @@ import {
   type CoachAnalysisResult,
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
-import type { RunSession } from "@/lib/types";
+import type { RunSession, StravaLap } from "@/lib/types";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const StravaIcon = () => (
-  // eslint-disable-next-line @next/next/no-img-element
-  <img
-    src={`${BASE}/strava.svg`}
-    width={12}
-    height={12}
-    alt="Strava"
-    style={{ filter: "invert(50%) sepia(100%) saturate(500%) hue-rotate(350deg)" }}
-  />
-);
+const IS_DEV_SYNC = process.env.NEXT_PUBLIC_DISABLE_SYNC === "true";
 
+// Webpack élimine ce tableau en prod car la condition est résolue à la compilation
+const DEV_MOCK_LAPS: StravaLap[] = process.env.NEXT_PUBLIC_DISABLE_SYNC === "true" ? [
+  { lap_index: 1,  name: "Lap 1",  elapsed_time: 330, moving_time: 328, distance: 1000, average_speed: 3.05, average_heartrate: 128, total_elevation_gain: 8  },
+  { lap_index: 2,  name: "Lap 2",  elapsed_time: 326, moving_time: 324, distance: 1000, average_speed: 3.09, average_heartrate: 133, total_elevation_gain: 5  },
+  { lap_index: 3,  name: "Lap 3",  elapsed_time: 321, moving_time: 319, distance: 1000, average_speed: 3.13, average_heartrate: 136, total_elevation_gain: 22 },
+  { lap_index: 4,  name: "Lap 4",  elapsed_time: 318, moving_time: 316, distance: 1000, average_speed: 3.16, average_heartrate: 139, total_elevation_gain: 14 },
+  { lap_index: 5,  name: "Lap 5",  elapsed_time: 323, moving_time: 321, distance: 1000, average_speed: 3.12, average_heartrate: 141, total_elevation_gain: 31 },
+  { lap_index: 6,  name: "Lap 6",  elapsed_time: 316, moving_time: 314, distance: 1000, average_speed: 3.18, average_heartrate: 144, total_elevation_gain: 6  },
+  { lap_index: 7,  name: "Lap 7",  elapsed_time: 320, moving_time: 318, distance: 1000, average_speed: 3.14, average_heartrate: 146, total_elevation_gain: 19 },
+  { lap_index: 8,  name: "Lap 8",  elapsed_time: 315, moving_time: 313, distance: 1000, average_speed: 3.19, average_heartrate: 148, total_elevation_gain: 11 },
+  { lap_index: 9,  name: "Lap 9",  elapsed_time: 322, moving_time: 320, distance: 1000, average_speed: 3.13, average_heartrate: 149, total_elevation_gain: 28 },
+  { lap_index: 10, name: "Lap 10", elapsed_time: 318, moving_time: 316, distance: 1000, average_speed: 3.16, average_heartrate: 150, total_elevation_gain: 7  },
+  { lap_index: 11, name: "Lap 11", elapsed_time: 324, moving_time: 322, distance: 1000, average_speed: 3.10, average_heartrate: 143, total_elevation_gain: 16 },
+  { lap_index: 12, name: "Lap 12", elapsed_time: 328, moving_time: 326, distance: 1000, average_speed: 3.06, average_heartrate: 140, total_elevation_gain: 9  },
+  { lap_index: 13, name: "Lap 13", elapsed_time: 312, moving_time: 310, distance: 1000, average_speed: 3.22, average_heartrate: 142, total_elevation_gain: 4  },
+  { lap_index: 14, name: "Lap 14", elapsed_time: 319, moving_time: 317, distance: 1000, average_speed: 3.15, average_heartrate: 141, total_elevation_gain: 12 },
+  { lap_index: 15, name: "Lap 15", elapsed_time: 325, moving_time: 323, distance: 1000, average_speed: 3.10, average_heartrate: 138, total_elevation_gain: 3  },
+  { lap_index: 16, name: "Lap 16", elapsed_time: 323, moving_time: 321, distance: 1200, average_speed: 3.12, average_heartrate: 135, total_elevation_gain: 2  },
+] : [];
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAP_MAX_MOVEMENT_PX = 6;
 const TAP_MAX_DURATION_MS = 250;
@@ -63,6 +73,8 @@ export default function RunSheet() {
   const [optionsPanel, setOptionsPanel] = useState<"reschedule" | "cancel" | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [addContentMenuOpen, setAddContentMenuOpen] = useState(false);
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -181,6 +193,15 @@ export default function RunSheet() {
     }
   };
 
+  const handleMockStravaSync = () => {
+    if (!doneSession || stravaSyncing) return;
+    const updated: RunSession = { ...doneSession, laps: DEV_MOCK_LAPS, importedFromStrava: true };
+    updateSession(updated);
+    setDoneSession(updated);
+    setStravaSyncMsg(`${DEV_MOCK_LAPS.length} fractions simulées ✓`);
+    setTimeout(() => setStravaSyncMsg(""), 3000);
+  };
+
   const handleClose = useCallback(() => {
     const origin = sheet.state?.originRoute;
     sheet.close();
@@ -190,6 +211,8 @@ export default function RunSheet() {
     setOptionsPanel(null);
     setRescheduleDate("");
     setCancelReason("");
+    setAddContentMenuOpen(false);
+    setNoteModalOpen(false);
     if (origin && originNeedsRedirect(origin, pathname)) router.push(origin);
   }, [sheet, router, pathname]);
 
@@ -245,6 +268,10 @@ export default function RunSheet() {
 
   if (!sheet.state) return null;
 
+  // En dev, toujours vrai dès qu'une session existe — permet de rejouer la mock à tout moment
+  const needsStravaSync = IS_DEV_SYNC
+    ? !!doneSession
+    : !!doneSession && !doneSession.importedFromStrava && !doneSession.stravaActivityId;
   const isExpanded = sheet.view === "expanded" && hasEntered;
   const backdropVisible = sheet.view === "expanded";
 
@@ -420,7 +447,7 @@ export default function RunSheet() {
         )}
 
         {/* Body */}
-        <div className={`flex-1 overflow-y-auto px-5 pt-2 space-y-4 ${coachRun && !doneSession ? "pb-32" : "pb-12"}`}>
+        <div className={`flex-1 overflow-y-auto px-5 pt-2 space-y-4 ${coachRun && !doneSession ? "pb-32" : needsStravaSync ? "pb-32" : "pb-12"}`}>
           {/* Carte hero — visible si coachRun existe */}
           {coachRun && (
             <RunCard
@@ -460,26 +487,7 @@ export default function RunSheet() {
                 </button>
               )}
 
-              <RunSessionResults session={doneSession} runType={coachRun?.runType} />
-
-              {coachRun && <RunSessionRecap coachRun={coachRun} />}
-
-              <button
-                onClick={handleStravaSync}
-                disabled={stravaSyncing}
-                className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
-                style={{
-                  background: "rgba(252,76,2,0.08)",
-                  border: "1px solid rgba(252,76,2,0.3)",
-                  color: stravaSyncing ? "#888" : "#fc4c02",
-                  opacity: stravaSyncing ? 0.6 : 1,
-                }}
-              >
-                {stravaSyncing ? "SYNCHRONISATION…" : "SYNCHRONISER AVEC STRAVA →"}
-              </button>
-              {stravaSyncMsg && (
-                <p className="text-center text-xs" style={{ color: "#888" }}>{stravaSyncMsg}</p>
-              )}
+              <RunSessionResults session={doneSession} />
             </>
           ) : coachRun ? (
             <>
@@ -497,8 +505,27 @@ export default function RunSheet() {
 
         </div>
 
-        {/* Strava CTA — run à venir non encore loggué */}
-        {coachRun && !doneSession && (
+        <NoteModal
+          open={noteModalOpen}
+          initialValue={coachRun?.userNote ?? doneSession?.comment ?? ""}
+          onClose={() => setNoteModalOpen(false)}
+          onSave={(note) => {
+            if (coachRun) {
+              const updated = { ...coachRun, userNote: note };
+              addCoachRun(updated);
+              setCoachRun(updated);
+              autoSyncPush().catch(() => {});
+            } else if (doneSession) {
+              const updated = { ...doneSession, comment: note };
+              updateSession(updated);
+              setDoneSession(updated);
+              autoSyncPush().catch(() => {});
+            }
+          }}
+        />
+
+        {/* Strava CTA — run à venir non loggué, ou session existante pas encore syncée */}
+        {((coachRun && !doneSession) || needsStravaSync) && (
           <div
             className="absolute left-0 right-0 px-4 pt-3"
             style={{
@@ -511,28 +538,49 @@ export default function RunSheet() {
               <p className="text-center text-xs mb-2" style={{ color: "#888" }}>{stravaSyncMsg}</p>
             )}
             <div className="flex gap-3">
-              <button
-                disabled
-                title="Import photo — bientôt disponible"
-                aria-label="Import photo (bientôt disponible)"
-                className="flex items-center justify-center"
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: "14px",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="relative" style={{ flexShrink: 0 }}>
+                <button
+                  onClick={() => setAddContentMenuOpen((v) => !v)}
+                  aria-label="Ajouter une image ou une note"
+                  className="flex items-center justify-center press-effect"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "14px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+                {addContentMenuOpen && (
+                  <ContextMenu
+                    onClose={() => setAddContentMenuOpen(false)}
+                    menuClassName="absolute left-0 bottom-16"
+                    width={240}
+                    items={[
+                      {
+                        label: "Ajouter une image",
+                        icon: <ImageIcon size={16} color="currentColor" />,
+                        onClick: () => { setAddContentMenuOpen(false); fileInputRef.current?.click(); },
+                      },
+                      {
+                        label: "Ajouter une note",
+                        icon: <NoteIcon size={16} color="currentColor" />,
+                        onClick: () => { setAddContentMenuOpen(false); setNoteModalOpen(true); },
+                      },
+                    ]}
+                  />
+                )}
+              </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" />
 
               <button
-                onClick={handleStravaImport}
+                onClick={needsStravaSync
+                  ? (IS_DEV_SYNC ? handleMockStravaSync : handleStravaSync)
+                  : handleStravaImport}
                 disabled={stravaSyncing}
                 className="flex-1 flex items-center justify-center gap-2.5 press-effect"
                 style={{
@@ -545,13 +593,8 @@ export default function RunSheet() {
                   opacity: stravaSyncing ? 0.7 : 1,
                 }}
               >
-                {!stravaSyncing && (
-                  <svg width="20" height="20" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                    <path opacity="0.6" fillRule="evenodd" clipRule="evenodd" d="M4.97436 6.83333L7.53846 11L10 6.83333H8.46154L7.53846 8.40741L6.51282 6.83333H4.97436Z" fill="white"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M5.28205 1L8.46154 6.83333H2L5.28205 1ZM5.28205 4.51852L6.51282 6.83333H3.94872L5.28205 4.51852Z" fill="white"/>
-                  </svg>
-                )}
-                {stravaSyncing ? "Recherche en cours…" : "Sync Strava"}
+                {!stravaSyncing && <StravaIcon size={20} />}
+                {stravaSyncing ? "Recherche en cours…" : IS_DEV_SYNC && needsStravaSync ? "Simuler synchro (dev)" : "Sync Strava"}
               </button>
             </div>
           </div>

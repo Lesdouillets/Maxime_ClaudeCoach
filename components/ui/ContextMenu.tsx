@@ -12,14 +12,15 @@ interface Props {
   onClose: () => void;
   items: MenuItem[];
   width?: number;
+  menuClassName?: string;
 }
 
-export function ContextMenu({ onClose, items, width = 220 }: Props) {
+export function ContextMenu({ onClose, items, width = 220, menuClassName = "absolute right-0 top-12" }: Props) {
   return (
     <>
       <div className="fixed inset-0 z-dropdown" onClick={onClose} />
       <div
-        className="absolute right-0 top-12 z-dropdown rounded-2xl overflow-hidden animate-fade-in"
+        className={`${menuClassName} z-dropdown rounded-2xl overflow-hidden animate-fade-in`}
         style={{
           width,
           background: "rgba(28,28,30,0.96)",

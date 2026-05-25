@@ -56,6 +56,8 @@ export interface CoachRun {
   /** Vrai si c'est une compétition (semi, 10km, etc.) — déclenche le badge COURSE */
   isRace?: boolean;
   runType?: "z2" | "tempo" | "fractionne" | "progressif" | "course";
+  /** Note libre de l'utilisateur — stockée dans coach_plans.data, transmission au coach à implémenter (#119) */
+  userNote?: string;
 }
 
 export type CoachPlan = CoachWorkout | CoachRun;
@@ -235,6 +237,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
     isRace: data.isRace === true,
     runType: isRunType(data.runType) ? data.runType : undefined,
+    userNote: data.userNote != null ? String(data.userNote) : undefined,
     intervals: Array.isArray(data.intervals)
       ? (data.intervals as Record<string, unknown>[]).map((seg) => ({
           label: seg.label != null ? String(seg.label) : undefined,

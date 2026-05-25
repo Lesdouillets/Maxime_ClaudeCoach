@@ -22,3 +22,4 @@ export { PlusIcon } from "./PlusIcon";
 export { RefreshIcon } from "./RefreshIcon";
 export { StravaIcon } from "./StravaIcon";
 export { StreakIcon } from "./StreakIcon";
+export { ImageIcon } from "./ImageIcon";
