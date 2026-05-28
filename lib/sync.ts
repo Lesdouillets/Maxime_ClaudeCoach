@@ -386,17 +386,19 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
       pullCoachAnalyses(userId, profileId),
     ]);
 
-  const mergedSessions        = mergeById(remoteSessions, readSessions());
-  // Coach plans: Supabase is the single source of truth.
-  // Remote fully overwrites local — no local-only preservation.
-  const authoritativeCoachPlans = remoteCoachPlans;
-  const mergedDayEvents       = mergeDayEvents(remoteDayEvents, readDayEvents());
-  const mergedWeightEntries   = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
-  const mergedExNotes         = mergeByKey(remoteExNotes, readExNotes(), "date");
-  const mergedCoachAnalyses   = mergeByKey(remoteCoachAnalyses, readCoachAnalyses(), "date");
+  const mergedSessions      = mergeById(remoteSessions, readSessions());
+  // Merge coach plans comme les sessions : remote gagne sur les conflits d'id,
+  // mais les plans local-only survivent jusqu'au prochain push. Sans ce merge,
+  // un syncFull() entre l'écriture locale et le autoSyncPush() efface les plans
+  // en écrasant local avec un remote vide (ex. base staging fraîche).
+  const mergedCoachPlans    = mergeById(remoteCoachPlans, readCoachPlans());
+  const mergedDayEvents     = mergeDayEvents(remoteDayEvents, readDayEvents());
+  const mergedWeightEntries = mergeByKey(remoteWeightEntries, readWeightEntries(), "date");
+  const mergedExNotes       = mergeByKey(remoteExNotes, readExNotes(), "date");
+  const mergedCoachAnalyses = mergeByKey(remoteCoachAnalyses, readCoachAnalyses(), "date");
 
   writeSessions(mergedSessions);
-  writeCoachPlans(authoritativeCoachPlans);
+  writeCoachPlans(mergedCoachPlans);
   writeDayEvents(mergedDayEvents);
   writeWeightEntries(mergedWeightEntries);
   writeExNotes(mergedExNotes);
@@ -404,7 +406,7 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
 
   await Promise.all([
     pushSessions(userId, profileId, mergedSessions),
-    pushCoachPlans(userId, profileId, authoritativeCoachPlans),
+    pushCoachPlans(userId, profileId, mergedCoachPlans),
     pushDayEvents(userId, profileId, mergedDayEvents),
     pushWeightEntries(userId, profileId, mergedWeightEntries),
     pushExNotes(userId, profileId, mergedExNotes),
