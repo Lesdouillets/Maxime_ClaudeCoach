@@ -27,6 +27,12 @@ yarn-error.log*
 .env*.local
 .env
 
+# Staging env (contient des secrets)
+.env.staging
+
+# Seed data prod pour staging (ne pas committer)
+public/dev-seed.json
+
 # vercel
 .vercel
 

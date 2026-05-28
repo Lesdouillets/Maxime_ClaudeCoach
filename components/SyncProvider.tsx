@@ -27,22 +27,26 @@ export default function SyncProvider() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     function subscribeRealtime(userId: string, profileId: string) {
-      if (channel) supabase.removeChannel(channel);
-      channel = supabase
-        .channel(`app_changes_${profileId}`)
-        .on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          table: "sessions",
-          filter: `user_id=eq.${userId}`,
-        }, () => { syncFull(); })
-        .on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          table: "coach_plans",
-          filter: `user_id=eq.${userId}`,
-        }, () => { syncFull(); })
-        .subscribe();
+      try {
+        if (channel) supabase.removeChannel(channel);
+        channel = supabase
+          .channel(`app_changes_${profileId}`)
+          .on("postgres_changes", {
+            event: "*",
+            schema: "public",
+            table: "sessions",
+            filter: `user_id=eq.${userId}`,
+          }, () => { syncFull(); })
+          .on("postgres_changes", {
+            event: "*",
+            schema: "public",
+            table: "coach_plans",
+            filter: `user_id=eq.${userId}`,
+          }, () => { syncFull(); })
+          .subscribe();
+      } catch {
+        channel = null;
+      }
     }
 
     supabase.auth.getUser().then(({ data: { user } }) => {

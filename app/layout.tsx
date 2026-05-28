@@ -43,6 +43,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const env = process.env.NEXT_PUBLIC_ENV;
+
   return (
     <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable}`}>
       <head>
@@ -66,6 +68,18 @@ export default function RootLayout({
             navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
           }
         `}} />
+        {env && (
+          <div
+            className="fixed top-3 right-3 z-50 font-mono text-[10px] px-2 py-0.5 rounded-full pointer-events-none"
+            style={{
+              background: env === "staging" ? "rgba(251,146,60,0.15)" : "rgba(100,100,100,0.15)",
+              color: env === "staging" ? "#fb923c" : "#888",
+              border: `1px solid ${env === "staging" ? "rgba(251,146,60,0.3)" : "rgba(100,100,100,0.3)"}`,
+            }}
+          >
+            {env === "staging" ? "STG2" : "LOCAL"}
+          </div>
+        )}
         <SyncProvider />
         <GlobalUI>
           <div className="min-h-screen pb-nav">

@@ -1,15 +1,15 @@
-name: Deploy
+name: Deploy Staging (stg2)
 
 on:
   push:
-    branches: [main]
+    branches: [staging]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: "deploy-prod"
+  group: "deploy-staging"
   cancel-in-progress: false
 
 jobs:
@@ -34,16 +34,17 @@ jobs:
           NEXT_PUBLIC_STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
           NEXT_PUBLIC_STRAVA_REDIRECT_URI: ${{ secrets.STRAVA_REDIRECT_URI }}
           NEXT_PUBLIC_STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
-          NEXT_PUBLIC_BASE_PATH: /Maxime_ClaudeCoach
-          NEXT_PUBLIC_SUPABASE_URL: https://mwjnryfudxfcwqbwlafe.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13am5yeWZ1ZHhmY3dxYndsYWZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjA1NDEsImV4cCI6MjA5MTEzNjU0MX0.Aua1rixPDAivkty5XaUy3WbwHdtFvbgfQaE4sqt5R90
+          NEXT_PUBLIC_BASE_PATH: /Maxime_ClaudeCoach/stg2
+          NEXT_PUBLIC_SUPABASE_URL: https://oogyxvjawdcarsfvinjg.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
+          NEXT_PUBLIC_ENV: staging
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (stg2 subfolder)
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: out
+          target-folder: stg2
           clean: true
-          clean-exclude: stg2
 
   deploy-functions:
     runs-on: ubuntu-latest
@@ -58,11 +59,11 @@ jobs:
           version: latest
 
       - name: Deploy analyze-session edge function
-        run: supabase functions deploy analyze-session --project-ref mwjnryfudxfcwqbwlafe --no-verify-jwt
+        run: supabase functions deploy analyze-session --project-ref oogyxvjawdcarsfvinjg --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy chat-coach edge function
-        run: supabase functions deploy chat-coach --project-ref mwjnryfudxfcwqbwlafe --no-verify-jwt
+        run: supabase functions deploy chat-coach --project-ref oogyxvjawdcarsfvinjg --no-verify-jwt
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
