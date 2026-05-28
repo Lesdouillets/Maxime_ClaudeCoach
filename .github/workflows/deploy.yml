@@ -45,6 +45,24 @@ jobs:
           clean: true
           clean-exclude: stg2
 
+  sync-staging:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge main into staging
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin staging
+          git checkout staging
+          git merge main --no-edit
+          git push origin staging
+
   deploy-functions:
     runs-on: ubuntu-latest
     continue-on-error: true
