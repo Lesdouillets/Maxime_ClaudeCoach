@@ -283,7 +283,7 @@ export default function RunSheet() {
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0a0a0a",
+          background: "var(--color-background)",
           opacity: isDragging
             ? Math.max(0, 1 - dragY / 300)
             : (backdropVisible && hasEntered ? 1 : 0),
@@ -301,7 +301,7 @@ export default function RunSheet() {
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0a0a0a",
+          background: "var(--color-background)",
           color: "#fff",
           zIndex: 60,
           transform: isDragging
@@ -320,7 +320,7 @@ export default function RunSheet() {
           <button
             onClick={handleClose}
             className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-            style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
+            style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#ddd" }}
             aria-label="Réduire"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -345,7 +345,7 @@ export default function RunSheet() {
           >
             <span
               className="rounded-full block"
-              style={{ width: 36, height: 4, background: "#2a2a2a" }}
+              style={{ width: 36, height: 4, background: "var(--color-surface-3)" }}
             />
           </button>
 
@@ -354,7 +354,7 @@ export default function RunSheet() {
               <button
                 onClick={() => { setOptionsMenuOpen((v) => !v); setOptionsPanel(null); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-                style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
+                style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#777" }}
                 aria-label="Options"
               >
                 <OptionsIcon size={20} color="currentColor" />
@@ -387,11 +387,11 @@ export default function RunSheet() {
         {optionsPanel !== null && (
           <div
             className="mx-4 mb-2 rounded-2xl overflow-hidden"
-            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid #2a2a2a" }}
+            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid var(--color-surface-3)" }}
           >
             {optionsPanel === "reschedule" && (
               <div className="p-4 space-y-3">
-                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>DÉCALER LE RUN</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-secondary)" }}>DÉCALER LE RUN</p>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -400,7 +400,7 @@ export default function RunSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid var(--color-orange-shadow)", color: "white" }}
+                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-orange-shadow)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleRun}
@@ -411,21 +411,21 @@ export default function RunSheet() {
                   <button
                     onClick={() => { setOptionsPanel(null); setRescheduleDate(""); }}
                     className="px-3 py-2.5 rounded-xl text-xs press-effect"
-                    style={{ background: "#1a1a1a", color: "#555" }}
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-muted)" }}
                   >✕</button>
                 </div>
               </div>
             )}
             {optionsPanel === "cancel" && (
               <div className="p-4 space-y-3">
-                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>ANNULER LE RUN</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-secondary)" }}>ANNULER LE RUN</p>
                 <input
                   type="text"
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="Raison de l'annulation…"
                   className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                  style={{ background: "#111", border: "1px solid #333", color: "white" }}
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)", color: "white" }}
                   onKeyDown={(e) => { if (e.key === "Enter") handleCancelRun(); }}
                   autoFocus
                 />
@@ -433,12 +433,12 @@ export default function RunSheet() {
                   <button
                     onClick={handleCancelRun}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
-                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}
+                    style={{ background: "var(--color-surface-2)", color: "#aaa", border: "1px solid var(--color-subtle)" }}
                   >Confirmer l&apos;annulation</button>
                   <button
                     onClick={() => { setOptionsPanel(null); setCancelReason(""); }}
                     className="px-4 py-2.5 rounded-xl text-sm press-effect"
-                    style={{ background: "transparent", color: "#555" }}
+                    style={{ background: "transparent", color: "var(--color-muted)" }}
                   >✕</button>
                 </div>
               </div>
@@ -479,8 +479,8 @@ export default function RunSheet() {
                   className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
                   style={{
                     background: "rgba(205,255,0,0.06)",
-                    border: "1px solid rgba(205,255,0,0.2)",
-                    color: "#CDFF00",
+                    border: "1px solid var(--color-neon-20)",
+                    color: "var(--color-neon)",
                   }}
                 >
                   RELANCER L&apos;ANALYSE COACH →
@@ -497,7 +497,7 @@ export default function RunSheet() {
           ) : (
             <div
               className="rounded-2xl p-4"
-              style={{ background: "#111", border: "1px solid #1a1a1a" }}
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
             >
               <p className="text-sm text-muted">Aucun run prévu pour cette date.</p>
             </div>
@@ -531,11 +531,11 @@ export default function RunSheet() {
             style={{
               bottom: 0,
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-              background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+              background: "linear-gradient(to top, var(--color-background) 70%, transparent)",
             }}
           >
             {stravaSyncMsg && (
-              <p className="text-center text-xs mb-2" style={{ color: "#888" }}>{stravaSyncMsg}</p>
+              <p className="text-center text-xs mb-2" style={{ color: "var(--color-secondary)" }}>{stravaSyncMsg}</p>
             )}
             <div className="flex gap-3">
               <div className="relative" style={{ flexShrink: 0 }}>

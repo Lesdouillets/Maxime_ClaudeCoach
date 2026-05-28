@@ -13,17 +13,11 @@ export function getDayName(dow: number, full = false): string {
   return full ? DAY_NAMES_FULL[dow] : DAY_NAMES_FR[dow];
 }
 
+/** Retourne le rythme formaté avec unité incluse, ex: "4:30/km" */
 export function formatPace(secPerKm: number): string {
   const min = Math.floor(secPerKm / 60);
   const sec = Math.round(secPerKm % 60);
   return `${min}:${sec.toString().padStart(2, "0")}/km`;
-}
-
-export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
-  return `${m} min`;
 }
 
 export function toLocalDateStr(date: Date): string {

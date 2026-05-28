@@ -87,7 +87,7 @@ export default function RunSessionResults({ session }: Props) {
       {session.comment && (
         <div className="rounded-2xl p-4" style={{ background: "#1a1a1a" }}>
           <p className="text-xs text-muted mb-1">Ressenti</p>
-          <p className="text-sm italic" style={{ color: "#aaa" }}>"{session.comment}"</p>
+          <p className="text-sm italic" style={{ color: "#aaa" }}>&quot;{session.comment}&quot;</p>
         </div>
       )}
     </div>

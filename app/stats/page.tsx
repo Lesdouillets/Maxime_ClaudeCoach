@@ -199,7 +199,7 @@ export default function StatsPage() {
             >
               <div className="flex-1">
                 <label className="text-xs text-muted uppercase tracking-wide block mb-2">
-                  Poids aujourd'hui
+                  {'Poids aujourd\'hui'}
                 </label>
                 <div className="flex items-end gap-2">
                   <input

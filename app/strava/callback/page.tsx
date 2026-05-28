@@ -106,8 +106,7 @@ function StravaCallbackInner() {
           </h2>
           <p className="text-sm text-gray-400 max-w-xs">{errorMessage}</p>
           <p className="text-xs text-muted mt-2 max-w-xs">
-            Note: Si tu utilises l'app en static (GitHub Pages), l'échange de token Strava
-            nécessite que NEXT_PUBLIC_STRAVA_CLIENT_SECRET soit défini, ou un proxy backend.
+            {'Note: Si tu utilises l\'app en static (GitHub Pages), l\'échange de token Strava nécessite que NEXT_PUBLIC_STRAVA_CLIENT_SECRET soit défini, ou un proxy backend.'}
           </p>
           <button
             onClick={() => router.push("/")}

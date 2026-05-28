@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 import { useSession } from "@/contexts/SessionContext";
 import { useTimer } from "@/contexts/TimerContext";
 import { ARCHIVO_WIDE_BOLD, JETBRAINS_MONO_TINY } from "@/lib/typography";
+import { formatMMSS } from "@/lib/formatting";
 
 const ACTIVE = "#FFFFFF";
 const MUTED  = "var(--color-muted)";
@@ -81,13 +82,6 @@ const NAV_ITEMS = [
     ),
   },
 ];
-
-function formatMMSS(rawSec: number) {
-  const sec = Math.max(0, rawSec);
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 function SessionStrip() {
   const session = useSession();

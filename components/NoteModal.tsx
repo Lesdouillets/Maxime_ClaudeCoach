@@ -39,7 +39,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
         position: "fixed",
         inset: 0,
         zIndex: 80,
-        background: "rgba(0,0,0,0.6)",
+        background: "var(--color-overlay)",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
         display: "flex",
@@ -55,8 +55,8 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
         onClick={(e) => e.stopPropagation()}
         className="rounded-3xl w-full max-w-md p-4"
         style={{
-          background: "#1c1c1c",
-          border: "1px solid #2a2a2a",
+          background: "var(--color-surface-2)",
+          border: "1px solid var(--color-subtle)",
           boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
         }}
       >
@@ -64,8 +64,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full flex items-center justify-center press-effect"
-            style={{ background: "#262626", color: "#cfd2d6" }}
+            className="btn-icon btn-icon-surface press-effect"
             aria-label="Fermer"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -75,8 +74,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
           <span className="font-bold text-base">Notes</span>
           <button
             onClick={handleSave}
-            className="w-9 h-9 rounded-full flex items-center justify-center press-effect"
-            style={{ background: "#fff", color: "#000" }}
+            className="btn-icon btn-icon-white press-effect"
             aria-label="Sauvegarder"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -95,8 +93,8 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
           maxLength={MAX_LENGTH}
           className="w-full resize-none focus:outline-none rounded-2xl px-4 py-3"
           style={{
-            background: "#262626",
-            border: "1px solid #2a2a2a",
+            background: "var(--color-surface-3)",
+            border: "1px solid var(--color-subtle)",
             color: "#eee",
             fontSize: 14,
             minHeight: 160,
@@ -104,7 +102,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
         />
 
         {/* Char counter */}
-        <p className="text-right text-xs mt-2" style={{ color: "#666" }}>
+        <p className="text-right text-xs mt-2 text-muted">
           {value.length}/{MAX_LENGTH}
         </p>
       </div>

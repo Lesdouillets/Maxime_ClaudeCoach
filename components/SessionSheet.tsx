@@ -21,6 +21,7 @@ import {
 import { getSessions, cancelDay } from "@/lib/storage";
 import { getCoachWorkouts, deleteCoachWorkout, addCoachWorkout, type CoachWorkout } from "@/lib/coachPlan";
 import { toLocalDateStr } from "@/lib/plan";
+import { formatMMSS } from "@/lib/formatting";
 import { autoSyncPush } from "@/lib/sync";
 import { originNeedsRedirect } from "@/lib/navigation";
 import type { FitnessSession } from "@/lib/types";
@@ -28,12 +29,6 @@ import type { FitnessSession } from "@/lib/types";
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAP_MAX_MOVEMENT_PX = 6;
 const TAP_MAX_DURATION_MS = 250;
-
-function formatMMSS(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.max(0, sec) % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 
 export default function SessionSheet() {
@@ -213,7 +208,7 @@ export default function SessionSheet() {
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0a0a0a",
+          background: "var(--color-background)",
           opacity: isDragging
             ? Math.max(0, 1 - dragY / 300)
             : (backdropVisible && hasEntered ? 1 : 0),
@@ -231,7 +226,7 @@ export default function SessionSheet() {
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0a0a0a",
+          background: "var(--color-background)",
           color: "#fff",
           zIndex: 60,
           transform: isDragging
@@ -250,7 +245,7 @@ export default function SessionSheet() {
           <button
             onClick={handleClose}
             className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-            style={{ background: "#161616", border: "1px solid #222", color: "#ddd" }}
+            style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#ddd" }}
             aria-label="Réduire"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -263,7 +258,7 @@ export default function SessionSheet() {
               <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontVariationSettings: '"wdth" 110', fontSize: 15, lineHeight: "18px", color: "#fff" }}>
                 {sessionCoachWorkout?.label ?? "SÉANCE FITNESS"}
               </p>
-              <p style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 11, lineHeight: "14px", letterSpacing: "0.06em", color: "#555" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 11, lineHeight: "14px", letterSpacing: "0.06em", color: "var(--color-muted)" }}>
                 {liveExercises.length} exercice{liveExercises.length > 1 ? "s" : ""}
               </p>
             </div>
@@ -283,7 +278,7 @@ export default function SessionSheet() {
                 cursor: "grab",
               }}
             >
-              <span className="rounded-full block" style={{ width: 36, height: 4, background: "#2a2a2a" }} />
+              <span className="rounded-full block" style={{ width: 36, height: 4, background: "var(--color-surface-3)" }} />
             </button>
           )}
 
@@ -323,7 +318,7 @@ export default function SessionSheet() {
               <button
                 onClick={() => { setSheetOptionsOpen((v) => !v); setSheetPanel(null); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-                style={{ background: "#161616", border: "1px solid #222", color: "#777" }}
+                style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#777" }}
                 aria-label="Options"
               >
                 <OptionsIcon size={20} color="currentColor" />
@@ -369,7 +364,7 @@ export default function SessionSheet() {
                       background: i < activeExIdx
                         ? "rgba(205,255,0,0.3)"
                         : i === activeExIdx
-                        ? "#CDFF00"
+                        ? "var(--color-neon)"
                         : "#7A7C7E",
                       transition: "background 300ms ease",
                     }}
@@ -384,11 +379,11 @@ export default function SessionSheet() {
         {sheetPanel !== null && !isArchive && (
           <div
             className="mx-4 mb-2 rounded-2xl overflow-hidden"
-            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid #2a2a2a" }}
+            style={{ background: "rgba(28,28,30,0.96)", border: "1px solid var(--color-surface-3)" }}
           >
             {sheetPanel === "reschedule" && (
               <div className="p-4 space-y-3">
-                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>DÉCALER LA SÉANCE</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-secondary)" }}>DÉCALER LA SÉANCE</p>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -397,7 +392,7 @@ export default function SessionSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "#111", border: "1px solid var(--color-orange-shadow)", color: "white" }}
+                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-orange-shadow)", color: "white" }}
                   />
                   <button
                     onClick={handleRescheduleWorkout}
@@ -408,21 +403,21 @@ export default function SessionSheet() {
                   <button
                     onClick={() => { setSheetPanel(null); setSheetRescheduleDate(""); }}
                     className="px-3 py-2.5 rounded-xl text-xs press-effect"
-                    style={{ background: "#1a1a1a", color: "#555" }}
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-muted)" }}
                   >✕</button>
                 </div>
               </div>
             )}
             {sheetPanel === "cancel" && (
               <div className="p-4 space-y-3">
-                <p style={{ ...JETBRAINS_MONO_LABEL, color: "#888" }}>ANNULER LA SÉANCE</p>
+                <p style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-secondary)" }}>ANNULER LA SÉANCE</p>
                 <input
                   type="text"
                   value={sheetCancelReason}
                   onChange={(e) => setSheetCancelReason(e.target.value)}
                   placeholder="Raison de l'annulation…"
                   className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                  style={{ background: "#111", border: "1px solid #333", color: "white" }}
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)", color: "white" }}
                   onKeyDown={(e) => { if (e.key === "Enter") handleCancelWorkout(); }}
                   autoFocus
                 />
@@ -430,12 +425,12 @@ export default function SessionSheet() {
                   <button
                     onClick={handleCancelWorkout}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
-                    style={{ background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}
+                    style={{ background: "var(--color-surface-2)", color: "#aaa", border: "1px solid var(--color-subtle)" }}
                   >Confirmer l&apos;annulation</button>
                   <button
                     onClick={() => { setSheetPanel(null); setSheetCancelReason(""); }}
                     className="px-4 py-2.5 rounded-xl text-sm press-effect"
-                    style={{ background: "transparent", color: "#555" }}
+                    style={{ background: "transparent", color: "var(--color-muted)" }}
                   >✕</button>
                 </div>
               </div>
@@ -513,7 +508,7 @@ export default function SessionSheet() {
           {isStarted && liveExercises.slice(activeExIdx + 1).length > 0 && (
             <>
               <div className="px-1 pt-2">
-                <span style={{ ...JETBRAINS_MONO_LABEL, color: "#555" }}>À suivre</span>
+                <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-muted)" }}>À suivre</span>
               </div>
               {liveExercises.slice(activeExIdx + 1).map((ex, i) => (
                 <ExerciseRowCard
@@ -538,7 +533,7 @@ export default function SessionSheet() {
             style={{
               bottom: 0,
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-              background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+              background: "linear-gradient(to top, var(--color-background) 70%, transparent)",
             }}
           >
             <button
@@ -568,16 +563,16 @@ export default function SessionSheet() {
             style={{
               bottom: 0,
               paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-              background: "linear-gradient(to top, #0a0a0a 70%, transparent)",
+              background: "linear-gradient(to top, var(--color-background) 70%, transparent)",
             }}
           >
             <div className="flex items-baseline justify-between text-xs mb-1">
               <span className="font-display text-xl tabular-nums" style={{ color: "var(--color-orange)" }}>
                 {formatMMSS(timerSec)}
               </span>
-              <span style={{ color: "#666" }}>/ {formatMMSS(timerTotalSec)}</span>
+              <span style={{ color: "var(--color-muted)" }}>/ {formatMMSS(timerTotalSec)}</span>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#1d1d1d" }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
               <div
                 className="h-full"
                 style={{

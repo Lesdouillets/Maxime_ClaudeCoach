@@ -45,6 +45,7 @@
   --color-neon-input-ring: rgba(205, 255, 0, 0.10);
   --color-bg-blur: rgba(10, 10, 10, 0.70);
   --color-surface-2-blur: rgba(26, 26, 26, 0.92);
+  --color-overlay: rgba(0, 0, 0, 0.60);
   --color-white-08: rgba(255, 255, 255, 0.08);
 }
 
@@ -193,4 +194,62 @@ textarea::placeholder {
 
 .progress-animate {
   animation: progress-fill 0.8s ease-out forwards;
+}
+
+/* ─── Button utility classes ────────────────────────────────────────────────── */
+
+/* Bouton icône rond (36px) — pattern des modales */
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.btn-icon-surface {
+  background: var(--color-surface-3);
+  color: var(--color-secondary);
+}
+
+.btn-icon-white {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Bouton pleine largeur — CTAs primaires */
+.btn-primary {
+  width: 100%;
+  padding: 14px 0;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  background: var(--color-neon);
+  color: #000000;
+}
+
+/* Bouton pleine largeur — actions secondaires/annulation */
+.btn-secondary {
+  width: 100%;
+  padding: 14px 0;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: var(--color-surface-2);
+  color: #ffffff;
+  border: 1px solid var(--color-subtle);
+}
+
+/* Bouton pleine largeur — action destructive */
+.btn-destructive {
+  width: 100%;
+  padding: 14px 0;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: var(--color-surface-2);
+  color: var(--color-destructive);
+  border: 1px solid var(--color-destructive-10);
 }

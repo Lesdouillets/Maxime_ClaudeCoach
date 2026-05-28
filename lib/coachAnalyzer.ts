@@ -6,6 +6,7 @@ import { getSessions } from "./storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, parseCoachWorkoutJSON } from "./coachPlan";
 import { autoSyncPush, SYNC_DISABLED } from "./sync";
 import { getActiveProfile } from "./profiles";
+import { formatPace } from "./plan";
 import type { WorkoutSession, FitnessSession } from "./types";
 import type { CoachPlan } from "./coachPlan";
 
@@ -86,12 +87,10 @@ function annotatePlansWithDelta(plans: CoachPlan[], perfIndex: Map<string, numbe
   return plans.map((plan) => {
     const p = plan as unknown as Record<string, unknown>;
     if (!Array.isArray(p.exercises)) return plan;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { coachNote: _note, ...planCore } = p;
     return {
       ...planCore,
       exercises: (p.exercises as Array<Record<string, unknown>>).map((ex) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { coachNote: _cn, ...exCore } = ex;
         const lastWeight = perfIndex.get(ex.name as string);
         if (lastWeight === undefined || typeof ex.weight !== "number") return exCore;
@@ -103,19 +102,12 @@ function annotatePlansWithDelta(plans: CoachPlan[], perfIndex: Map<string, numbe
   });
 }
 
-/** Format pace from seconds/km to "M:SS" string */
-function formatPace(secPerKm: number): string {
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 /** Compact text representation of a session — used by coachChat.ts for token efficiency */
 export function compactSession(s: WorkoutSession): string {
   if (s.type === "run") {
     const parts: string[] = [`${s.date.slice(0, 10)}: Run`];
     if (s.distanceKm) parts.push(`${s.distanceKm}km`);
-    if (s.avgPaceSecPerKm) parts.push(`${formatPace(s.avgPaceSecPerKm)}/km`);
+    if (s.avgPaceSecPerKm) parts.push(formatPace(s.avgPaceSecPerKm));
     if (s.avgHeartRate) parts.push(`HR${s.avgHeartRate}`);
     if (s.elevationGainM) parts.push(`D+${s.elevationGainM}m`);
     if (s.targetZone) parts.push(s.targetZone);

@@ -14,14 +14,14 @@ interface Props {
 }
 
 const STYLES = {
-  planned:     { bg: "#141414",                   border: "1px solid #1d1d1d",                    nameColor: "#fff", dashColor: "#2a2a2a" },
-  upcoming:    { bg: "#141414",                   border: "1px solid #1d1d1d",                    nameColor: "#fff", dashColor: "#2a2a2a" },
-  completed:   { bg: "var(--color-neon-bg)",      border: "1px solid var(--color-neon-08)",        nameColor: "#555", dashColor: "#CDFF00" },
-  in_progress: { bg: "#141414",                   border: "1px solid #1d1d1d",                    nameColor: "#fff", dashColor: "#2a2a2a" },
+  planned:     { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
+  upcoming:    { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
+  completed:   { bg: "var(--color-neon-bg)",      border: "1px solid var(--color-neon-08)",        nameColor: "var(--color-muted)", dashColor: "var(--color-neon)" },
+  in_progress: { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
 } as const;
 
 function SetDashes({ count, color, doneSets }: { count: number; color: string; doneSets?: number }) {
-  if (count <= 0) return <span style={{ color: "#333" }}>—</span>;
+  if (count <= 0) return <span style={{ color: "var(--color-subtle)" }}>—</span>;
   const total = Math.min(count, 8);
   const done = Math.min(doneSets ?? 0, total);
   return (
@@ -52,14 +52,14 @@ export default function ExerciseRowCard({ name, sets, reps, weight, variant, don
           <p style={{ ...ROW_NAME_STYLE, color: s.nameColor }}>{name}</p>
           <div className="flex items-center gap-2 mt-2">
             <SetDashes count={sets} color={s.dashColor} doneSets={variant === "in_progress" ? doneSets : undefined} />
-            <span style={{ ...JETBRAINS_MONO_DATA, color: isCompleted ? "#444" : "#7A7C7E" }}>
+            <span style={{ ...JETBRAINS_MONO_DATA, color: isCompleted ? "var(--color-dim)" : "#7A7C7E" }}>
               · {reps} reps{weight > 0 ? ` · ${weight} kg` : ""}
             </span>
           </div>
         </div>
         {isCompleted && (
           <div className="flex-shrink-0">
-            <CheckIcon size={20} color="#CDFF00" />
+            <CheckIcon size={20} color="var(--color-neon)" />
           </div>
         )}
       </div>
