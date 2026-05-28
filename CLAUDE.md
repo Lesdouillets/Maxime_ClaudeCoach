@@ -28,7 +28,7 @@ No test suite exists.
 
 localStorage is the **source of truth**. Supabase is a backup / multi-device sync. All reads come from localStorage; `autoSyncPush()` fires silently after every mutation to replicate to Supabase.
 
-Exception: coach plans (`cc_coach_workouts`, `cc_coach_runs`) — Supabase is **authoritative** during a full sync; remote fully overwrites local.
+Coach plans (`cc_coach_workouts`, `cc_coach_runs`) use the same `mergeById` strategy as sessions — remote wins on ID conflicts, local-only plans survive until pushed. Previously "remote authoritative" but that caused data loss when syncFull ran before autoSyncPush on a fresh DB.
 
 ### AI architecture (two Edge Functions)
 
