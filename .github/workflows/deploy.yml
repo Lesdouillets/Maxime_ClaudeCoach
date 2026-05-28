@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: "deploy-prod"
+  group: "deploy-gh-pages"
   cancel-in-progress: false
 
 jobs:

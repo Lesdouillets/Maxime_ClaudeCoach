@@ -9,8 +9,8 @@ export default function SyncProvider() {
     // Sync au premier chargement si déjà authentifié
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return;
-      await syncFull();
       await ensureProfilesExist(session.user.id);
+      await syncFull();
     });
 
     // Re-sync quand l'app revient au premier plan (iOS PWA : visibilitychange)
