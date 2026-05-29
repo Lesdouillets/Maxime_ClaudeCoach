@@ -37,8 +37,15 @@ import {
   FIXTURE_RUN_TEMPO,
   FIXTURE_DONE_RUN,
 } from "./running-fixtures";
+import CoachPlanRunRow from "@/components/coach/CoachPlanRunRow";
+import CoachPlanFitnessRow from "@/components/coach/CoachPlanFitnessRow";
+import CoachPlanCard from "@/components/coach/CoachPlanCard";
+import CoachExerciseDetailSheet from "@/components/coach/CoachExerciseDetailSheet";
+import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
+import CoachInputBar from "@/components/coach/CoachInputBar";
+import type { CoachRun, CoachWorkout } from "@/lib/coachPlan";
 
-type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance" | "running";
+type Section = "atoms" | "semaine" | "streak" | "cartes" | "home" | "nav" | "plan" | "detail" | "seance" | "running" | "coach";
 
 const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "atoms",   label: "Atoms",      ready: true },
@@ -51,11 +58,14 @@ const SECTIONS: { id: Section; label: string; ready: boolean }[] = [
   { id: "detail",  label: "Détail",     ready: true },
   { id: "seance",  label: "Séance",     ready: true },
   { id: "running", label: "Running",    ready: true },
+  { id: "coach",   label: "Coach",      ready: true },
 ];
 
 export default function ComponentsPage() {
   const [active, setActive] = useState<Section>("atoms");
   const [navPreview, setNavPreview] = useState<BottomNavState>("nav");
+  const [showcaseDetailWorkout, setShowcaseDetailWorkout] = useState<CoachWorkout | null>(null);
+  const [showcaseInput, setShowcaseInput] = useState("");
 
   return (
     <>
@@ -481,6 +491,112 @@ export default function ComponentsPage() {
         </div>
       )}
 
+      {/* ═══════════════ COACH ═══════════════ */}
+      {active === "coach" && (
+        <div className="space-y-12">
+
+          <ComponentBlock title="CoachPlanRunRow" description="Ligne d'une séance running dans une carte de proposition">
+            <div style={{ background: "var(--color-surface-2)", borderRadius: 16, padding: "12px 16px" }}>
+              <CoachPlanRunRow plan={FIXTURE_RUN} />
+              <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.06)", margin: "8px 0" }} />
+              <CoachPlanRunRow plan={FIXTURE_RUN_2} />
+            </div>
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanFitnessRow" description="Ligne d'une séance fitness avec bouton Détail">
+            <div style={{ background: "var(--color-surface-2)", borderRadius: 16, padding: "12px 16px" }}>
+              <CoachPlanFitnessRow plan={FIXTURE_FITNESS} onDetailClick={setShowcaseDetailWorkout} />
+              <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.06)", margin: "8px 0" }} />
+              <CoachPlanFitnessRow plan={FIXTURE_FITNESS_2} onDetailClick={setShowcaseDetailWorkout} />
+            </div>
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — état normal" description="Carte avec plans run + fitness, boutons Adapter / Valider">
+            <CoachPlanCard
+              plans={[FIXTURE_RUN, FIXTURE_FITNESS, FIXTURE_RUN_2]}
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — en cours d'application" description="État pendant applyPendingPlans">
+            <CoachPlanCard
+              plans={[FIXTURE_RUN, FIXTURE_FITNESS]}
+              applying
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — validée" description="Mini-badge après application">
+            <CoachPlanCard
+              validated
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachMessageBubble — message user" description="Bulle grise alignée à droite">
+            <CoachMessageBubble
+              message={FIXTURE_MSG_USER}
+              applying={false}
+              onApply={() => {}}
+              onAdapt={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachMessageBubble — texte coach sans plans" description="Texte libre sans bulle, pas de label ALEX">
+            <CoachMessageBubble
+              message={FIXTURE_MSG_COACH_TEXT}
+              applying={false}
+              onApply={() => {}}
+              onAdapt={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachMessageBubble — avec plans pending" description="Texte + CoachPlanCard avec run + fitness">
+            <CoachMessageBubble
+              message={FIXTURE_MSG_COACH_WITH_PLANS}
+              applying={false}
+              onApply={() => {}}
+              onAdapt={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachMessageBubble — plans validés" description="Badge Programme appliqué ✓ avec bordure lime">
+            <CoachMessageBubble
+              message={FIXTURE_MSG_COACH_VALIDATED}
+              applying={false}
+              onApply={() => {}}
+              onAdapt={() => {}}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachInputBar" description="Barre d'input pill shape — bouton orange si texte présent">
+            <div style={{ background: "#0a0a0a", borderRadius: 12, overflow: "hidden" }}>
+              <CoachInputBar
+                value={showcaseInput}
+                sending={false}
+                textareaRef={{ current: null } as React.RefObject<HTMLTextAreaElement>}
+                onChange={setShowcaseInput}
+                onSend={() => setShowcaseInput("")}
+                onKeyDown={() => {}}
+              />
+            </div>
+          </ComponentBlock>
+
+          {/* Sheet détail — déclenché par onDetailClick dans les composants ci-dessus */}
+          <CoachExerciseDetailSheet
+            workout={showcaseDetailWorkout}
+            onClose={() => setShowcaseDetailWorkout(null)}
+          />
+
+        </div>
+      )}
+
       {/* ── RUNNING ── */}
       {active === "running" && (
         <div className="space-y-10">
@@ -583,6 +699,84 @@ export default function ComponentsPage() {
     </>
   );
 }
+
+// ── Coach fixtures ────────────────────────────────────────────────────────────
+
+const FIXTURE_RUN: CoachRun = {
+  id: "r1",
+  type: "run",
+  date: new Date(Date.now() + 2 * 86400000).toISOString(),
+  label: "Course Z2",
+  distanceKm: 8,
+  pace: "6:00",
+  targetZone: "Z2",
+};
+
+const FIXTURE_RUN_2: CoachRun = {
+  id: "r2",
+  type: "run",
+  date: new Date(Date.now() + 4 * 86400000).toISOString(),
+  label: "Fractionné",
+  distanceKm: 6,
+  durationMin: 45,
+  intervals: [],
+};
+
+const FIXTURE_FITNESS: CoachWorkout = {
+  id: "f1",
+  type: "fitness",
+  date: new Date(Date.now() + 1 * 86400000).toISOString(),
+  category: "upper",
+  label: "Haut du corps",
+  exercises: [
+    { name: "Développé couché", sets: 4, reps: 8, weight: 70, restSeconds: 90 },
+    { name: "Rowing haltère", sets: 3, reps: 10, weight: 20, coachNote: "Contrôle la descente" },
+    { name: "Curl biceps", sets: 3, reps: 12, weight: 12 },
+  ],
+};
+
+const FIXTURE_FITNESS_2: CoachWorkout = {
+  id: "f2",
+  type: "fitness",
+  date: new Date(Date.now() + 3 * 86400000).toISOString(),
+  category: "lower",
+  label: "Bas du corps",
+  exercises: [
+    { name: "Squat", sets: 4, reps: 6, weight: 80 },
+    { name: "Fentes", sets: 3, reps: 10, weight: 0 },
+  ],
+};
+
+// ChatMessage-like pour CoachMessageBubble
+const FIXTURE_MSG_USER = {
+  id: "m1",
+  role: "user" as const,
+  content: "Propose-moi une semaine running équilibrée",
+  timestamp: new Date().toISOString(),
+};
+
+const FIXTURE_MSG_COACH_TEXT = {
+  id: "m2",
+  role: "assistant" as const,
+  content: "Voilà une semaine bien structurée pour progresser en endurance tout en ménageant ta récupération.",
+  timestamp: new Date().toISOString(),
+};
+
+const FIXTURE_MSG_COACH_WITH_PLANS = {
+  id: "m3",
+  role: "assistant" as const,
+  content: "Je te propose ces séances pour la semaine :",
+  timestamp: new Date().toISOString(),
+  pendingPlans: [FIXTURE_RUN, FIXTURE_FITNESS],
+};
+
+const FIXTURE_MSG_COACH_VALIDATED = {
+  id: "m4",
+  role: "assistant" as const,
+  content: "Programme mis à jour !",
+  timestamp: new Date().toISOString(),
+  modifiedCount: 2,
+};
 
 // ── Séance mock data ──────────────────────────────────────────────────────────
 
