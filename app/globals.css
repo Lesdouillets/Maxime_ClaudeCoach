@@ -36,6 +36,8 @@
   --color-neon-10: rgba(205, 255, 0, 0.10);
   --color-neon-15: rgba(205, 255, 0, 0.15);
   --color-neon-20: rgba(205, 255, 0, 0.20);
+  --color-neon-35: rgba(205, 255, 0, 0.35);  /* bordure bouton Valider */
+  --color-neon-40: rgba(205, 255, 0, 0.40);  /* bordure carte validée */
   --color-neon-glow: rgba(205, 255, 0, 0.60);
   --color-neon-shadow: rgba(205, 255, 0, 0.30);
   --color-orange-glow: rgba(208, 121, 0, 0.60);
@@ -252,4 +254,15 @@ textarea::placeholder {
   background: var(--color-surface-2);
   color: var(--color-destructive);
   border: 1px solid var(--color-destructive-10);
+}
+
+/* Bouton neon ghost — bordure neon légère sur fond sombre */
+.btn-neon-ghost {
+  background: var(--color-neon-10);
+  border: 1px solid var(--color-neon-35);
+  color: var(--color-neon);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  transition: all 0.2s;
 }
