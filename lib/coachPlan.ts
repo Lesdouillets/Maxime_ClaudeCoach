@@ -37,6 +37,7 @@ export interface CoachRunInterval {
   distanceKm: number;
   pace: string;         // "6:00" (min:sec per km)
   targetHR?: string;    // "130-150" or "165-175"
+  targetZone?: string;  // "Z2", "Z3", "Z4"
   restSeconds?: number;
   note?: string;
 }
@@ -245,6 +246,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
           distanceKm: Number(seg.distance ?? seg.distanceKm ?? 0),
           pace: String(seg.pace ?? "6:00"),
           targetHR: seg.targetHR != null ? String(seg.targetHR) : undefined,
+          targetZone: seg.targetZone != null ? String(seg.targetZone) : undefined,
           restSeconds: seg.rest != null ? Number(seg.rest) : undefined,
           note: seg.note != null ? String(seg.note) : undefined,
         }))
