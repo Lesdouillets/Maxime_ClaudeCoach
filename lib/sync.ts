@@ -6,6 +6,8 @@ import type { CoachPlan } from "./coachPlan";
 import type { WeightEntry, RescheduledDay } from "./storage";
 import type { ChatMessage } from "./coachChat";
 import { getActiveProfileId } from "./profiles";
+import { getCoachMemory, setCoachMemory } from "./coachMemory";
+import type { CoachMemory } from "./coachMemory";
 
 const LAST_SYNC_KEY = "cc_last_sync";
 
@@ -313,6 +315,33 @@ async function pullChatMessages(userId: string, profileId: string): Promise<void
   }
 }
 
+async function pushCoachMemory(userId: string, profileId: string): Promise<void> {
+  const memory = getCoachMemory();
+  if (!memory.lastUpdated) return; // rien à pousser si jamais initialisée
+  const updatedAt = localStorage.getItem("cc_coach_memory_updated_at") ?? new Date().toISOString();
+  const { error } = await supabase.from("cc_coach_memory").upsert(
+    { user_id: userId, profile_id: profileId, data: memory, updated_at: updatedAt },
+    { onConflict: "user_id,profile_id" }
+  );
+  if (error) throw new Error(error.message);
+}
+
+async function pullCoachMemory(userId: string, profileId: string): Promise<void> {
+  const { data } = await supabase.from("cc_coach_memory")
+    .select("data, updated_at")
+    .eq("user_id", userId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (!data) return;
+  const remoteUpdatedAt = data.updated_at as string;
+  const localUpdatedAt = localStorage.getItem("cc_coach_memory_updated_at") ?? "";
+  // Last-write-wins : le plus récent gagne (comparaison ISO string)
+  if (remoteUpdatedAt > localUpdatedAt) {
+    setCoachMemory(data.data as CoachMemory);
+    localStorage.setItem("cc_coach_memory_updated_at", remoteUpdatedAt);
+  }
+}
+
 async function pushStravaTokens(userId: string, profileId: string) {
   try {
     const raw = localStorage.getItem("cc_strava_tokens");
@@ -414,6 +443,8 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     pushStravaTokens(userId, profileId),
     pullStravaTokens(userId, profileId),
     pullChatMessages(userId, profileId), // last-write-wins, handles its own merge
+    pushCoachMemory(userId, profileId),
+    pullCoachMemory(userId, profileId),  // last-write-wins, handles its own merge
   ]);
 }
 
@@ -488,6 +519,7 @@ export async function autoSyncPush(): Promise<void> {
       pushCoachAnalyses(user.id, profileId, readCoachAnalyses()),
       pushStravaTokens(user.id, profileId),
       pushChatMessages(user.id, profileId),
+      pushCoachMemory(user.id, profileId),
     ]);
     localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
   } catch { /* silent */ } finally {
