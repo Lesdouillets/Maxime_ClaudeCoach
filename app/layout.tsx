@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Archivo, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SyncProvider from "@/components/SyncProvider";
 import GlobalUI from "@/components/GlobalUI";
@@ -15,6 +15,13 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono-nf",
   weight: ["400", "500", "700"],
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "700"],
   display: "swap",
 });
 
@@ -46,7 +53,7 @@ export default function RootLayout({
   const env = process.env.NEXT_PUBLIC_ENV;
 
   return (
-    <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable}`}>
+    <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -82,7 +89,7 @@ export default function RootLayout({
         )}
         <SyncProvider />
         <GlobalUI>
-          <div className="min-h-screen pb-nav">
+          <div className="pb-nav">
             {children}
           </div>
         </GlobalUI>

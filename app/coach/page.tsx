@@ -14,11 +14,6 @@ import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
 import CoachInputBar from "@/components/coach/CoachInputBar";
 import { getActiveProfile } from "@/lib/profiles";
 
-const SUGGESTIONS = [
-  "Développer les épaules",
-  "Préparer un marathon",
-  "Que penses-tu de ma dernière semaine ?",
-];
 
 export default function CoachPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,10 +22,12 @@ export default function CoachPage() {
   const [clearing, setClearing] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [adaptMsg, setAdaptMsg] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    setProfileName(getActiveProfile()?.name ?? null);
     setMessages(getChatHistory());
     loadChatFromSupabase().then(() => {
       setMessages(getChatHistory());
@@ -40,6 +37,20 @@ export default function CoachPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
+
+  // Bloque le scroll du body sur la page Coach — position:fixed sur le wrapper est la méthode la plus fiable
+  useEffect(() => {
+    const y = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${y}px`;
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, y);
+    };
+  }, []);
 
   const handleSend = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -115,63 +126,47 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", position: "relative" }}>
 
-      {/* Header — sticky avec blur */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(10,10,10,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid var(--color-white-06)", padding: "16px 20px 12px" }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-mono font-bold tracking-widest" style={{ fontSize: 13, color: "var(--color-neon)", textTransform: "uppercase" }}>Coach</h1>
-            <p style={{ fontSize: 12, color: "var(--color-dim)", letterSpacing: "0.08em" }}>Alex · Coach personnel</p>
-          </div>
-          {messages.length > 0 && (
-            <button onClick={handleClear} disabled={clearing} className="press-effect" style={{ padding: 8, opacity: clearing ? 0.4 : 1 }} aria-label="Effacer l'historique">
-              <TrashIcon size={18} color="var(--color-muted)" />
-            </button>
-          )}
+      {/* Bouton clear — visible uniquement quand il y a des messages */}
+      {messages.length > 0 && (
+        <div style={{ position: "absolute", top: 16, right: 20, zIndex: 10 }}>
+          <button onClick={handleClear} disabled={clearing} className="press-effect" style={{ padding: 8, opacity: clearing ? 0.4 : 1 }} aria-label="Effacer l'historique">
+            <TrashIcon size={18} color="var(--color-muted)" />
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Zone messages scrollable */}
-      <div className="flex-1 overflow-y-auto px-4" style={{ paddingBottom: 8 }}>
+      <div className="flex-1 px-4" style={{ paddingBottom: "220px", overflowY: isEmpty ? "hidden" : "auto" }}>
 
         {isEmpty ? (
-          /* État vide — salutation et suggestions */
-          <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
+          /* État vide — salutation */
+          <div className="flex flex-col items-center justify-center h-full px-4">
             <div className="text-center">
-              {/* Salutation neon lime */}
               <h2
-                className="font-display neon-glow"
                 style={{
+                  fontFamily: "var(--font-serif-display)",
                   fontWeight: 700,
-                  fontVariationSettings: "'wdth' 110",
-                  fontSize: 32,
+                  fontSize: 34,
                   color: "var(--color-neon)",
+                  lineHeight: 1.15,
                 }}
               >
-                Salut {getActiveProfile()?.name ?? "toi"} !
+                Salut {profileName ?? "toi"}&nbsp;!
               </h2>
-              {/* Sous-titre */}
-              <p style={{ color: "#ffffff", fontSize: 15, marginTop: 8 }}>
-                Qu&apos;est-ce que je peux faire pour toi ?
+              <p
+                style={{
+                  fontFamily: "var(--font-serif-display)",
+                  fontWeight: 400,
+                  color: "#ffffff",
+                  fontSize: 18,
+                  marginTop: 12,
+                  lineHeight: 1.4,
+                }}
+              >
+                Qu&apos;est-ce que je peux faire pour toi&nbsp;?
               </p>
-            </div>
-            {/* Chips suggestions — style neutre (pas neon) */}
-            <div className="flex flex-col gap-2 w-full max-w-xs">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleSend(s)}
-                  className="press-effect text-left rounded-2xl px-4 py-3 text-sm"
-                  style={{
-                    background: "var(--color-white-08)",
-                    border: "1px solid var(--color-white-10)",
-                    color: "var(--color-secondary)",
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
             </div>
           </div>
         ) : (
@@ -217,15 +212,25 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Barre d'input */}
-      <CoachInputBar
-        value={input}
-        sending={sending}
-        textareaRef={textareaRef}
-        onChange={(v) => { setInput(v); adjustTextarea(); }}
-        onSend={() => handleSend(input)}
-        onKeyDown={handleKeyDown}
-      />
+      {/* Barre d'input — fixed au-dessus de la nav, z-index sous z-nav (50) */}
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 40,
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+        background: "linear-gradient(to top, var(--color-background) 65%, transparent)",
+      }}>
+        <CoachInputBar
+          value={input}
+          sending={sending}
+          textareaRef={textareaRef}
+          onChange={(v) => { setInput(v); adjustTextarea(); }}
+          onSend={() => handleSend(input)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
 
       <style>{`
         @keyframes pulse-dot {

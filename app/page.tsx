@@ -144,7 +144,7 @@ export default function HomePage() {
   const { days: weekDays } = buildWeekDays(todayStr, coachWorkouts, coachRuns, sessions);
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "#0d0d0d" }}>
+    <div className="pb-nav" style={{ background: "#0d0d0d" }}>
 
       {/* ── Header ── */}
       <div

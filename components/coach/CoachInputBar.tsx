@@ -23,8 +23,7 @@ export default function CoachInputBar({
   return (
     <div
       style={{
-        padding: "8px 16px",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+        padding: "8px 16px 16px",
       }}
     >
       {/* Cadre externe — fond noir + bordure → ring visible entre bordure et contenu */}
@@ -34,7 +33,6 @@ export default function CoachInputBar({
           border: "1px solid var(--color-white-25)",
           padding: "8px",
           background: "var(--color-background)",
-          overflow: "hidden",
         }}
       >
         {/* Zone de saisie — radius 16, fond #1D1F21, layout colonne */}
@@ -46,7 +44,6 @@ export default function CoachInputBar({
             display: "flex",
             flexDirection: "column",
             gap: "12px",
-            overflow: "hidden",
           }}
         >
           {/* Textarea — padding 0 pour aligner le placeholder avec le bouton + */}
@@ -63,11 +60,13 @@ export default function CoachInputBar({
               background: "transparent",
               border: "none",
               outline: "none",
+              boxShadow: "none",
+              borderRadius: 0,
               resize: "none",
               padding: 0,
               margin: 0,
               color: "#ffffff",
-              caretColor: "var(--color-neon)",
+              caretColor: "#ffffff",
               maxHeight: "120px",
               fontSize: "16px",
               lineHeight: "1.4",

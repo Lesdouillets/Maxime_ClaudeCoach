@@ -6,6 +6,7 @@
   --font-display: var(--font-archivo), system-ui, sans-serif;
   --font-body: var(--font-archivo), system-ui, sans-serif;
   --font-mono: var(--font-mono-nf), monospace;
+  --font-serif-display: var(--font-serif), Georgia, serif;
 
   /* Palette — source de vérité pour les styles inline et les SVGs */
   --color-neon: #CDFF00;

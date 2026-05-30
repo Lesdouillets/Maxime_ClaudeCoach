@@ -67,7 +67,7 @@ export default function StatsPage() {
     }));
 
   return (
-    <div className="max-w-md mx-auto animate-fade-in">
+    <div className="max-w-md mx-auto pb-nav animate-fade-in">
       <PageHeader title="STATS" subtitle="Mes progrès" accent="neon" />
 
       <div className="px-5 space-y-5">
