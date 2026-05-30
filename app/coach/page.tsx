@@ -126,7 +126,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh", position: "relative" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", position: "relative", overflow: "hidden" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
@@ -138,7 +138,8 @@ export default function CoachPage() {
       )}
 
       {/* Zone messages scrollable */}
-      <div className="flex-1 px-4" style={{ paddingBottom: "220px", overflowY: isEmpty ? "hidden" : "auto" }}>
+      {/* Évite une scrollbar fantôme sur l'état vide */}
+      <div className="flex-1 px-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 140px)", overflowY: isEmpty ? "hidden" : "auto" }}>
 
         {isEmpty ? (
           /* État vide — salutation */
