@@ -27,7 +27,7 @@ const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "flex-end"
 const STAT_GROUP_STYLE: CSSProperties = { display: "flex", alignItems: "baseline", gap: 4, flexShrink: 0 };
 const SEPARATOR_STYLE: CSSProperties = { color: "var(--color-dim)", fontSize: 14, lineHeight: "22px" };
 const CHECK_ICON_STYLE: CSSProperties = { display: "inline", verticalAlign: "middle", marginLeft: 8, flexShrink: 0 };
-const DIVIDER_STYLE: CSSProperties = { height: 1, background: "rgba(255,255,255,0.12)" };
+const DIVIDER_STYLE: CSSProperties = { height: 1, background: "var(--color-white-10)" };
 
 interface SessionCardProps {
   todayCoachWorkout: CoachWorkout | null;
@@ -60,7 +60,7 @@ function CheckIcon() {
 
 function RestCard() {
   return (
-    <div className="w-full rounded-2xl overflow-hidden relative" style={{ height: CARD_HEIGHT, border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="w-full rounded-2xl overflow-hidden relative" style={{ height: CARD_HEIGHT, border: "1px solid var(--color-white-06)" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={IMAGES.rest} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: GRADIENT }} />

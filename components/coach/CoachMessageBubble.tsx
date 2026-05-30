@@ -31,7 +31,7 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
       <div className="flex justify-end">
         <div
           style={{
-            background: "rgba(255,255,255,0.10)",
+            background: "var(--color-white-10)",
             borderRadius: 20,
             borderBottomRightRadius: 6,
             maxWidth: "80%",

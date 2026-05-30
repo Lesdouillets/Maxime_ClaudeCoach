@@ -44,11 +44,16 @@
   --color-orange-shadow: rgba(208, 121, 0, 0.30);
   --color-destructive-10: rgba(255, 94, 61, 0.10);
   --color-destructive-shadow: rgba(255, 94, 61, 0.30);
-  --color-neon-input-ring: rgba(205, 255, 0, 0.10);
   --color-bg-blur: rgba(10, 10, 10, 0.70);
   --color-surface-2-blur: rgba(26, 26, 26, 0.92);
   --color-overlay: rgba(0, 0, 0, 0.60);
+  --color-white-06: rgba(255, 255, 255, 0.06);
   --color-white-08: rgba(255, 255, 255, 0.08);
+  --color-white-10: rgba(255, 255, 255, 0.10);
+  --color-white-15: rgba(255, 255, 255, 0.15);
+  --color-white-25: rgba(255, 255, 255, 0.25);
+  --color-white-65: rgba(255, 255, 255, 0.65);
+  --color-white-85: rgba(255, 255, 255, 0.85);
 }
 
 @keyframes timer-halo-pulse {
@@ -175,7 +180,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--color-neon);
-  box-shadow: 0 0 0 2px var(--color-neon-input-ring);
+  box-shadow: 0 0 0 2px var(--color-neon-10);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-neon) 10%, transparent);
 }
 

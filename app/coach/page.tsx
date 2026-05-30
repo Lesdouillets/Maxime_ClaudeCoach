@@ -118,15 +118,15 @@ export default function CoachPage() {
     <div className="flex flex-col" style={{ height: "100dvh" }}>
 
       {/* Header — sticky avec blur */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(10,10,10,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "16px 20px 12px" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(10,10,10,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid var(--color-white-06)", padding: "16px 20px 12px" }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-mono font-bold tracking-widest" style={{ fontSize: 13, color: "var(--color-neon)", textTransform: "uppercase" }}>Coach</h1>
-            <p style={{ fontSize: 12, color: "#444", letterSpacing: "0.08em" }}>Alex · Coach personnel</p>
+            <p style={{ fontSize: 12, color: "var(--color-dim)", letterSpacing: "0.08em" }}>Alex · Coach personnel</p>
           </div>
           {messages.length > 0 && (
             <button onClick={handleClear} disabled={clearing} className="press-effect" style={{ padding: 8, opacity: clearing ? 0.4 : 1 }} aria-label="Effacer l'historique">
-              <TrashIcon size={18} color="#555" />
+              <TrashIcon size={18} color="var(--color-muted)" />
             </button>
           )}
         </div>
@@ -165,7 +165,7 @@ export default function CoachPage() {
                   className="press-effect text-left rounded-2xl px-4 py-3 text-sm"
                   style={{
                     background: "var(--color-white-08)",
-                    border: "1px solid rgba(255,255,255,0.10)",
+                    border: "1px solid var(--color-white-10)",
                     color: "var(--color-secondary)",
                   }}
                 >
@@ -203,7 +203,7 @@ export default function CoachPage() {
                       key={i}
                       className="w-1.5 h-1.5 rounded-full inline-block"
                       style={{
-                        background: "#CDFF00",
+                        background: "var(--color-neon)",
                         animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
                       }}
                     />

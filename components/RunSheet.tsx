@@ -547,8 +547,8 @@ export default function RunSheet() {
                     width: 56,
                     height: 56,
                     borderRadius: "14px",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "var(--color-white-06)",
+                    border: "1px solid var(--color-white-10)",
                   }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

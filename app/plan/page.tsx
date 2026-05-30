@@ -83,7 +83,7 @@ function Month({ offset, todayRef, getDayStatus, onDayClick }: MonthProps) {
         style={{
           fontSize: 20, lineHeight: "22px",
           letterSpacing: "-0.43px", fontVariationSettings: "'wdth' 100",
-          color: "rgba(255,255,255,0.65)",
+          color: "var(--color-white-65)",
         }}
       >
         {getMonthLabel(offset)}
@@ -128,7 +128,7 @@ function Month({ offset, todayRef, getDayStatus, onDayClick }: MonthProps) {
                 <div
                   className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
                   style={s.isToday
-                    ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" }
+                    ? { border: "1px solid var(--color-white-85)", boxShadow: "0 0 8px var(--color-white-15)" }
                     : undefined}
                 >
                   <span className="text-xs font-medium leading-none" style={{ color }}>

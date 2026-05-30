@@ -22,12 +22,11 @@ export default function CoachExerciseDetailModal({ workout, onClose }: Props) {
         inset: 0,
         zIndex: 80,
         background: "var(--color-overlay)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "center",
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 64px)",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)",
+        paddingBottom: 20,
         paddingLeft: 20,
         paddingRight: 20,
       }}
@@ -77,7 +76,7 @@ export default function CoachExerciseDetailModal({ workout, onClose }: Props) {
         </div>
 
         {/* Liste des exercices */}
-        <div className="flex flex-col gap-2" style={{ padding: "0 16px 24px" }}>
+        <div className="flex flex-col gap-2" style={{ padding: "0 16px calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
           {workout.exercises.map((exercise, index) => (
             <ExerciseRowCard
               key={`${exercise.name}-${index}`}

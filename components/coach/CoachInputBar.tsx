@@ -1,5 +1,8 @@
 "use client";
 
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { ArrowUpIcon } from "@/components/icons/ArrowUpIcon";
+
 interface Props {
   value: string;
   sending: boolean;
@@ -17,96 +20,102 @@ export default function CoachInputBar({
   onSend,
   onKeyDown,
 }: Props) {
-  const isActive = value.trim().length > 0 && !sending;
-
   return (
     <div
       style={{
-        background: "rgba(10,10,10,0.95)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        padding: "12px 16px",
+        padding: "8px 16px",
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
       }}
     >
-      {/* Pill container */}
+      {/* Cadre externe — fond noir + bordure → ring visible entre bordure et contenu */}
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "8px",
-          borderRadius: "28px",
-          background: "rgba(255,255,255,0.07)",
-          border: "1px solid rgba(255,255,255,0.10)",
-          padding: "10px 12px",
+          borderRadius: "24px",
+          border: "1px solid var(--color-white-25)",
+          padding: "8px",
+          background: "var(--color-background)",
+          overflow: "hidden",
         }}
       >
-        {/* Plus icon — decorative */}
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#555"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ flexShrink: 0 }}
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Écrire un message..."
-          rows={1}
-          className="flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed"
+        {/* Zone de saisie — radius 16, fond #1D1F21, layout colonne */}
+        <div
           style={{
-            color: "#ddd",
-            caretColor: "#CDFF00",
-            maxHeight: "120px",
-          }}
-        />
-
-        {/* Send button */}
-        <button
-          onClick={onSend}
-          disabled={!value.trim() || sending}
-          style={{
-            flexShrink: 0,
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
+            borderRadius: "16px",
+            background: "var(--color-surface-2)",
+            padding: "12px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: isActive ? "var(--color-orange-light, #ff9a3c)" : "rgba(255,255,255,0.05)",
-            border: isActive ? "none" : "1px solid rgba(255,255,255,0.10)",
-            cursor: isActive ? "pointer" : "not-allowed",
-            transition: "all 0.2s",
+            flexDirection: "column",
+            gap: "12px",
+            overflow: "hidden",
           }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={isActive ? "#ffffff" : "#555"}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
+          {/* Textarea — padding 0 pour aligner le placeholder avec le bouton + */}
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Écrire un message..."
+            rows={1}
+            className="placeholder:text-white/30"
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              resize: "none",
+              padding: 0,
+              margin: 0,
+              color: "#ffffff",
+              caretColor: "var(--color-neon)",
+              maxHeight: "120px",
+              fontSize: "16px",
+              lineHeight: "1.4",
+              fontFamily: "inherit",
+            }}
+          />
+
+          {/* Ligne d'actions : + à gauche, envoyer à droite */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <PlusIcon size={20} color="#ffffff" />
+            </button>
+
+            {/* Bouton envoyer — ArrowUpIcon, 32×32, toujours orange #D07900, radius 20 */}
+            <button
+              onClick={onSend}
+              disabled={sending}
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--color-orange)",
+                border: "none",
+                cursor: "pointer",
+                flexShrink: 0,
+                boxSizing: "border-box",
+                opacity: sending ? 0.5 : 1,
+              }}
+            >
+              <ArrowUpIcon size={14} color="#ffffff" />
+            </button>
+          </div>
+        </div>
       </div>
+
     </div>
   );
 }

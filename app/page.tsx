@@ -179,8 +179,8 @@ export default function HomePage() {
           className="press-effect flex items-center justify-center relative flex-shrink-0"
           style={{
             width: 40, height: 40, borderRadius: "50%",
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-white-06)",
+            border: "1px solid var(--color-white-08)",
             marginTop: 2,
           }}
         >

@@ -40,7 +40,7 @@ import {
 import CoachPlanRunRow from "@/components/coach/CoachPlanRunRow";
 import CoachPlanFitnessRow from "@/components/coach/CoachPlanFitnessRow";
 import CoachPlanCard from "@/components/coach/CoachPlanCard";
-import CoachExerciseDetailSheet from "@/components/coach/CoachExerciseDetailSheet";
+import CoachExerciseDetailModal from "@/components/coach/CoachExerciseDetailModal";
 import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
 import CoachInputBar from "@/components/coach/CoachInputBar";
 import type { CoachRun, CoachWorkout } from "@/lib/coachPlan";
@@ -495,34 +495,58 @@ export default function ComponentsPage() {
       {active === "coach" && (
         <div className="space-y-12">
 
-          <ComponentBlock title="CoachPlanRunRow" description="Ligne d'une séance running dans une carte de proposition">
+          <ComponentBlock title="CoachPlanRunRow — tous types" description="Z2 · Tempo · Fractionné · Progressif · Course">
             <div style={{ background: "var(--color-surface-2)", borderRadius: 16, padding: "12px 16px" }}>
-              <CoachPlanRunRow plan={FIXTURE_RUN} />
-              <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.06)", margin: "8px 0" }} />
-              <CoachPlanRunRow plan={FIXTURE_RUN_2} />
+              <CoachPlanRunRow plan={COACH_RUN_Z2} />
+              <hr style={{ border: "none", borderTop: "1px solid var(--color-white-06)", margin: 0 }} />
+              <CoachPlanRunRow plan={COACH_RUN_TEMPO} />
+              <hr style={{ border: "none", borderTop: "1px solid var(--color-white-06)", margin: 0 }} />
+              <CoachPlanRunRow plan={COACH_RUN_FRACTIONNE} />
+              <hr style={{ border: "none", borderTop: "1px solid var(--color-white-06)", margin: 0 }} />
+              <CoachPlanRunRow plan={COACH_RUN_PROGRESSIF} />
+              <hr style={{ border: "none", borderTop: "1px solid var(--color-white-06)", margin: 0 }} />
+              <CoachPlanRunRow plan={COACH_RUN_COURSE} />
             </div>
           </ComponentBlock>
 
           <ComponentBlock title="CoachPlanFitnessRow" description="Ligne d'une séance fitness avec bouton Détail">
             <div style={{ background: "var(--color-surface-2)", borderRadius: 16, padding: "12px 16px" }}>
               <CoachPlanFitnessRow plan={FIXTURE_FITNESS} onDetailClick={setShowcaseDetailWorkout} />
-              <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.06)", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px solid var(--color-white-06)", margin: 0 }} />
               <CoachPlanFitnessRow plan={FIXTURE_FITNESS_2} onDetailClick={setShowcaseDetailWorkout} />
             </div>
           </ComponentBlock>
 
-          <ComponentBlock title="CoachPlanCard — état normal" description="Carte avec plans run + fitness, boutons Adapter / Valider">
+          <ComponentBlock title="CoachPlanCard — run (état normal)" description="Z2 + fractionné, boutons Adapter / Valider">
             <CoachPlanCard
-              plans={[FIXTURE_RUN, FIXTURE_FITNESS, FIXTURE_RUN_2]}
+              plans={[COACH_RUN_Z2, COACH_RUN_FRACTIONNE]}
               onApply={() => {}}
               onAdapt={() => {}}
               onDetailClick={setShowcaseDetailWorkout}
             />
           </ComponentBlock>
 
-          <ComponentBlock title="CoachPlanCard — en cours d'application" description="État pendant applyPendingPlans">
+          <ComponentBlock title="CoachPlanCard — run (tous types)" description="Les 5 types en une seule semaine">
             <CoachPlanCard
-              plans={[FIXTURE_RUN, FIXTURE_FITNESS]}
+              plans={[COACH_RUN_Z2, COACH_RUN_TEMPO, COACH_RUN_FRACTIONNE, COACH_RUN_PROGRESSIF, COACH_RUN_COURSE]}
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — fitness (état normal)" description="Upper + lower, boutons Adapter / Valider">
+            <CoachPlanCard
+              plans={[FIXTURE_FITNESS, FIXTURE_FITNESS_2]}
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — en cours d'application" description="État pendant applyPendingPlans (run)">
+            <CoachPlanCard
+              plans={[COACH_RUN_Z2, COACH_RUN_FRACTIONNE]}
               applying
               onApply={() => {}}
               onAdapt={() => {}}
@@ -530,8 +554,19 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
-          <ComponentBlock title="CoachPlanCard — validée" description="Mini-badge après application">
+          <ComponentBlock title="CoachPlanCard — validée (running)" description="Même structure, bordure neon, sans boutons">
             <CoachPlanCard
+              plans={[COACH_RUN_Z2, COACH_RUN_FRACTIONNE]}
+              validated
+              onApply={() => {}}
+              onAdapt={() => {}}
+              onDetailClick={setShowcaseDetailWorkout}
+            />
+          </ComponentBlock>
+
+          <ComponentBlock title="CoachPlanCard — validée (fitness)" description="Même structure, bordure neon, sans boutons">
+            <CoachPlanCard
+              plans={[FIXTURE_FITNESS, FIXTURE_FITNESS_2]}
               validated
               onApply={() => {}}
               onAdapt={() => {}}
@@ -576,7 +611,7 @@ export default function ComponentsPage() {
           </ComponentBlock>
 
           <ComponentBlock title="CoachInputBar" description="Barre d'input pill shape — bouton orange si texte présent">
-            <div style={{ background: "#0a0a0a", borderRadius: 12, overflow: "hidden" }}>
+            <div className="-mx-6">
               <CoachInputBar
                 value={showcaseInput}
                 sending={false}
@@ -588,8 +623,8 @@ export default function ComponentsPage() {
             </div>
           </ComponentBlock>
 
-          {/* Sheet détail — déclenché par onDetailClick dans les composants ci-dessus */}
-          <CoachExerciseDetailSheet
+          {/* Modale détail — déclenchée par onDetailClick dans les composants ci-dessus */}
+          <CoachExerciseDetailModal
             workout={showcaseDetailWorkout}
             onClose={() => setShowcaseDetailWorkout(null)}
           />
@@ -702,24 +737,59 @@ export default function ComponentsPage() {
 
 // ── Coach fixtures ────────────────────────────────────────────────────────────
 
-const FIXTURE_RUN: CoachRun = {
-  id: "r1",
+const COACH_RUN_Z2: CoachRun = {
+  id: "cr-z2",
   type: "run",
-  date: new Date(Date.now() + 2 * 86400000).toISOString(),
-  label: "Course Z2",
-  distanceKm: 8,
-  pace: "6:00",
+  date: new Date(Date.now() + 1 * 86400000).toISOString(),
+  label: "ENDURANCE Z2",
+  distanceKm: 10,
+  pace: "5:45",
+  durationMin: 58,
   targetZone: "Z2",
+  runType: "z2",
 };
 
-const FIXTURE_RUN_2: CoachRun = {
-  id: "r2",
+const COACH_RUN_TEMPO: CoachRun = {
+  id: "cr-tempo",
+  type: "run",
+  date: new Date(Date.now() + 2 * 86400000).toISOString(),
+  label: "TEMPO",
+  distanceKm: 8,
+  durationMin: 42,
+  runType: "tempo",
+};
+
+const COACH_RUN_FRACTIONNE: CoachRun = {
+  id: "cr-fractionne",
+  type: "run",
+  date: new Date(Date.now() + 3 * 86400000).toISOString(),
+  label: "FRACTIONNÉ",
+  distanceKm: 10,
+  durationMin: 55,
+  runType: "fractionne",
+  intervals: [{ distanceKm: 0.4, reps: 8, pace: "4:30", restSeconds: 90 }],
+};
+
+const COACH_RUN_PROGRESSIF: CoachRun = {
+  id: "cr-progressif",
   type: "run",
   date: new Date(Date.now() + 4 * 86400000).toISOString(),
-  label: "Fractionné",
-  distanceKm: 6,
-  durationMin: 45,
-  intervals: [],
+  label: "PROGRESSIF",
+  distanceKm: 15,
+  durationMin: 90,
+  targetZone: "Z2>Z4",
+  runType: "progressif",
+};
+
+const COACH_RUN_COURSE: CoachRun = {
+  id: "cr-course",
+  type: "run",
+  date: new Date(Date.now() + 6 * 86400000).toISOString(),
+  label: "SEMI-MARATHON",
+  distanceKm: 21.1,
+  durationMin: 109,
+  isRace: true,
+  runType: "course",
 };
 
 const FIXTURE_FITNESS: CoachWorkout = {
@@ -767,7 +837,7 @@ const FIXTURE_MSG_COACH_WITH_PLANS = {
   role: "assistant" as const,
   content: "Je te propose ces séances pour la semaine :",
   timestamp: new Date().toISOString(),
-  pendingPlans: [FIXTURE_RUN, FIXTURE_FITNESS],
+  pendingPlans: [COACH_RUN_Z2, FIXTURE_FITNESS],
 };
 
 const FIXTURE_MSG_COACH_VALIDATED = {
@@ -912,7 +982,7 @@ function PlanDayCell({
       ) : (
         <div
           className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
-          style={ring ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" } : undefined}
+          style={ring ? { border: "1px solid var(--color-white-85)", boxShadow: "0 0 8px var(--color-white-15)" } : undefined}
         >
           <span className="text-xs font-medium leading-none" style={{ color }}>{day}</span>
         </div>
@@ -967,7 +1037,7 @@ function PlanMonthMock() {
     <div>
       <div
         className="font-display font-bold mb-3"
-        style={{ fontSize: "20px", lineHeight: "22px", letterSpacing: "-0.43px", color: "rgba(255,255,255,0.65)" }}
+        style={{ fontSize: "20px", lineHeight: "22px", letterSpacing: "-0.43px", color: "var(--color-white-65)" }}
       >
         mai 2026
       </div>
@@ -1001,7 +1071,7 @@ function PlanMonthMock() {
               ) : (
                 <div
                   className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent"
-                  style={cell.ring ? { border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 0 8px rgba(255,255,255,0.15)" } : undefined}
+                  style={cell.ring ? { border: "1px solid var(--color-white-85)", boxShadow: "0 0 8px var(--color-white-15)" } : undefined}
                 >
                   <span className="text-xs font-medium leading-none" style={{ color: cell.color }}>{cell.day}</span>
                 </div>
