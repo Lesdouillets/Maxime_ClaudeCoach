@@ -74,36 +74,246 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 
 IMPORTANT : N'inclus JAMAIS le champ "setPlans" dans tes réponses. Utilise uniquement sets/reps/weight.
 
-## FORMAT DE RÉPONSE — STRICT JSON UNIQUEMENT
-Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdown :
-{
-  "response": "Ta réponse en 2-5 phrases, ton de coach direct et chaleureux",
-  "pending_plans": [],
-  "pending_delete_ids": [],
-  "modified_plans": [],
-  "delete_plan_ids": []
+## OUTILS DISPONIBLES
+
+Tu disposes de 3 outils. Utilise-les comme un vrai coach qui planifie et mémorise :
+
+1. **propose_plan_batch** — quand tu crées ou modifies des séances. Toujours demander confirmation.
+2. **apply_plan_batch** — quand l'user confirme explicitement un plan ("ok", "valide", "go"). Résous les IDs depuis tes propose_plan_batch précédents dans cette conversation.
+3. **update_memory** — quand l'user mentionne une blessure, un objectif de course, une contrainte physique, ou que tu observes une tendance significative. PAS pour chaque échange.
+
+Si tu réponds juste à une question sans modifier le programme, n'appelle aucun outil.`;
 }
 
-RÈGLE IMPORTANTE — CONFIRMATION OBLIGATOIRE :
-- Quand tu proposes de créer ou modifier des séances, mets-les dans "pending_plans" et demande confirmation dans "response".
-- Quand tu proposes de SUPPRIMER des séances, mets leurs IDs dans "pending_delete_ids" et demande confirmation.
-- Tu peux combiner les deux : proposer des suppressions ET des créations/modifications en même temps.
-- "modified_plans" et "delete_plan_ids" restent VIDES tant que l'utilisateur n'a pas confirmé explicitement (oui, ok, valide, c'est bon, go, applique).
-- Si l'utilisateur confirme, déplace les plans dans "modified_plans" et les IDs dans "delete_plan_ids", vide les pending.
-- Si tu réponds juste à une question sans modifier le programme, les quatre tableaux sont vides.
-Pour les plans existants modifiés : conserve leur ID d'origine. Pour les nouveaux : utilise "coach-chat-{date}-{n}".
-Inclus toujours le plan COMPLET (tous les exercices), jamais un plan partiel.
+interface CoachMemory {
+  lastUpdated: string;
+  run: {
+    trend?: string;
+    lastLongRun?: string;
+    nextRace?: string;
+    notes?: string;
+  };
+  fitness: {
+    cycle?: string;
+    upperBody?: { lastSession?: string; keyLifts?: Record<string, string> };
+    lowerBody?: { lastSession?: string; keyLifts?: Record<string, string> };
+  };
+  body: {
+    currentWeight?: number;
+    trend?: string;
+    target?: number;
+  };
+  keyNotes: Array<{ date: string; note: string }>;
+}
 
-CONTINUITÉ ENTRE LES TOURS :
-- Tes messages assistant précédents peuvent contenir des blocs \`[pending_plans=...]\` et \`[pending_delete_ids=...]\`. Ce sont les propositions que TU as faites au tour précédent.
-- Quand l'utilisateur confirme, tu DOIS reprendre EXACTEMENT le contenu de \`[pending_plans=...]\` du dernier tour et le placer tel quel dans "modified_plans" (mêmes IDs, mêmes exercices, mêmes valeurs). Ne ré-invente rien.
-- De même pour \`[pending_delete_ids=...]\` → "delete_plan_ids".
-- Si tu confirmes une application sans rien mettre dans "modified_plans"/"delete_plan_ids", aucune séance ne sera modifiée — c'est une erreur grave.`;
+function formatCoachMemoryForPrompt(memory: CoachMemory): string {
+  const lines: string[] = [];
+
+  const runParts: string[] = [];
+  if (memory.run.trend) runParts.push(memory.run.trend);
+  if (memory.run.lastLongRun) runParts.push(`Dernière sortie longue : ${memory.run.lastLongRun}`);
+  if (memory.run.nextRace) runParts.push(`Prochaine course : ${memory.run.nextRace}`);
+  if (memory.run.notes) runParts.push(`⚠️ ${memory.run.notes}`);
+  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
+
+  const fitParts: string[] = [];
+  if (memory.fitness.cycle) fitParts.push(memory.fitness.cycle);
+  if (memory.fitness.upperBody?.keyLifts) {
+    const lifts = Object.entries(memory.fitness.upperBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
+    if (lifts) fitParts.push(`Upper: ${lifts}`);
+  }
+  if (memory.fitness.lowerBody?.keyLifts) {
+    const lifts = Object.entries(memory.fitness.lowerBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
+    if (lifts) fitParts.push(`Lower: ${lifts}`);
+  }
+  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
+
+  if (memory.body.currentWeight !== undefined) {
+    const bodyParts: string[] = [`${memory.body.currentWeight}kg`];
+    if (memory.body.target !== undefined) bodyParts.push(`objectif ${memory.body.target}kg`);
+    if (memory.body.trend) bodyParts.push(`tendance ${memory.body.trend}`);
+    lines.push(`Poids : ${bodyParts.join(", ")}`);
+  }
+
+  const recentNotes = memory.keyNotes.slice(-3);
+  if (recentNotes.length > 0) {
+    lines.push(`Notes : ${recentNotes.map((n: { date: string; note: string }) => `[${n.date}] ${n.note}`).join(" | ")}`);
+  }
+
+  if (lines.length === 0) return "";
+  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
+}
+
+const COACH_TOOLS = [
+  {
+    name: "propose_plan_batch",
+    description:
+      "Propose des séances au user. Il devra cliquer 'Valider' pour les confirmer. " +
+      "Utilise cet outil chaque fois que tu crées ou modifies des séances. " +
+      "Ne l'utilise PAS si l'user t'a déjà confirmé ce tour — utilise apply_plan_batch à la place.",
+    input_schema: {
+      type: "object",
+      properties: {
+        plans: {
+          type: "array",
+          items: { type: "object" },
+          description: "Tableau de plans CoachRun ou CoachWorkout complets.",
+        },
+        delete_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "IDs de plans existants à supprimer (optionnel).",
+        },
+      },
+      required: ["plans"],
+    },
+  },
+  {
+    name: "apply_plan_batch",
+    description:
+      "Applique des plans déjà proposés que l'user vient de confirmer textuellement " +
+      "('ok', 'valide', 'go', 'c'est bon', 'applique'). " +
+      "Ne l'utilise QUE si l'user confirme explicitement dans sa réponse. " +
+      "Résous les IDs depuis les propose_plan_batch précédents dans la conversation.",
+    input_schema: {
+      type: "object",
+      properties: {
+        plan_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "IDs des plans confirmés.",
+        },
+        delete_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "IDs à supprimer définitivement (optionnel).",
+        },
+      },
+      required: ["plan_ids"],
+    },
+  },
+  {
+    name: "update_memory",
+    description:
+      "Met à jour la mémoire persistante du coach. " +
+      "À utiliser UNIQUEMENT pour des informations significatives long terme : " +
+      "blessure, objectif de course, contrainte physique, tendance FC confirmée, poids mentionné. " +
+      "PAS pour les détails d'une séance (déjà dans les données brutes). " +
+      "La mémoire sera injectée dans toutes les conversations futures.",
+    input_schema: {
+      type: "object",
+      properties: {
+        run: {
+          type: "object",
+          properties: {
+            trend: { type: "string" },
+            lastLongRun: { type: "string" },
+            nextRace: { type: "string" },
+            notes: { type: "string" },
+          },
+        },
+        fitness: {
+          type: "object",
+          properties: {
+            cycle: { type: "string" },
+            upperBody: {
+              type: "object",
+              properties: {
+                lastSession: { type: "string" },
+                keyLifts: { type: "object" },
+              },
+            },
+            lowerBody: {
+              type: "object",
+              properties: {
+                lastSession: { type: "string" },
+                keyLifts: { type: "object" },
+              },
+            },
+          },
+        },
+        body: {
+          type: "object",
+          properties: {
+            currentWeight: { type: "number" },
+            trend: { type: "string" },
+            target: { type: "number" },
+          },
+        },
+        keyNotes: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              date: { type: "string" },
+              note: { type: "string" },
+            },
+            required: ["date", "note"],
+          },
+        },
+      },
+    },
+  },
+] as const;
+
+function resolvePlansByIds(
+  planIds: string[],
+  conversationMessages: unknown[],
+  currentTurnPlans: Record<string, unknown>[] = [],
+): unknown[] {
+  if (planIds.length === 0) return [];
+  const allProposedPlans: Record<string, unknown>[] = [...currentTurnPlans];
+
+  for (const msg of conversationMessages) {
+    const m = msg as { role: string; content: unknown };
+    if (m.role !== "assistant" || !Array.isArray(m.content)) continue;
+    for (const block of m.content as Array<{ type: string; name?: string; input?: Record<string, unknown> }>) {
+      if (block.type === "tool_use" && block.name === "propose_plan_batch") {
+        const plans = block.input?.plans;
+        if (Array.isArray(plans)) {
+          allProposedPlans.push(...(plans as Record<string, unknown>[]));
+        }
+      }
+    }
+  }
+
+  const idSet = new Set(planIds);
+  return allProposedPlans.filter((p) => idSet.has(p.id as string));
+}
+
+interface ChatCoachResult {
+  response: string;
+  pending_plans: unknown[];
+  pending_delete_ids: string[];
+  modified_plans: unknown[];
+  delete_plan_ids: string[];
+  memory_update: Record<string, unknown> | null;
+}
+
+// Supprime coachNote + setPlans pour réduire les tokens et éviter que le coach réinjette setPlans
+function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
+  return plans.map((p) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { coachNote: _cn, ...rest } = p;
+    if (Array.isArray(rest.exercises)) {
+      rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { coachNote: _ecn, setPlans: _sp, ...exRest } = ex;
+        return exRest;
+      });
+    }
+    return rest;
+  });
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
+  }
+
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY non configurée" }), { status: 500, headers: CORS });
   }
 
   try {
@@ -115,6 +325,7 @@ Deno.serve(async (req: Request) => {
       profileName = "Maxime",
       previousAnalyses = [],
       today: clientToday,
+      coachMemory,
     } = body;
 
     if (!messages || messages.length === 0) {
@@ -127,7 +338,13 @@ Deno.serve(async (req: Request) => {
       : new Date().toISOString().slice(0, 10);
     const contextParts: string[] = [`## Date du jour : ${today}`];
 
-    // Last 3 analyses, truncated to 600 chars each
+    // Injection mémoire persistante si disponible
+    if (coachMemory) {
+      const memoryText = formatCoachMemoryForPrompt(coachMemory as CoachMemory);
+      if (memoryText) contextParts.push(`\n${memoryText}`);
+    }
+
+    // 3 dernières analyses, tronquées à 600 chars chacune
     if (previousAnalyses.length > 0) {
       const trimmed = previousAnalyses
         .slice(0, 3)
@@ -139,25 +356,7 @@ Deno.serve(async (req: Request) => {
       contextParts.push(`\n## Séances récentes\n${recentSessions.join("\n")}`);
     }
 
-    // Strip coachNote + setPlans to reduce tokens and avoid coach echoing setPlans back.
-    // The client auto-migrates setPlans from sets/reps/weight so we never need them in responses.
-    function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
-      return plans.map((p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { coachNote: _cn, ...rest } = p;
-        if (Array.isArray(rest.exercises)) {
-          rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { coachNote: _ecn, setPlans: _sp, ...exRest } = ex;
-            return exRest;
-          });
-        }
-        return rest;
-      });
-    }
-
-    // J0-3: full JSON (stripped). J4+: compact text — all remaining future plans,
-    // no far cutoff so the coach can reason about the whole program.
+    // J0-3 : JSON complet (nettoyé). J4+ : texte compact — tout le programme futur sans limite de date
     const nearCutoff = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const allPlans = coachPlans as Record<string, unknown>[];
     const nearPlans = allPlans.filter((p) => (p.date as string) <= nearCutoff);
@@ -194,90 +393,107 @@ Deno.serve(async (req: Request) => {
       : recentMessages;
 
     const systemPrompt = buildSystemPrompt(profileName);
+    const conversationMessages: unknown[] = [...apiMessages];
 
-    const messagesForApi = apiMessages;
+    const result: ChatCoachResult = {
+      response: "",
+      pending_plans: [],
+      pending_delete_ids: [],
+      modified_plans: [],
+      delete_plan_ids: [],
+      memory_update: null,
+    };
 
-    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "prompt-caching-2024-07-31",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 32000,
-        system: [
-          {
-            type: "text",
-            text: systemPrompt,
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        messages: messagesForApi,
-      }),
-    });
+    const MAX_ITERATIONS = 5;
 
-    if (!anthropicResp.ok) {
-      const errText = await anthropicResp.text();
-      throw new Error(`Anthropic API error ${anthropicResp.status}: ${errText}`);
-    }
+    for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+      const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "prompt-caching-2024-07-31",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 8192,
+          system: [
+            {
+              type: "text",
+              text: systemPrompt,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
+          tools: COACH_TOOLS,
+          messages: conversationMessages,
+        }),
+      });
 
-    const anthropicData = await anthropicResp.json();
-    const stopReason = anthropicData.stop_reason as string | undefined;
-    const truncated = stopReason === "max_tokens";
+      if (!anthropicResp.ok) {
+        const errText = await anthropicResp.text();
+        throw new Error(`Anthropic API error ${anthropicResp.status}: ${errText}`);
+      }
 
-    // Find the first text block (skip thinking blocks or tool_use)
-    const textBlock = Array.isArray(anthropicData.content)
-      ? anthropicData.content.find((b: { type?: string }) => b?.type === "text")
-      : null;
-    const rawText: string = textBlock?.text ?? "";
-    const text = rawText;
+      const anthropicData = await anthropicResp.json();
+      const stopReason = anthropicData.stop_reason as string;
 
-    if (anthropicData.usage) {
-      console.log("[chat-coach] usage:", JSON.stringify(anthropicData.usage), "stop:", stopReason, "textLen:", text.length);
-    }
+      if (anthropicData.usage) {
+        console.log(`[chat-coach] iter=${iteration} usage:`, JSON.stringify(anthropicData.usage), "stop:", stopReason);
+      }
 
-    const truncSuffix = "\n\n⚠️ Réponse tronquée — demande plus courte stp.";
-    const emptyShape = { pending_plans: [], pending_delete_ids: [], modified_plans: [], delete_plan_ids: [] };
+      const textBlock = Array.isArray(anthropicData.content)
+        ? anthropicData.content.find((b: { type: string }) => b.type === "text")
+        : null;
+      if (textBlock?.text) result.response = textBlock.text;
 
-    // Try to extract outermost JSON object. Use lastIndexOf for robustness against
-    // accolades embedded in string values, then fall back to depth-counting if parse fails.
-    const start = text.indexOf("{");
-    const lastEnd = text.lastIndexOf("}");
+      if (stopReason !== "tool_use") break;
 
-    let result: Record<string, unknown> | null = null;
-    if (start !== -1 && lastEnd > start) {
-      const candidate = text.slice(start, lastEnd + 1);
-      try {
-        result = JSON.parse(candidate);
-      } catch {
-        // Depth-counting fallback (naive but works when JSON is followed by garbage text)
-        let depth = 0;
-        let end = -1;
-        for (let i = start; i < text.length; i++) {
-          if (text[i] === "{") depth++;
-          else if (text[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
-        }
-        if (end !== -1) {
-          try { result = JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+      const toolUseBlocks = (anthropicData.content as Array<{ type: string; id: string; name: string; input: Record<string, unknown> }>)
+        .filter((b) => b.type === "tool_use");
+
+      const toolResults: Array<{ type: "tool_result"; tool_use_id: string; content: string }> = [];
+
+      // Collecter d'abord les plans proposés dans ce tour pour résolution cross-tool
+      const currentTurnProposedPlans: Record<string, unknown>[] = [];
+      for (const tb of toolUseBlocks) {
+        if (tb.name === "propose_plan_batch" && Array.isArray(tb.input.plans)) {
+          currentTurnProposedPlans.push(...(tb.input.plans as Record<string, unknown>[]));
         }
       }
+
+      for (const toolBlock of toolUseBlocks) {
+        const { id, name, input } = toolBlock;
+        let toolResultContent = "";
+
+        if (name === "propose_plan_batch") {
+          result.pending_plans = Array.isArray(input.plans) ? input.plans : [];
+          result.pending_delete_ids = Array.isArray(input.delete_ids) ? (input.delete_ids as string[]) : [];
+          toolResultContent = `OK — ${result.pending_plans.length} plan(s) proposé(s), en attente de confirmation user.`;
+          console.log("[chat-coach] propose_plan_batch:", result.pending_plans.length, "plans");
+        } else if (name === "apply_plan_batch") {
+          const planIds = Array.isArray(input.plan_ids) ? (input.plan_ids as string[]) : [];
+          result.modified_plans = resolvePlansByIds(planIds, conversationMessages, currentTurnProposedPlans);
+          result.delete_plan_ids = Array.isArray(input.delete_ids) ? (input.delete_ids as string[]) : [];
+          toolResultContent = `OK — ${result.modified_plans.length} plan(s) appliqué(s).`;
+          console.log("[chat-coach] apply_plan_batch:", result.modified_plans.length, "plans résolus");
+        } else if (name === "update_memory") {
+          result.memory_update = input;
+          toolResultContent = "Mémoire mise à jour.";
+          console.log("[chat-coach] update_memory appelé");
+        }
+
+        toolResults.push({ type: "tool_result", tool_use_id: id, content: toolResultContent });
+      }
+
+      conversationMessages.push({ role: "assistant", content: anthropicData.content });
+      conversationMessages.push({ role: "user", content: toolResults });
     }
 
-    if (!result) {
-      console.warn("[chat-coach] no JSON parsed, falling back to raw text. Preview:", text.slice(0, 200));
-      // Try to salvage the response field from truncated JSON via regex
-      const responseMatch = text.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-      const salvaged = responseMatch ? responseMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"') : "";
-      // Fall back to raw model output (without the prepended "{") so the user still sees the coach's message
-      const fallbackMsg = salvaged || rawText.trim() || "Désolé, je n'ai pas pu formuler de réponse. Réessaie.";
-      result = { response: fallbackMsg + (truncated ? truncSuffix : ""), ...emptyShape };
-    } else if (truncated) {
-      // Parsed OK but hit max_tokens — plans may be incomplete, drop them
-      console.warn("[chat-coach] stop_reason=max_tokens, dropping plans");
-      result = { response: String(result.response ?? "") + truncSuffix, ...emptyShape };
+    if (!result.response) {
+      result.response = result.memory_update
+        ? "Mémoire mise à jour."
+        : "Désolé, je n'ai pas pu formuler de réponse. Réessaie.";
     }
 
     return new Response(JSON.stringify(result), {
