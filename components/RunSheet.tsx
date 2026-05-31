@@ -26,8 +26,7 @@ import {
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
 import type { RunSession, StravaLap } from "@/lib/types";
-import { compressImage } from "@/lib/imageCompressor";
-import type { CompressedImage } from "@/lib/imageCompressor";
+import { compressImage, type CompressedImage } from "@/lib/imageCompressor";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const IS_DEV_SYNC = process.env.NEXT_PUBLIC_DISABLE_SYNC === "true";
@@ -252,7 +251,8 @@ export default function RunSheet() {
     setAnalysisAttempted(true);
     setCoachState("analyzing");
     analyzeSession(session, noteContext, attachments)
-      .then((result) => { setCoachResult(result); setCoachState("done"); setPendingImage(null); });
+      .then((result) => { setCoachResult(result); setCoachState("done"); setPendingImage(null); })
+      .catch(() => { setCoachState("done"); setPendingImage(null); });
   }, []);
 
   const handleClearNote = useCallback(() => {

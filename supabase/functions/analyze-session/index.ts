@@ -4,7 +4,8 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Dupliqué depuis lib/coachMemory.ts — la Edge Function ne peut pas importer depuis le client
+// Dupliqué depuis lib/coachMemory.ts#formatCoachMemoryForPrompt — à synchroniser manuellement si lib/coachMemory.ts évolue
+// La Edge Function Deno ne peut pas importer depuis le client Next.js
 function formatCoachMemoryForPrompt(memory: Record<string, unknown>): string {
   const lines: string[] = [];
 
