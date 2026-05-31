@@ -129,9 +129,10 @@ export function compactSession(s: WorkoutSession): string {
 // Prevents firing two concurrent API calls for the same session.
 const analyzingInFlight = new Set<string>();
 
+// Pièces jointes optionnelles transmises à l'edge function pour une analyse multimodale
 export interface SessionAttachments {
   imageBase64?: string;
-  mimeType?: string;
+  imageMimeType?: string;
 }
 
 export async function analyzeSession(session: WorkoutSession, chatContext?: string, attachments?: SessionAttachments): Promise<CoachAnalysisResult | null> {
@@ -161,8 +162,10 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
         previousAnalyses,
         chatContext,
         coachMemory,
-        imageBase64: attachments?.imageBase64,
-        imageMimeType: attachments?.mimeType,
+        ...(attachments?.imageBase64 && {
+          imageBase64: attachments.imageBase64,
+          imageMimeType: attachments.imageMimeType,
+        }),
       },
     });
 
