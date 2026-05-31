@@ -241,7 +241,7 @@ function recentToText(sessions: unknown[]): string {
     if (r.type === "run") {
       const dist = r.distanceKm ?? "?";
       const pace = r.avgPaceSecPerKm
-        ? `${Math.floor(Number(r.avgPaceSecPerKm) / 60)}:${String(Number(r.avgPaceSecPerKm) % 60).padStart(2, "0")}/km`
+        ? `${Math.floor(Number(r.avgPaceSecPerKm) / 60)}:${String(Math.round(Number(r.avgPaceSecPerKm) % 60)).padStart(2, "0")}/km`
         : "";
       const hr = r.avgHeartRate ? ` FC:${r.avgHeartRate}` : "";
       return `${date} run: ${dist}km @${pace}${hr}${comment}`;
@@ -377,11 +377,14 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: CORS });
     }
 
-    // Valide le type MIME image contre les types acceptés par l'API Anthropic
+    // Valide les champs image contre les types acceptés par l'API Anthropic
     const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    const resolvedMimeType = ALLOWED_IMAGE_MIME_TYPES.includes(imageMimeType as string)
-      ? (imageMimeType as string)
-      : "image/jpeg";
+    const imageBase64Str = typeof imageBase64 === "string" ? imageBase64 : null;
+    const mimeTypeStr = typeof imageMimeType === "string" ? imageMimeType : null;
+    if (imageBase64Str && mimeTypeStr && !ALLOWED_IMAGE_MIME_TYPES.includes(mimeTypeStr)) {
+      return new Response(JSON.stringify({ error: `Type d'image non supporté: ${mimeTypeStr}` }), { status: 400, headers: CORS });
+    }
+    const resolvedMimeType = mimeTypeStr ?? "image/jpeg";
 
     // Call Anthropic API directly via fetch to avoid SDK version issues
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -407,7 +410,7 @@ Deno.serve(async (req: Request) => {
         messages: [
           {
             role: "user",
-            content: imageBase64
+            content: imageBase64Str
               ? [
                   {
                     type: "text",
@@ -418,7 +421,7 @@ Deno.serve(async (req: Request) => {
                     source: {
                       type: "base64",
                       media_type: resolvedMimeType,
-                      data: imageBase64 as string,
+                      data: imageBase64Str,
                     },
                   },
                 ]

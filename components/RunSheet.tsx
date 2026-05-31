@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRunSheet } from "@/contexts/RunSheetContext";
 import { ContextMenu } from "@/components/ui/ContextMenu";
@@ -22,6 +22,7 @@ import {
   analyzeSession,
   getStoredCoachAnalysis,
   type CoachAnalysisResult,
+  type SessionAttachments,
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
 import type { RunSession, StravaLap } from "@/lib/types";
@@ -78,6 +79,10 @@ export default function RunSheet() {
   const [addContentMenuOpen, setAddContentMenuOpen] = useState(false);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<CompressedImage | null>(null);
+  const pendingImagePreviewSrc = useMemo(
+    () => pendingImage ? `data:image/jpeg;base64,${pendingImage.base64}` : null,
+    [pendingImage]
+  );
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -148,14 +153,10 @@ export default function RunSheet() {
       autoSyncPush().catch(() => {});
       const importNote = coachRun?.userNote ?? "";
       const importNoteCtx = importNote ? `Note de l'athlète : "${importNote}"` : undefined;
-      const importAttachments = pendingImage
+      const importAttachments: SessionAttachments | undefined = pendingImage
         ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
         : undefined;
-      setAnalysisAttempted(true);
-      setCoachState("analyzing");
-      analyzeSession(session as RunSession, importNoteCtx, importAttachments)
-        .then((result) => { setCoachResult(result); setCoachState("done"); });
-      setPendingImage(null);
+      triggerDirectAnalysis(session as RunSession, importNoteCtx, importAttachments);
     } catch {
       setStravaSyncMsg("Erreur de synchronisation");
     } finally {
@@ -198,14 +199,10 @@ export default function RunSheet() {
         setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
         const syncNote = coachRun?.userNote ?? updated.comment ?? "";
         const syncNoteCtx = syncNote ? `Note de l'athlète : "${syncNote}"` : undefined;
-        const syncAttachments = pendingImage
+        const syncAttachments: SessionAttachments | undefined = pendingImage
           ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
           : undefined;
-        setAnalysisAttempted(true);
-        setCoachState("analyzing");
-        analyzeSession(updated, syncNoteCtx, syncAttachments)
-          .then((result) => { setCoachResult(result); setCoachState("done"); });
-        setPendingImage(null);
+        triggerDirectAnalysis(updated, syncNoteCtx, syncAttachments);
       } else {
         setStravaSyncMsg("Aucune fraction trouvée dans Strava");
       }
@@ -226,14 +223,10 @@ export default function RunSheet() {
     setTimeout(() => setStravaSyncMsg(""), 3000);
     const mockNote = coachRun?.userNote ?? updated.comment ?? "";
     const mockNoteCtx = mockNote ? `Note de l'athlète : "${mockNote}"` : undefined;
-    const mockAttachments = pendingImage
+    const mockAttachments: SessionAttachments | undefined = pendingImage
       ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
       : undefined;
-    setAnalysisAttempted(true);
-    setCoachState("analyzing");
-    analyzeSession(updated, mockNoteCtx, mockAttachments)
-      .then((result) => { setCoachResult(result); setCoachState("done"); });
-    setPendingImage(null);
+    triggerDirectAnalysis(updated, mockNoteCtx, mockAttachments);
   };
 
   const handleClose = useCallback(() => {
@@ -250,6 +243,17 @@ export default function RunSheet() {
     setPendingImage(null);
     if (origin && originNeedsRedirect(origin, pathname)) router.push(origin);
   }, [sheet, router, pathname]);
+
+  const triggerDirectAnalysis = useCallback((
+    session: RunSession,
+    noteContext: string | undefined,
+    attachments: SessionAttachments | undefined,
+  ) => {
+    setAnalysisAttempted(true);
+    setCoachState("analyzing");
+    analyzeSession(session, noteContext, attachments)
+      .then((result) => { setCoachResult(result); setCoachState("done"); setPendingImage(null); });
+  }, []);
 
   const handleClearNote = useCallback(() => {
     if (coachRun?.userNote) {
@@ -317,7 +321,7 @@ export default function RunSheet() {
 
   if (!sheet.state) return null;
 
-  const noteValue = coachRun?.userNote || doneSession?.comment || "";
+  const noteValue = coachRun != null ? (coachRun.userNote ?? "") : (doneSession?.comment ?? "");
 
   // En dev, toujours vrai dès qu'une session existe — permet de rejouer la mock à tout moment
   const needsStravaSync = IS_DEV_SYNC
@@ -637,7 +641,7 @@ export default function RunSheet() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`data:image/jpeg;base64,${pendingImage.base64}`}
+                      src={pendingImagePreviewSrc ?? ""}
                       alt=""
                       style={{ width: 22, height: 22, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
                     />
@@ -715,7 +719,8 @@ export default function RunSheet() {
                     const compressed = await compressImage(file);
                     setPendingImage(compressed);
                   } catch {
-                    // erreur silencieuse — l'utilisateur peut réessayer
+                    setStravaSyncMsg("Impossible de charger l'image");
+                    setTimeout(() => setStravaSyncMsg(""), 3000);
                   }
                   e.target.value = "";
                 }}
