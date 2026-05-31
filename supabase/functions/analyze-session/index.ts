@@ -331,8 +331,8 @@ function buildUserPrompt(
     ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
     : "";
 
-  const memoryFormatted = coachMemory ? formatCoachMemoryForPrompt(coachMemory) : "";
-  const memoryBlock = memoryFormatted ? `\n${memoryFormatted}\n` : "";
+  const memorySection = coachMemory ? formatCoachMemoryForPrompt(coachMemory) : "";
+  const memoryBlock = memorySection ? `\n${memorySection}\n` : "";
 
   const nearSection = nearFuturePlans.length > 0
     ? `## Programme J0-${NEAR_DAYS} (${nearFuturePlans.length} séances — modifiables)\n${JSON.stringify(nearFuturePlans)}`
@@ -444,7 +444,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const memoryUpdate = result.memory_update && result.memory_update !== null
+    const memoryUpdate = result.memory_update
       ? result.memory_update as Record<string, unknown>
       : null;
 
