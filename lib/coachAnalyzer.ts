@@ -129,7 +129,12 @@ export function compactSession(s: WorkoutSession): string {
 // Prevents firing two concurrent API calls for the same session.
 const analyzingInFlight = new Set<string>();
 
-export async function analyzeSession(session: WorkoutSession, chatContext?: string): Promise<CoachAnalysisResult | null> {
+export interface SessionAttachments {
+  imageBase64?: string;
+  mimeType?: string;
+}
+
+export async function analyzeSession(session: WorkoutSession, chatContext?: string, attachments?: SessionAttachments): Promise<CoachAnalysisResult | null> {
   if (SYNC_DISABLED) return null;
   if (analyzingInFlight.has(session.id)) return null;
   analyzingInFlight.add(session.id);
@@ -148,7 +153,17 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
     const coachMemory = getCoachMemory();
 
     const { data, error } = await supabase.functions.invoke("analyze-session", {
-      body: { session, coachPlans: annotatedPlans, recentSessions, profileName, previousAnalyses, chatContext, coachMemory },
+      body: {
+        session,
+        coachPlans: annotatedPlans,
+        recentSessions,
+        profileName,
+        previousAnalyses,
+        chatContext,
+        coachMemory,
+        imageBase64: attachments?.imageBase64,
+        imageMimeType: attachments?.mimeType,
+      },
     });
 
     if (error) {
