@@ -336,7 +336,11 @@ Deno.serve(async (req: Request) => {
     const today = typeof clientToday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientToday)
       ? clientToday
       : new Date().toISOString().slice(0, 10);
-    const contextParts: string[] = [`## Date du jour : ${today}`];
+    const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    const todayDate = new Date(today + "T12:00:00Z");
+    const jourLabel = `${JOURS[todayDate.getUTCDay()]} ${todayDate.getUTCDate()} ${MOIS[todayDate.getUTCMonth()]} ${todayDate.getUTCFullYear()}`;
+    const contextParts: string[] = [`## Date du jour : ${jourLabel} (${today})`];
 
     // Injection mémoire persistante si disponible
     if (coachMemory) {
