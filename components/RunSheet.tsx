@@ -146,6 +146,16 @@ export default function RunSheet() {
       addSession(session);
       setDoneSession(session as RunSession);
       autoSyncPush().catch(() => {});
+      const importNote = coachRun?.userNote ?? "";
+      const importNoteCtx = importNote ? `Note de l'athlète : "${importNote}"` : undefined;
+      const importAttachments = pendingImage
+        ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
+        : undefined;
+      setAnalysisAttempted(true);
+      setCoachState("analyzing");
+      analyzeSession(session as RunSession, importNoteCtx, importAttachments)
+        .then((result) => { setCoachResult(result); setCoachState("done"); });
+      setPendingImage(null);
     } catch {
       setStravaSyncMsg("Erreur de synchronisation");
     } finally {
@@ -186,6 +196,16 @@ export default function RunSheet() {
         setDoneSession(updated);
         autoSyncPush().catch(() => {});
         setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
+        const syncNote = coachRun?.userNote ?? updated.comment ?? "";
+        const syncNoteCtx = syncNote ? `Note de l'athlète : "${syncNote}"` : undefined;
+        const syncAttachments = pendingImage
+          ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
+          : undefined;
+        setAnalysisAttempted(true);
+        setCoachState("analyzing");
+        analyzeSession(updated, syncNoteCtx, syncAttachments)
+          .then((result) => { setCoachResult(result); setCoachState("done"); });
+        setPendingImage(null);
       } else {
         setStravaSyncMsg("Aucune fraction trouvée dans Strava");
       }
@@ -204,6 +224,16 @@ export default function RunSheet() {
     setDoneSession(updated);
     setStravaSyncMsg(`${DEV_MOCK_LAPS.length} fractions simulées ✓`);
     setTimeout(() => setStravaSyncMsg(""), 3000);
+    const mockNote = coachRun?.userNote ?? updated.comment ?? "";
+    const mockNoteCtx = mockNote ? `Note de l'athlète : "${mockNote}"` : undefined;
+    const mockAttachments = pendingImage
+      ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
+      : undefined;
+    setAnalysisAttempted(true);
+    setCoachState("analyzing");
+    analyzeSession(updated, mockNoteCtx, mockAttachments)
+      .then((result) => { setCoachResult(result); setCoachState("done"); });
+    setPendingImage(null);
   };
 
   const handleClose = useCallback(() => {
