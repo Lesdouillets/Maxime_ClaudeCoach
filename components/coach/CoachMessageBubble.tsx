@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ChatMessage } from "@/lib/coachChat";
-import type { CoachPlan, CoachWorkout } from "@/lib/coachPlan";
+import type { CoachWorkout } from "@/lib/coachPlan";
 import CoachPlanCard from "./CoachPlanCard";
 import CoachExerciseDetailModal from "./CoachExerciseDetailModal";
 
@@ -16,15 +16,10 @@ interface Props {
 export default function CoachMessageBubble({ message, applying, onApply, onAdapt }: Props) {
   const [detailWorkout, setDetailWorkout] = useState<CoachWorkout | null>(null);
 
-  // Cast explicite — pendingPlans est unknown[] dans ChatMessage
-  const allPlans = (message.pendingPlans ?? []) as CoachPlan[];
+  const allPlans = message.card?.plans ?? [];
   const runPlans = allPlans.filter((p) => p.type === "run");
   const fitnessPlans = allPlans.filter((p) => p.type === "fitness");
-  const isValidated = !!(message.modifiedCount || message.deletedCount);
-
-  // Sauvegarde des plans au premier rendu — ils disparaissent de pendingPlans après application
-  const [savedRunPlans] = useState<CoachPlan[]>(() => runPlans);
-  const [savedFitnessPlans] = useState<CoachPlan[]>(() => fitnessPlans);
+  const isValidated = message.card?.status === "validated" || !!(message.modifiedCount || message.deletedCount);
 
   if (message.role === "user") {
     return (
@@ -63,12 +58,13 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
           {message.content}
         </p>
 
-        {/* Plans en attente de validation */}
+        {/* Plans de la carte — pending ou validés */}
         {allPlans.length > 0 && (
           <>
             {runPlans.length > 0 && (
               <CoachPlanCard
                 plans={runPlans}
+                validated={isValidated}
                 applying={applying}
                 onApply={onApply}
                 onAdapt={onAdapt}
@@ -78,31 +74,8 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
             {fitnessPlans.length > 0 && (
               <CoachPlanCard
                 plans={fitnessPlans as CoachWorkout[]}
+                validated={isValidated}
                 applying={applying}
-                onApply={onApply}
-                onAdapt={onAdapt}
-                onDetailClick={setDetailWorkout}
-              />
-            )}
-          </>
-        )}
-
-        {/* Plans validés — bordure verte, rows visibles, sans boutons */}
-        {isValidated && allPlans.length === 0 && (
-          <>
-            {savedRunPlans.length > 0 && (
-              <CoachPlanCard
-                plans={savedRunPlans}
-                validated
-                onApply={onApply}
-                onAdapt={onAdapt}
-                onDetailClick={setDetailWorkout}
-              />
-            )}
-            {savedFitnessPlans.length > 0 && (
-              <CoachPlanCard
-                plans={savedFitnessPlans as CoachWorkout[]}
-                validated
                 onApply={onApply}
                 onAdapt={onAdapt}
                 onDetailClick={setDetailWorkout}
