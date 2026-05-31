@@ -19,8 +19,11 @@ export interface ChatMessage {
   timestamp: string; // ISO
   modifiedCount?: number;      // set once plans are applied
   deletedCount?: number;       // set once deletions are applied
-  pendingPlans?: unknown[];    // plans proposed by coach, awaiting user confirmation
-  pendingDeleteIds?: string[]; // plan IDs proposed for deletion, awaiting confirmation
+  card?: {
+    plans: CoachPlan[];
+    deleteIds: string[];
+    status: "pending" | "validated";
+  };
 }
 
 // ─── localStorage keys ────────────────────────────────────────────────────────
@@ -170,9 +173,9 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       // Always apply the original pending_plans (what the user actually approved)
       // rather than the potentially-mutated modified_plans from the API.
       const lastPendingMsg = [...history].reverse().find(
-        (m) => m.role === "assistant" && m.pendingPlans && m.pendingPlans.length > 0
+        (m) => m.role === "assistant" && m.card?.status === "pending" && m.card.plans.length > 0
       );
-      const plansToApply = lastPendingMsg?.pendingPlans ?? confirmedPlans;
+      const plansToApply = lastPendingMsg?.card?.plans ?? (confirmedPlans as CoachPlan[]);
       try {
         const parsed = parseCoachWorkoutJSON(JSON.stringify(plansToApply));
         for (const plan of parsed) {
@@ -192,10 +195,10 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     }
 
     // Pending changes require user confirmation before being applied
-    const pendingPlans: unknown[] = Array.isArray(data.pending_plans) && data.pending_plans.length > 0
-      ? data.pending_plans : [];
+    const pendingPlans: CoachPlan[] = Array.isArray(data.pending_plans) && data.pending_plans.length > 0
+      ? (data.pending_plans as CoachPlan[]) : [];
     const pendingDeleteIds: string[] = Array.isArray(data.pending_delete_ids) && data.pending_delete_ids.length > 0
-      ? data.pending_delete_ids : [];
+      ? (data.pending_delete_ids as string[]) : [];
 
     // Persister la mise à jour mémoire retournée par le coach si présente
     if (data.memory_update && typeof data.memory_update === "object") {
@@ -209,8 +212,9 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       timestamp: new Date().toISOString(),
       modifiedCount: modifiedCount > 0 ? modifiedCount : undefined,
       deletedCount: deletedCount > 0 ? deletedCount : undefined,
-      pendingPlans: pendingPlans.length > 0 ? pendingPlans : undefined,
-      pendingDeleteIds: pendingDeleteIds.length > 0 ? pendingDeleteIds : undefined,
+      card: pendingPlans.length > 0 || pendingDeleteIds.length > 0
+        ? { plans: pendingPlans, deleteIds: pendingDeleteIds, status: "pending" as const }
+        : undefined,
     };
 
     const finalHistory = [...history, assistantMsg];
@@ -239,14 +243,12 @@ export async function applyPendingPlans(msgId: string): Promise<number> {
   if (msgIndex === -1) return 0;
 
   const msg = history[msgIndex];
-  const hasPending = msg.pendingPlans && msg.pendingPlans.length > 0;
-  const hasDeleteIds = msg.pendingDeleteIds && msg.pendingDeleteIds.length > 0;
-  if (!hasPending && !hasDeleteIds) return 0;
+  if (!msg.card || msg.card.status === "validated") return 0;
 
   let modifiedCount = 0;
-  if (hasPending) {
+  if (msg.card.plans.length > 0) {
     try {
-      const parsed = parseCoachWorkoutJSON(JSON.stringify(msg.pendingPlans));
+      const parsed = parseCoachWorkoutJSON(JSON.stringify(msg.card.plans));
       for (const plan of parsed) {
         if (plan.type === "fitness") addCoachWorkout(plan);
         else addCoachRun(plan);
@@ -256,18 +258,15 @@ export async function applyPendingPlans(msgId: string): Promise<number> {
   }
 
   let deletedCount = 0;
-  if (hasDeleteIds) {
-    for (const id of msg.pendingDeleteIds!) {
-      deleteCoachWorkout(id);
-      deleteCoachRun(id);
-      deletedCount++;
-    }
+  for (const id of msg.card.deleteIds) {
+    deleteCoachWorkout(id);
+    deleteCoachRun(id);
+    deletedCount++;
   }
 
   const updated: ChatMessage = {
     ...msg,
-    pendingPlans: undefined,
-    pendingDeleteIds: undefined,
+    card: { ...msg.card, status: "validated" },
     modifiedCount: modifiedCount > 0 ? modifiedCount : msg.modifiedCount,
     deletedCount: deletedCount > 0 ? deletedCount : msg.deletedCount,
   };
@@ -275,7 +274,6 @@ export async function applyPendingPlans(msgId: string): Promise<number> {
   newHistory[msgIndex] = updated;
   await saveChatHistory(newHistory);
 
-  // Push plan mutations to Supabase so they survive page reloads / pulls
   try { await autoSyncPush(); } catch { /* silent */ }
 
   return modifiedCount + deletedCount;
