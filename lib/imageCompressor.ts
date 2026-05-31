@@ -1,9 +1,13 @@
+// Utilitaire browser-only — utilise Canvas, FileReader et URL.createObjectURL
+// Ne jamais importer depuis un Server Component ou une Route Handler
+
 export interface CompressedImage {
   base64: string;
   mimeType: "image/jpeg";
   name: string;
 }
 
+// 1024px max : au-delà, l'API Anthropic découpe l'image en tiles (coût tokens x2+)
 const MAX_DIMENSION = 1024;
 
 export async function compressImage(file: File): Promise<CompressedImage> {
@@ -39,9 +43,10 @@ export async function compressImage(file: File): Promise<CompressedImage> {
           reader.onload = () => {
             const dataUrl = reader.result as string;
             const base64 = dataUrl.split(",")[1];
+            if (!base64) { reject(new Error("Unexpected data URL format")); return; }
             resolve({ base64, mimeType: "image/jpeg", name: file.name });
           };
-          reader.onerror = () => reject(reader.error);
+          reader.onerror = () => reject(reader.error ?? new Error("FileReader failed"));
           reader.readAsDataURL(blob);
         },
         "image/jpeg",
