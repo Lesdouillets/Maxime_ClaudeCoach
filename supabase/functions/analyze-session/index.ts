@@ -444,8 +444,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const memoryUpdate = result.memory_update
-      ? result.memory_update as Record<string, unknown>
+    const rawUpdate = result.memory_update;
+    const memoryUpdate = rawUpdate && typeof rawUpdate === "object" && Object.keys(rawUpdate as object).length > 0
+      ? rawUpdate as Record<string, unknown>
       : null;
 
     return new Response(JSON.stringify({
