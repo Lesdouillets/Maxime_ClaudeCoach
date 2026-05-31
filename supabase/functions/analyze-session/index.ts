@@ -377,6 +377,12 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: CORS });
     }
 
+    // Valide le type MIME image contre les types acceptés par l'API Anthropic
+    const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const resolvedMimeType = ALLOWED_IMAGE_MIME_TYPES.includes(imageMimeType as string)
+      ? (imageMimeType as string)
+      : "image/jpeg";
+
     // Call Anthropic API directly via fetch to avoid SDK version issues
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -411,7 +417,7 @@ Deno.serve(async (req: Request) => {
                     type: "image",
                     source: {
                       type: "base64",
-                      media_type: (imageMimeType ?? "image/jpeg") as string,
+                      media_type: resolvedMimeType,
                       data: imageBase64 as string,
                     },
                   },
