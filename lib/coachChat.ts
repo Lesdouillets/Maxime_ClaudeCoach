@@ -217,7 +217,7 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     await saveChatHistory(finalHistory); // persist + push Supabase
 
     // Sync plan changes to Supabase si mutation de plans ou mise à jour mémoire
-    if (modifiedCount > 0 || deletedCount > 0 || data.memory_update) {
+    if (modifiedCount > 0 || deletedCount > 0 || (data.memory_update && typeof data.memory_update === "object")) {
       try { await autoSyncPush(); } catch { /* silent */ }
     }
 
