@@ -4,6 +4,55 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Dupliqué depuis lib/coachMemory.ts — la Edge Function ne peut pas importer depuis le client
+function formatCoachMemoryForPrompt(memory: Record<string, unknown>): string {
+  const lines: string[] = [];
+
+  const run = (memory.run ?? {}) as Record<string, unknown>;
+  const runParts: string[] = [];
+  if (run.trend) runParts.push(String(run.trend));
+  if (run.lastLongRun) runParts.push(`Dernière sortie longue : ${run.lastLongRun}`);
+  if (run.nextRace) runParts.push(`Prochaine course : ${run.nextRace}`);
+  if (run.notes) runParts.push(`⚠️ ${run.notes}`);
+  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
+
+  const fitness = (memory.fitness ?? {}) as Record<string, unknown>;
+  const fitParts: string[] = [];
+  if (fitness.cycle) fitParts.push(String(fitness.cycle));
+  const upperBody = (fitness.upperBody ?? {}) as Record<string, unknown>;
+  if (upperBody.keyLifts) {
+    const lifts = Object.entries(upperBody.keyLifts as Record<string, string>)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(", ");
+    if (lifts) fitParts.push(`Upper: ${lifts}`);
+  }
+  const lowerBody = (fitness.lowerBody ?? {}) as Record<string, unknown>;
+  if (lowerBody.keyLifts) {
+    const lifts = Object.entries(lowerBody.keyLifts as Record<string, string>)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(", ");
+    if (lifts) fitParts.push(`Lower: ${lifts}`);
+  }
+  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
+
+  const body = (memory.body ?? {}) as Record<string, unknown>;
+  if (body.currentWeight !== undefined) {
+    const bodyParts: string[] = [`${body.currentWeight}kg`];
+    if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
+    if (body.trend) bodyParts.push(`tendance ${body.trend}`);
+    lines.push(`Poids : ${bodyParts.join(", ")}`);
+  }
+
+  const keyNotes = Array.isArray(memory.keyNotes) ? memory.keyNotes as Array<{ date: string; note: string }> : [];
+  const recentNotes = keyNotes.slice(-3);
+  if (recentNotes.length > 0) {
+    lines.push(`Notes : ${recentNotes.map((n) => `[${n.date}] ${n.note}`).join(" | ")}`);
+  }
+
+  if (lines.length === 0) return "";
+  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -86,7 +135,8 @@ Quelques repères à ta disposition (pas des règles automatiques) :
 Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdown, sans commentaires :
 {
   "analysis": "2-3 phrases : ce qui s'est passé + ce qui change dans le programme (ou confirmation que le programme reste inchangé)",
-  "modified_plans": []
+  "modified_plans": [],
+  "memory_update": null
 }
 
 ### Règles pour modified_plans — ÉCONOMIE DE TOKENS IMPÉRATIVE
@@ -104,7 +154,28 @@ Pour proposer une variation série par série (pyramide, drop set, RPE progressi
 {"name":"Squat","weight":90,"reps":6,"sets":5,"setPlans":[{"weight":80,"reps":10},{"weight":90,"reps":8},{"weight":100,"reps":6},{"weight":100,"reps":6},{"weight":90,"reps":8}],"restSeconds":120,"coachNote":"Pyramide montante puis descendante"}
 
 Format séance run :
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}`;
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}
+
+## MISE À JOUR MÉMOIRE (champ memory_update — optionnel)
+
+Après chaque analyse, tu peux mettre à jour la mémoire coach si la séance révèle quelque chose de significatif à long terme.
+
+**Quand remplir memory_update :**
+- run.lastLongRun : si c'est une sortie Z2 ≥ 10km (ex: "14km Z2 le 2026-05-26")
+- run.trend : si tu observes une tendance FC Z2 sur 4+ séances consécutives (ex: "FC Z2 stable autour de 145bpm sur 4 semaines")
+- fitness.cycle : si tu peux identifier la position dans le cycle de charge (ex: "Semaine 3/4 de charge")
+- fitness.upperBody.keyLifts ou lowerBody.keyLifts : si un exercice clé franchit un palier notable (PR, régression marquée). Format : {"Développé couché haltères": "20kg×4×8 — PR"}
+- fitness.upperBody.lastSession ou lowerBody.lastSession : à chaque séance upper/lower (date de la séance analysée)
+- body.currentWeight : UNIQUEMENT si le poids est explicitement mentionné dans le commentaire de séance
+- keyNotes : si un événement important survient (blessure identifiée dans les données, objectif mentionné en commentaire)
+
+**Quand laisser memory_update: null :**
+- Séance ordinaire sans tendance nouvelle
+- Aucun commentaire significatif
+- Modification mineure du programme sans implications long terme
+- En cas de doute : laisser null
+
+memory_update: null est la réponse correcte dans la majorité des cas.`;
 }
 
 // Format the current session as compact text (read-only for Claude — no need for JSON structure)
@@ -195,6 +266,7 @@ function buildUserPrompt(
   recentSessions: unknown[],
   previousAnalyses: Array<{ date: string; analysis: string }> = [],
   chatContext?: string,
+  coachMemory?: Record<string, unknown>,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -259,6 +331,9 @@ function buildUserPrompt(
     ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
     : "";
 
+  const memoryFormatted = coachMemory ? formatCoachMemoryForPrompt(coachMemory) : "";
+  const memoryBlock = memoryFormatted ? `\n${memoryFormatted}\n` : "";
+
   const nearSection = nearFuturePlans.length > 0
     ? `## Programme J0-${NEAR_DAYS} (${nearFuturePlans.length} séances — modifiables)\n${JSON.stringify(nearFuturePlans)}`
     : `## Programme J0-${NEAR_DAYS}\nAucune séance programmée`;
@@ -267,7 +342,7 @@ function buildUserPrompt(
     ? `\n\n## Programme J${NEAR_DAYS + 1}+ (${farFuturePlans.length} séances — contexte seulement, n'y touche qu'en cas de besoin manifeste)\n${farFuturePlans.join("\n")}`
     : "";
 
-  return `${historySection}${chatContextSection}## Séance réalisée (${sessionDate})
+  return `${historySection}${chatContextSection}${memoryBlock}## Séance réalisée (${sessionDate})
 ${sessionToText(session as Record<string, unknown>)}
 
 ## Plan coach prévu pour cette séance
@@ -291,7 +366,7 @@ Deno.serve(async (req: Request) => {
     // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory } = body;
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -323,7 +398,7 @@ Deno.serve(async (req: Request) => {
             cache_control: { type: "ephemeral" },
           },
         ],
-        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext) }],
+        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory) }],
       }),
     });
 
@@ -369,7 +444,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify(result), {
+    const memoryUpdate = result.memory_update && result.memory_update !== null
+      ? result.memory_update as Record<string, unknown>
+      : null;
+
+    return new Response(JSON.stringify({
+      analysis: result.analysis,
+      modified_plans: result.modified_plans ?? [],
+      memory_update: memoryUpdate,
+    }), {
       headers: { "Content-Type": "application/json", ...CORS },
     });
   } catch (err) {
