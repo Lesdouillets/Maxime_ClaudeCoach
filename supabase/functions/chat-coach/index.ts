@@ -256,9 +256,13 @@ const COACH_TOOLS = [
   },
 ] as const;
 
-function resolvePlansByIds(planIds: string[], conversationMessages: unknown[]): unknown[] {
+function resolvePlansByIds(
+  planIds: string[],
+  conversationMessages: unknown[],
+  currentTurnPlans: Record<string, unknown>[] = [],
+): unknown[] {
   if (planIds.length === 0) return [];
-  const allProposedPlans: Record<string, unknown>[] = [];
+  const allProposedPlans: Record<string, unknown>[] = [...currentTurnPlans];
 
   for (const msg of conversationMessages) {
     const m = msg as { role: string; content: unknown };
@@ -277,9 +281,39 @@ function resolvePlansByIds(planIds: string[], conversationMessages: unknown[]): 
   return allProposedPlans.filter((p) => idSet.has(p.id as string));
 }
 
+interface ChatCoachResult {
+  response: string;
+  pending_plans: unknown[];
+  pending_delete_ids: string[];
+  modified_plans: unknown[];
+  delete_plan_ids: string[];
+  memory_update: Record<string, unknown> | null;
+}
+
+// Supprime coachNote + setPlans pour réduire les tokens et éviter que le coach réinjette setPlans
+function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
+  return plans.map((p) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { coachNote: _cn, ...rest } = p;
+    if (Array.isArray(rest.exercises)) {
+      rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { coachNote: _ecn, setPlans: _sp, ...exRest } = ex;
+        return exRest;
+      });
+    }
+    return rest;
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
+  }
+
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY non configurée" }), { status: 500, headers: CORS });
   }
 
   try {
@@ -310,7 +344,7 @@ Deno.serve(async (req: Request) => {
       if (memoryText) contextParts.push(`\n${memoryText}`);
     }
 
-    // Last 3 analyses, truncated to 600 chars each
+    // 3 dernières analyses, tronquées à 600 chars chacune
     if (previousAnalyses.length > 0) {
       const trimmed = previousAnalyses
         .slice(0, 3)
@@ -322,25 +356,7 @@ Deno.serve(async (req: Request) => {
       contextParts.push(`\n## Séances récentes\n${recentSessions.join("\n")}`);
     }
 
-    // Strip coachNote + setPlans to reduce tokens and avoid coach echoing setPlans back.
-    // The client auto-migrates setPlans from sets/reps/weight so we never need them in responses.
-    function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unknown>[] {
-      return plans.map((p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { coachNote: _cn, ...rest } = p;
-        if (Array.isArray(rest.exercises)) {
-          rest.exercises = (rest.exercises as Record<string, unknown>[]).map((ex) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { coachNote: _ecn, setPlans: _sp, ...exRest } = ex;
-            return exRest;
-          });
-        }
-        return rest;
-      });
-    }
-
-    // J0-3: full JSON (stripped). J4+: compact text — all remaining future plans,
-    // no far cutoff so the coach can reason about the whole program.
+    // J0-3 : JSON complet (nettoyé). J4+ : texte compact — tout le programme futur sans limite de date
     const nearCutoff = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const allPlans = coachPlans as Record<string, unknown>[];
     const nearPlans = allPlans.filter((p) => (p.date as string) <= nearCutoff);
@@ -379,15 +395,6 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(profileName);
     const conversationMessages: unknown[] = [...apiMessages];
 
-    interface ChatCoachResult {
-      response: string;
-      pending_plans: unknown[];
-      pending_delete_ids: string[];
-      modified_plans: unknown[];
-      delete_plan_ids: string[];
-      memory_update: Record<string, unknown> | null;
-    }
-
     const result: ChatCoachResult = {
       response: "",
       pending_plans: [],
@@ -404,7 +411,7 @@ Deno.serve(async (req: Request) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
+          "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
           "anthropic-beta": "prompt-caching-2024-07-31",
         },
@@ -447,6 +454,14 @@ Deno.serve(async (req: Request) => {
 
       const toolResults: Array<{ type: "tool_result"; tool_use_id: string; content: string }> = [];
 
+      // Collecter d'abord les plans proposés dans ce tour pour résolution cross-tool
+      const currentTurnProposedPlans: Record<string, unknown>[] = [];
+      for (const tb of toolUseBlocks) {
+        if (tb.name === "propose_plan_batch" && Array.isArray(tb.input.plans)) {
+          currentTurnProposedPlans.push(...(tb.input.plans as Record<string, unknown>[]));
+        }
+      }
+
       for (const toolBlock of toolUseBlocks) {
         const { id, name, input } = toolBlock;
         let toolResultContent = "";
@@ -458,7 +473,7 @@ Deno.serve(async (req: Request) => {
           console.log("[chat-coach] propose_plan_batch:", result.pending_plans.length, "plans");
         } else if (name === "apply_plan_batch") {
           const planIds = Array.isArray(input.plan_ids) ? (input.plan_ids as string[]) : [];
-          result.modified_plans = resolvePlansByIds(planIds, conversationMessages);
+          result.modified_plans = resolvePlansByIds(planIds, conversationMessages, currentTurnProposedPlans);
           result.delete_plan_ids = Array.isArray(input.delete_ids) ? (input.delete_ids as string[]) : [];
           toolResultContent = `OK — ${result.modified_plans.length} plan(s) appliqué(s).`;
           console.log("[chat-coach] apply_plan_batch:", result.modified_plans.length, "plans résolus");
@@ -475,8 +490,10 @@ Deno.serve(async (req: Request) => {
       conversationMessages.push({ role: "user", content: toolResults });
     }
 
-    if (!result.response && result.pending_plans.length === 0) {
-      result.response = "Désolé, je n'ai pas pu formuler de réponse. Réessaie.";
+    if (!result.response) {
+      result.response = result.memory_update
+        ? "Mémoire mise à jour."
+        : "Désolé, je n'ai pas pu formuler de réponse. Réessaie.";
     }
 
     return new Response(JSON.stringify(result), {
