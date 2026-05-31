@@ -366,7 +366,7 @@ Deno.serve(async (req: Request) => {
     // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType } = body;
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -398,7 +398,27 @@ Deno.serve(async (req: Request) => {
             cache_control: { type: "ephemeral" },
           },
         ],
-        messages: [{ role: "user", content: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory) }],
+        messages: [
+          {
+            role: "user",
+            content: imageBase64
+              ? [
+                  {
+                    type: "text",
+                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+                  },
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: (imageMimeType ?? "image/jpeg") as string,
+                      data: imageBase64 as string,
+                    },
+                  },
+                ]
+              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+          },
+        ],
       }),
     });
 
