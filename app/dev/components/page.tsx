@@ -837,7 +837,7 @@ const FIXTURE_MSG_COACH_WITH_PLANS = {
   role: "assistant" as const,
   content: "Je te propose ces séances pour la semaine :",
   timestamp: new Date().toISOString(),
-  pendingPlans: [COACH_RUN_Z2, FIXTURE_FITNESS],
+  card: { plans: [COACH_RUN_Z2, FIXTURE_FITNESS], deleteIds: [], status: "pending" as const },
 };
 
 const FIXTURE_MSG_COACH_VALIDATED = {

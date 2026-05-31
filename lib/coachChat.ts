@@ -254,7 +254,10 @@ export async function applyPendingPlans(msgId: string): Promise<number> {
         else addCoachRun(plan);
       }
       modifiedCount = parsed.length;
-    } catch { /* skip */ }
+    } catch {
+      // JSON des plans malformé — on n'applique rien et on ne valide pas la carte
+      return 0;
+    }
   }
 
   let deletedCount = 0;

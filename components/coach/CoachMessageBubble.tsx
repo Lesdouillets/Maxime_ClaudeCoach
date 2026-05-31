@@ -19,7 +19,7 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
   const allPlans = message.card?.plans ?? [];
   const runPlans = allPlans.filter((p) => p.type === "run");
   const fitnessPlans = allPlans.filter((p) => p.type === "fitness");
-  const isValidated = message.card?.status === "validated" || !!(message.modifiedCount || message.deletedCount);
+  const isValidated = message.card?.status === "validated";
 
   if (message.role === "user") {
     return (
