@@ -725,6 +725,82 @@ export default function ComponentsPage() {
             </div>
           </ComponentBlock>
 
+          {/* Strava CTA — pièces jointes */}
+          <ComponentBlock title="Strava CTA — pièces jointes" description="Chips au-dessus du CTA — 3 états : note seule, image seule, note + image">
+            <div className="space-y-6">
+
+              <div>
+                <p className="text-xs mb-3" style={{ color: "#555" }}>Note seule</p>
+                <div style={{ background: "var(--color-background)", borderRadius: 16, padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" as const }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "5px 8px 5px 10px", fontSize: 12, color: "#ddd" }}>
+                      <span>📝 &ldquo;Jambes lourdes dès le km 8…&rdquo;</span>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#aaa" }}>✕</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#FC4C02", borderRadius: 12, padding: "15px 20px", fontWeight: 600, fontSize: 15, color: "white" }}>
+                      <StravaIcon size={20} />
+                      Sync Strava
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs mb-3" style={{ color: "#555" }}>Image seule</p>
+                <div style={{ background: "var(--color-background)", borderRadius: 16, padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" as const }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "4px 8px 4px 4px", fontSize: 12, color: "#ddd" }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 4, background: "linear-gradient(135deg, #1e3a2f, #2a4a3f)", flexShrink: 0 }} />
+                      <span>photo_run.jpg</span>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#aaa" }}>✕</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#FC4C02", borderRadius: 12, padding: "15px 20px", fontWeight: 600, fontSize: 15, color: "white" }}>
+                      <StravaIcon size={20} />
+                      Sync Strava
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs mb-3" style={{ color: "#555" }}>Note + image</p>
+                <div style={{ background: "var(--color-background)", borderRadius: 16, padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" as const }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "4px 8px 4px 4px", fontSize: 12, color: "#ddd" }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 4, background: "linear-gradient(135deg, #1e3a2f, #2a4a3f)", flexShrink: 0 }} />
+                      <span>photo_run.jpg</span>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#aaa" }}>✕</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "5px 8px 5px 10px", fontSize: 12, color: "#ddd" }}>
+                      <span>📝 &ldquo;Jambes lourdes dès le km 8…&rdquo;</span>
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#aaa" }}>✕</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#FC4C02", borderRadius: 12, padding: "15px 20px", fontWeight: 600, fontSize: 15, color: "white" }}>
+                      <StravaIcon size={20} />
+                      Sync Strava
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </ComponentBlock>
+
         </div>
       )}
 

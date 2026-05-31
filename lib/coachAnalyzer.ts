@@ -5,6 +5,7 @@ import { supabase } from "./supabase";
 import { getSessions } from "./storage";
 import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, parseCoachWorkoutJSON } from "./coachPlan";
 import { autoSyncPush, SYNC_DISABLED } from "./sync";
+import { getCoachMemory, mergeCoachMemory } from "./coachMemory";
 import { getActiveProfile } from "./profiles";
 import { formatPace } from "./plan";
 import type { WorkoutSession, FitnessSession } from "./types";
@@ -128,7 +129,13 @@ export function compactSession(s: WorkoutSession): string {
 // Prevents firing two concurrent API calls for the same session.
 const analyzingInFlight = new Set<string>();
 
-export async function analyzeSession(session: WorkoutSession, chatContext?: string): Promise<CoachAnalysisResult | null> {
+// Pièces jointes optionnelles transmises à l'edge function pour une analyse multimodale
+export interface SessionAttachments {
+  imageBase64?: string;
+  imageMimeType?: string;
+}
+
+export async function analyzeSession(session: WorkoutSession, chatContext?: string, attachments?: SessionAttachments): Promise<CoachAnalysisResult | null> {
   if (SYNC_DISABLED) return null;
   if (analyzingInFlight.has(session.id)) return null;
   analyzingInFlight.add(session.id);
@@ -144,9 +151,22 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
     const sentPlanIds = new Set(coachPlans.map((p) => p.id));
     const perfIndex = buildPerfIndex(allRecent);
     const annotatedPlans = annotatePlansWithDelta(coachPlans, perfIndex);
+    const coachMemory = getCoachMemory();
 
     const { data, error } = await supabase.functions.invoke("analyze-session", {
-      body: { session, coachPlans: annotatedPlans, recentSessions, profileName, previousAnalyses, chatContext },
+      body: {
+        session,
+        coachPlans: annotatedPlans,
+        recentSessions,
+        profileName,
+        previousAnalyses,
+        chatContext,
+        coachMemory,
+        ...(attachments?.imageBase64 && {
+          imageBase64: attachments.imageBase64,
+          imageMimeType: attachments.imageMimeType,
+        }),
+      },
     });
 
     if (error) {
@@ -209,6 +229,15 @@ export async function analyzeSession(session: WorkoutSession, chatContext?: stri
       }
     } else {
       console.log("[analyzeSession] coach returned no modified_plans — program unchanged");
+    }
+
+    if (data.memory_update) {
+      try {
+        mergeCoachMemory(data.memory_update);
+        console.log("[analyzeSession] mémoire mise à jour");
+      } catch (e) {
+        console.error("[analyzeSession] échec merge mémoire:", e);
+      }
     }
 
     const result: CoachAnalysisResult = {

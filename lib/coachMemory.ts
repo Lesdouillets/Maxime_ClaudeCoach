@@ -93,7 +93,7 @@ export function mergeCoachMemory(
         : current.fitness?.lowerBody,
     },
     body: { ...current.body, ...update.body },
-    keyNotes: [...current.keyNotes, ...(update.keyNotes ?? [])],
+    keyNotes: [...current.keyNotes, ...(Array.isArray(update.keyNotes) ? update.keyNotes : [])],
   };
   setCoachMemory(merged);
 }
