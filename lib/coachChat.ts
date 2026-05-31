@@ -198,11 +198,8 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       ? data.pending_delete_ids : [];
 
     // Persister la mise à jour mémoire retournée par le coach si présente
-    if (data.memory_update) {
-      mergeCoachMemory(data.memory_update);
-      if (modifiedCount === 0 && deletedCount === 0) {
-        try { await autoSyncPush(); } catch { /* silent */ }
-      }
+    if (data.memory_update && typeof data.memory_update === "object") {
+      mergeCoachMemory(data.memory_update as Parameters<typeof mergeCoachMemory>[0]);
     }
 
     const assistantMsg: ChatMessage = {
@@ -219,8 +216,8 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     const finalHistory = [...history, assistantMsg];
     await saveChatHistory(finalHistory); // persist + push Supabase
 
-    // Sync plan changes to Supabase if any mutations happened
-    if (modifiedCount > 0 || deletedCount > 0) {
+    // Sync plan changes to Supabase si mutation de plans ou mise à jour mémoire
+    if (modifiedCount > 0 || deletedCount > 0 || data.memory_update) {
       try { await autoSyncPush(); } catch { /* silent */ }
     }
 
