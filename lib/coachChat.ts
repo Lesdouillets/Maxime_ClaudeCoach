@@ -7,6 +7,7 @@ import { getCoachWorkouts, getCoachRuns, addCoachWorkout, addCoachRun, deleteCoa
 import { getActiveProfile, getActiveProfileId } from "./profiles";
 import { getRecentCoachAnalyses, compactSession } from "./coachAnalyzer";
 import { autoSyncPush, SYNC_DISABLED } from "./sync";
+import { getCoachMemory, mergeCoachMemory } from "./coachMemory";
 import type { CoachPlan } from "./coachPlan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -139,30 +140,20 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
   const history = [...getChatHistory(), userMsg];
   _saveChatLocal(history); // optimistic local save before API call
 
-  // Format for API: role + content. For assistant messages with pending plans/deletes,
-  // embed the JSON inline so the model retains the proposal data across turns and can
-  // accurately move it to modified_plans / delete_plan_ids on user confirmation.
-  const apiMessages = history.map((m) => {
-    if (m.role === "assistant" && (m.pendingPlans?.length || m.pendingDeleteIds?.length)) {
-      const parts: string[] = [m.content];
-      if (m.pendingPlans?.length) {
-        parts.push(`[pending_plans=${JSON.stringify(m.pendingPlans)}]`);
-      }
-      if (m.pendingDeleteIds?.length) {
-        parts.push(`[pending_delete_ids=${JSON.stringify(m.pendingDeleteIds)}]`);
-      }
-      return { role: m.role, content: parts.join("\n\n") };
-    }
-    return { role: m.role, content: m.content };
-  });
+  const apiMessages = history.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
 
   // Compute today in the user's local timezone to avoid UTC date drift
   const _d = new Date();
   const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
 
+  const coachMemory = getCoachMemory();
+
   try {
     const { data, error } = await supabase.functions.invoke("chat-coach", {
-      body: { messages: apiMessages, coachPlans, recentSessions, profileName, previousAnalyses, today },
+      body: { messages: apiMessages, coachPlans, recentSessions, profileName, previousAnalyses, today, coachMemory },
     });
 
     if (error || !data) {
@@ -205,6 +196,14 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
       ? data.pending_plans : [];
     const pendingDeleteIds: string[] = Array.isArray(data.pending_delete_ids) && data.pending_delete_ids.length > 0
       ? data.pending_delete_ids : [];
+
+    // Persister la mise à jour mémoire retournée par le coach si présente
+    if (data.memory_update) {
+      mergeCoachMemory(data.memory_update);
+      if (modifiedCount === 0 && deletedCount === 0) {
+        try { await autoSyncPush(); } catch { /* silent */ }
+      }
+    }
 
     const assistantMsg: ChatMessage = {
       id: `chat-${Date.now()}-assistant`,
