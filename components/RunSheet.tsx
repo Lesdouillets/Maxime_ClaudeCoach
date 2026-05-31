@@ -25,6 +25,8 @@ import {
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
 import type { RunSession, StravaLap } from "@/lib/types";
+import { compressImage } from "@/lib/imageCompressor";
+import type { CompressedImage } from "@/lib/imageCompressor";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const IS_DEV_SYNC = process.env.NEXT_PUBLIC_DISABLE_SYNC === "true";
@@ -75,6 +77,7 @@ export default function RunSheet() {
   const [cancelReason, setCancelReason] = useState("");
   const [addContentMenuOpen, setAddContentMenuOpen] = useState(false);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState<CompressedImage | null>(null);
 
   // Entrance animation: render at translateY(100%) on first frame, then flip.
   useEffect(() => {
@@ -93,6 +96,7 @@ export default function RunSheet() {
   // weekly plan for the requested date.
   useEffect(() => {
     if (!sheet.state) return;
+    setPendingImage(null);
     setOptionsMenuOpen(false);
     setOptionsPanel(null);
     const dateStr = sheet.state.date ?? toLocalDateStr(new Date());
@@ -213,8 +217,23 @@ export default function RunSheet() {
     setCancelReason("");
     setAddContentMenuOpen(false);
     setNoteModalOpen(false);
+    setPendingImage(null);
     if (origin && originNeedsRedirect(origin, pathname)) router.push(origin);
   }, [sheet, router, pathname]);
+
+  const handleClearNote = useCallback(() => {
+    if (coachRun?.userNote) {
+      const updated = { ...coachRun, userNote: "" };
+      addCoachRun(updated);
+      setCoachRun(updated);
+      autoSyncPush().catch(() => {});
+    } else if (doneSession?.comment) {
+      const updated = { ...doneSession, comment: "" };
+      updateSession(updated);
+      setDoneSession(updated);
+      autoSyncPush().catch(() => {});
+    }
+  }, [coachRun, doneSession]);
 
   const handleRescheduleRun = () => {
     if (!rescheduleDate || !coachRun) return;
@@ -267,6 +286,8 @@ export default function RunSheet() {
   };
 
   if (!sheet.state) return null;
+
+  const noteValue = coachRun?.userNote || doneSession?.comment || "";
 
   // En dev, toujours vrai dès qu'une session existe — permet de rejouer la mock à tout moment
   const needsStravaSync = IS_DEV_SYNC
@@ -537,6 +558,83 @@ export default function RunSheet() {
             {stravaSyncMsg && (
               <p className="text-center text-xs mb-2" style={{ color: "var(--color-secondary)" }}>{stravaSyncMsg}</p>
             )}
+            {(noteValue || pendingImage) && (
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                {noteValue && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 20,
+                      padding: "5px 8px 5px 10px",
+                      fontSize: 12,
+                      color: "#ddd",
+                    }}
+                  >
+                    <span>📝 &ldquo;{noteValue.length > 28 ? noteValue.slice(0, 28) + "…" : noteValue}&rdquo;</span>
+                    <button
+                      onClick={handleClearNote}
+                      style={{
+                        width: 16, height: 16,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.12)",
+                        border: "none",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 9, color: "#aaa",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                      aria-label="Supprimer la note"
+                    >✕</button>
+                  </div>
+                )}
+                {pendingImage && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 20,
+                      padding: "4px 8px 4px 4px",
+                      fontSize: 12,
+                      color: "#ddd",
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`data:image/jpeg;base64,${pendingImage.base64}`}
+                      alt=""
+                      style={{ width: 22, height: 22, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
+                    />
+                    <span style={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {pendingImage.name}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setPendingImage(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      style={{
+                        width: 16, height: 16,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.12)",
+                        border: "none",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 9, color: "#aaa",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                      aria-label="Supprimer l'image"
+                    >✕</button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-3">
               <div className="relative" style={{ flexShrink: 0 }}>
                 <button
@@ -575,7 +673,23 @@ export default function RunSheet() {
                   />
                 )}
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const compressed = await compressImage(file);
+                    setPendingImage(compressed);
+                  } catch {
+                    // erreur silencieuse — l'utilisateur peut réessayer
+                  }
+                  e.target.value = "";
+                }}
+              />
 
               <button
                 onClick={needsStravaSync
