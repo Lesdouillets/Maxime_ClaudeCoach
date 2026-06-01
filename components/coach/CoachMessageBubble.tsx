@@ -15,6 +15,7 @@ interface Props {
 
 export default function CoachMessageBubble({ message, applying, onApply, onAdapt }: Props) {
   const [detailWorkout, setDetailWorkout] = useState<CoachWorkout | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const allPlans = message.card?.plans ?? [];
   const runPlans = allPlans.filter((p) => p.type === "run");
@@ -26,18 +27,48 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
       <div className="flex justify-end">
         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", maxWidth: "80%" }}>
           {message.imageBase64 && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`data:image/jpeg;base64,${message.imageBase64}`}
-              alt=""
-              style={{
-                width: 160,
-                height: 110,
-                borderRadius: 14,
-                borderBottomRightRadius: 4,
-                objectFit: "cover",
-              }}
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:image/jpeg;base64,${message.imageBase64}`}
+                alt=""
+                onClick={() => setLightboxOpen(true)}
+                style={{
+                  width: 160,
+                  height: 110,
+                  borderRadius: 14,
+                  borderBottomRightRadius: 4,
+                  objectFit: "cover",
+                  cursor: "pointer",
+                }}
+              />
+              {lightboxOpen && (
+                <div
+                  onClick={() => setLightboxOpen(false)}
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: 200,
+                    background: "rgba(0,0,0,0.9)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:image/jpeg;base64,${message.imageBase64}`}
+                    alt=""
+                    style={{
+                      maxWidth: "95vw",
+                      maxHeight: "90dvh",
+                      borderRadius: 12,
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
+            </>
           )}
           {message.content && (
             <div
