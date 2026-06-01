@@ -112,20 +112,10 @@ export default function RunSheet() {
 
     setCoachRun(getCoachRuns().find((r) => r.date === dateStr) ?? null);
 
-    // For a Strava-imported run with no stored analysis, fire the coach
-    // analysis in the background so the feedback shows up here.
     const stored = getStoredCoachAnalysis(dateStr);
     setCoachResult(stored);
-    if (!stored && recorded?.importedFromStrava) {
-      setAnalysisAttempted(true);
-      setCoachState("analyzing");
-      analyzeSession(recorded).then((result) => {
-        setCoachResult(result);
-        setCoachState("done");
-      });
-    } else {
-      setCoachState("done");
-    }
+    setCoachState("done");
+    setAnalysisAttempted(false);
   }, [sheet.state]);
 
   const handleStravaImport = async () => {
@@ -519,28 +509,6 @@ export default function RunSheet() {
                 <CoachFeedbackCard state={coachState} result={coachResult} />
               )}
 
-              {coachState === "done" && !analysisAttempted && doneSession && (
-                <button
-                  onClick={() => {
-                    const s = doneSession;
-                    setAnalysisAttempted(true);
-                    setCoachResult(null);
-                    setCoachState("analyzing");
-                    analyzeSession(s).then((result) => {
-                      setCoachResult(result);
-                      setCoachState("done");
-                    });
-                  }}
-                  className="w-full py-2.5 rounded-xl text-xs font-bold tracking-widest press-effect"
-                  style={{
-                    background: "rgba(205,255,0,0.06)",
-                    border: "1px solid var(--color-neon-20)",
-                    color: "var(--color-neon)",
-                  }}
-                >
-                  RELANCER L&apos;ANALYSE COACH →
-                </button>
-              )}
 
               <RunSessionResults session={doneSession} />
             </>

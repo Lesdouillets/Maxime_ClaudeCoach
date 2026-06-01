@@ -99,10 +99,10 @@ Quelques repères à ta disposition (pas des règles automatiques) :
 ## FORMATS DE SÉANCE RUN (pour modified_plans)
 
 **1. Run continu (Z2, long run)**
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Dimanche","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"}
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Dimanche","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"}
 
 **2. Fractionné (intervals)**
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"FRACTIONNÉ 400m","distanceKm":8,"pace":"5:00",
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"fractionne","label":"FRACTIONNÉ 400m","distanceKm":8,"durationMin":50,
  "intervals":[
    {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
    {"label":"400m rapide","reps":8,"distanceKm":0.4,"pace":"4:00","targetZone":"Z4","restSeconds":90},
@@ -110,7 +110,7 @@ Quelques repères à ta disposition (pas des règles automatiques) :
  ]}
 
 **3. Run progressif (multi-allures)**
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN PROGRESSIF","distanceKm":9,"pace":"5:30",
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"progressif","label":"RUN PROGRESSIF","distanceKm":9,"durationMin":49,"targetZone":"Z2>Z4",
  "intervals":[
    {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2"},
    {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3"},
@@ -118,7 +118,7 @@ Quelques repères à ta disposition (pas des règles automatiques) :
  ]}
 
 **4. Tempo (seuil)**
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"TEMPO","distanceKm":9,"pace":"5:10",
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"tempo","label":"TEMPO","distanceKm":9,"durationMin":49,
  "intervals":[
    {"label":"Échauffement","distanceKm":2,"pace":"6:30","targetZone":"Z2"},
    {"label":"Tempo","distanceKm":6,"pace":"4:50","targetZone":"Z3","targetHR":"149-168"},

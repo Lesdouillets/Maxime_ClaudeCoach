@@ -54,7 +54,7 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
  ]}
 
 **Run progressif**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"progressif","label":"Z2>Z3>Z4","distanceKm":9,"durationMin":49,
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"progressif","label":"Z2>Z3>Z4","distanceKm":9,"durationMin":49,"targetZone":"Z2>Z4",
  "intervals":[
    {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2"},
    {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3"},

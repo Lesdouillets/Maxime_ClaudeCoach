@@ -57,7 +57,7 @@ export interface CoachRun {
   /** Vrai si c'est une compétition (semi, 10km, etc.) — déclenche le badge COURSE */
   isRace?: boolean;
   runType?: "z2" | "tempo" | "fractionne" | "progressif" | "course";
-  /** Note libre de l'utilisateur — stockée dans coach_plans.data, transmission au coach à implémenter (#119) */
+  /** Note libre de l'utilisateur — stockée dans coach_plans.data, transmise à analyze-session via chatContext */
   userNote?: string;
 }
 
