@@ -161,7 +161,7 @@ Pour proposer une variation série par série (pyramide, drop set, RPE progressi
 {"name":"Squat","weight":90,"reps":6,"sets":5,"setPlans":[{"weight":80,"reps":10},{"weight":90,"reps":8},{"weight":100,"reps":6},{"weight":100,"reps":6},{"weight":90,"reps":8}],"restSeconds":120,"coachNote":"Pyramide montante puis descendante"}
 
 Format séance run :
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}
 
 ## MISE À JOUR MÉMOIRE (champ memory_update — optionnel)
 

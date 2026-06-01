@@ -247,7 +247,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
           pace: String(seg.pace ?? "6:00"),
           targetHR: seg.targetHR != null ? String(seg.targetHR) : undefined,
           targetZone: seg.targetZone != null ? String(seg.targetZone) : undefined,
-          restSeconds: seg.rest != null ? Number(seg.rest) : undefined,
+          restSeconds: seg.restSeconds != null ? Number(seg.restSeconds) : (seg.rest != null ? Number(seg.rest) : undefined),
           note: seg.note != null ? String(seg.note) : undefined,
         }))
       : undefined,
