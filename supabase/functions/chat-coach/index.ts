@@ -41,6 +41,9 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
   - Z2 long → "Sortie Longue" | Z2 moyen → "Footing" | Tempo → "Seuil Xkm"
   - Fractionné → "N×Xm" (ex: "10×400m") | Progressif → "Z2>Z3>Z4"
   - Le coach peut proposer librement si ces exemples ne matchent pas (ex: "Fartlek 30min", "Reprise légère") — max 25 caractères
+- \`intervals\` est OBLIGATOIRE pour fractionne, tempo et progressif — ne jamais omettre ce tableau
+- Labels des intervals STANDARDISÉS : échauffement → toujours \"Échauffement\" | retour au calme → \"Retour au calme\" (fractionné/progressif) ou \"Récup\" (tempo) | bloc de répétitions → doit avoir \`reps\` > 0
+- \`targetHR\` est OBLIGATOIRE à la racine pour z2 et course (format \"min-max\" en bpm, ex: \"112-149\")
 
 **Run continu Z2**
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"Sortie Longue","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149","durationMin":72}
@@ -56,9 +59,9 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 **Run progressif**
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"progressif","label":"Z2>Z3>Z4","distanceKm":9,"durationMin":49,"targetZone":"Z2>Z4",
  "intervals":[
-   {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2"},
-   {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3"},
-   {"label":"Phase 3","distanceKm":2,"pace":"4:50","targetZone":"Z4"}
+   {"label":"Phase 1","distanceKm":4,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"},
+   {"label":"Phase 2","distanceKm":3,"pace":"5:20","targetZone":"Z3","targetHR":"149-168"},
+   {"label":"Phase 3","distanceKm":2,"pace":"4:50","targetZone":"Z4","targetHR":"168-180"}
  ]}
 
 **Tempo**
