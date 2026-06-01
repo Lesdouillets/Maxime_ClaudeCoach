@@ -16,6 +16,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imageBase64?: string;
   timestamp: string; // ISO
   modifiedCount?: number;      // set once plans are applied
   deletedCount?: number;       // set once deletions are applied
@@ -120,11 +121,16 @@ function getCoachPlansForChat(): CoachPlan[] {
 
 // ─── Send message ─────────────────────────────────────────────────────────────
 
+export interface ChatAttachments {
+  imageBase64: string;
+  imageMimeType: string;
+}
+
 /**
  * Send a user message to the coach and apply any plan modifications returned.
  * Returns the assistant's ChatMessage, or null on failure.
  */
-export async function sendMessage(userText: string): Promise<ChatMessage | null> {
+export async function sendMessage(userText: string, attachments?: ChatAttachments): Promise<ChatMessage | null> {
   const profile = getActiveProfile();
   const profileName = profile?.name ?? "Maxime";
 
@@ -138,6 +144,7 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
     id: `chat-${Date.now()}-user`,
     role: "user",
     content: userText,
+    ...(attachments?.imageBase64 && { imageBase64: attachments.imageBase64 }),
     timestamp: new Date().toISOString(),
   };
   const history = [...getChatHistory(), userMsg];
@@ -156,7 +163,19 @@ export async function sendMessage(userText: string): Promise<ChatMessage | null>
 
   try {
     const { data, error } = await supabase.functions.invoke("chat-coach", {
-      body: { messages: apiMessages, coachPlans, recentSessions, profileName, previousAnalyses, today, coachMemory },
+      body: {
+        messages: apiMessages,
+        coachPlans,
+        recentSessions,
+        profileName,
+        previousAnalyses,
+        today,
+        coachMemory,
+        ...(attachments?.imageBase64 && {
+          imageBase64: attachments.imageBase64,
+          imageMimeType: attachments.imageMimeType,
+        }),
+      },
     });
 
     if (error || !data) {
