@@ -8,9 +8,9 @@ import {
   loadChatFromSupabase,
   applyPendingPlans,
   type ChatMessage,
+  type ChatAttachments,
 } from "@/lib/coachChat";
 import type { CompressedImage } from "@/lib/imageCompressor";
-import type { ChatAttachments } from "@/lib/coachChat";
 import { TrashIcon } from "@/components/icons";
 import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
 import CoachInputBar from "@/components/coach/CoachInputBar";
