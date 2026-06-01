@@ -24,18 +24,35 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div
-          style={{
-            background: "var(--color-white-10)",
-            borderRadius: 20,
-            borderBottomRightRadius: 6,
-            maxWidth: "80%",
-            padding: "12px 16px",
-          }}
-        >
-          <p style={{ color: "#ddd", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
-            {message.content}
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", maxWidth: "80%" }}>
+          {message.imageBase64 && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`data:image/jpeg;base64,${message.imageBase64}`}
+              alt=""
+              style={{
+                width: 160,
+                height: 110,
+                borderRadius: 14,
+                borderBottomRightRadius: 4,
+                objectFit: "cover",
+              }}
+            />
+          )}
+          {message.content && (
+            <div
+              style={{
+                background: "var(--color-white-10)",
+                borderRadius: 20,
+                borderBottomRightRadius: 6,
+                padding: "12px 16px",
+              }}
+            >
+              <p style={{ color: "#ddd", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
+                {message.content}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
