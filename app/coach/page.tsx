@@ -140,7 +140,7 @@ export default function CoachPage() {
 
       {/* Zone messages scrollable */}
       {/* Évite une scrollbar fantôme sur l'état vide */}
-      <div className="flex-1 px-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 140px)", overflowY: isEmpty ? "hidden" : "auto" }}>
+      <div className="flex-1 px-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 220px)", overflowY: isEmpty ? "hidden" : "auto" }}>
 
         {isEmpty ? (
           /* État vide — salutation */
