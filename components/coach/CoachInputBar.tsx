@@ -24,7 +24,7 @@ export default function CoachInputBar({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const pendingImagePreviewSrc = useMemo(
-    () => (pendingImage ? `data:image/jpeg;base64,${pendingImage.base64}` : null),
+    () => (pendingImage ? `data:${pendingImage.mimeType};base64,${pendingImage.base64}` : null),
     [pendingImage]
   );
 
@@ -200,8 +200,8 @@ export default function CoachInputBar({
           try {
             const compressed = await compressImage(file);
             setPendingImage(compressed);
-          } catch {
-            // pas de feedback — l'image ne s'affiche simplement pas
+          } catch (err) {
+            console.warn("Compression image échouée", err);
           }
           e.target.value = "";
         }}
