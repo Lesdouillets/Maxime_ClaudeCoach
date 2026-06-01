@@ -98,11 +98,11 @@ Quelques repères à ta disposition (pas des règles automatiques) :
 
 ## FORMATS DE SÉANCE RUN (pour modified_plans)
 
-- `runType` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
-- `durationMin` est OBLIGATOIRE pour les séances avec intervals
-- `intervals` est OBLIGATOIRE pour fractionne, tempo et progressif — ne jamais omettre ce tableau
-- Labels des intervals STANDARDISÉS : échauffement → toujours "Échauffement" | retour au calme → "Retour au calme" (fractionné/progressif) ou "Récup" (tempo) | bloc de répétitions → doit avoir `reps` > 0
-- `targetHR` est OBLIGATOIRE à la racine pour z2 et course (format "min-max" en bpm, ex: "112-149")
+- \`runType\` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
+- \`durationMin\` est OBLIGATOIRE pour les séances avec intervals
+- \`intervals\` est OBLIGATOIRE pour fractionne, tempo et progressif — ne jamais omettre ce tableau
+- Labels des intervals STANDARDISÉS : échauffement → toujours "Échauffement" | retour au calme → "Retour au calme" (fractionné/progressif) ou "Récup" (tempo) | bloc de répétitions → doit avoir \`reps\` > 0
+- \`targetHR\` est OBLIGATOIRE à la racine pour z2 et course (format "min-max" en bpm, ex: "112-149")
 
 **1. Run continu (Z2, long run)**
 {"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Dimanche","distanceKm":12,"pace":"6:00","targetZone":"Z2","targetHR":"112-149"}
