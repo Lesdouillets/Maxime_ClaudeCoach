@@ -326,7 +326,18 @@ Deno.serve(async (req: Request) => {
       previousAnalyses = [],
       today: clientToday,
       coachMemory,
+      imageBase64,
+      imageMimeType,
     } = body;
+
+    // Validation type MIME image (même logique que analyze-session)
+    const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const imageBase64Str = typeof imageBase64 === "string" ? imageBase64 : null;
+    const mimeTypeStr = typeof imageMimeType === "string" ? imageMimeType : null;
+    if (imageBase64Str && mimeTypeStr && !ALLOWED_IMAGE_MIME_TYPES.includes(mimeTypeStr)) {
+      return new Response(JSON.stringify({ error: `Type d'image non supporté: ${mimeTypeStr}` }), { status: 400, headers: CORS });
+    }
+    const resolvedMimeType = mimeTypeStr ?? "image/jpeg";
 
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
@@ -385,6 +396,27 @@ Deno.serve(async (req: Request) => {
     // two consecutive assistant messages → 400 error. Drop the leading assistant.
     if (recentMessages.length > 0 && recentMessages[0].role === "assistant") {
       recentMessages = recentMessages.slice(1);
+    }
+
+    // Si une image est attachée, remplacer le contenu du dernier message utilisateur
+    // par un content block multimodal [text, image]. Texte "." si le message est vide.
+    if (imageBase64Str && recentMessages.length > 0) {
+      const lastMsg = recentMessages[recentMessages.length - 1] as { role: string; content: unknown };
+      if (lastMsg.role === "user") {
+        const textContent = typeof lastMsg.content === "string" && lastMsg.content.trim()
+          ? lastMsg.content
+          : ".";
+        recentMessages = [
+          ...recentMessages.slice(0, -1),
+          {
+            role: "user",
+            content: [
+              { type: "text", text: textContent },
+              { type: "image", source: { type: "base64", media_type: resolvedMimeType, data: imageBase64Str } },
+            ],
+          },
+        ];
+      }
     }
 
     // Prepend context as first user message if there's context
