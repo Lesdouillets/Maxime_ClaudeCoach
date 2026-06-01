@@ -9,6 +9,8 @@ import {
   applyPendingPlans,
   type ChatMessage,
 } from "@/lib/coachChat";
+import type { CompressedImage } from "@/lib/imageCompressor";
+import type { ChatAttachments } from "@/lib/coachChat";
 import { TrashIcon } from "@/components/icons";
 import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
 import CoachInputBar from "@/components/coach/CoachInputBar";
@@ -52,23 +54,29 @@ export default function CoachPage() {
     };
   }, []);
 
-  const handleSend = useCallback(async (text: string) => {
+  const handleSend = useCallback(async (text: string, image?: CompressedImage | null) => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed && !image) return;
+    if (sending) return;
     setInput("");
     setAdaptMsg(null);
     setSending(true);
+
+    const attachments: ChatAttachments | undefined = image
+      ? { imageBase64: image.base64, imageMimeType: image.mimeType }
+      : undefined;
 
     // Message user affiché immédiatement avant la réponse du coach
     const optimisticUser: ChatMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
       content: trimmed,
+      ...(image && { imageBase64: image.base64 }),
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticUser]);
 
-    const result = await sendMessage(trimmed);
+    const result = await sendMessage(trimmed, attachments);
     // Remplace l'optimistic par l'historique persisté
     setMessages(getChatHistory());
 
@@ -108,13 +116,6 @@ export default function CoachPage() {
     // Focus sur l'input après un tick pour laisser le temps au DOM de se mettre à jour
     setTimeout(() => textareaRef.current?.focus(), 50);
   }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend(input);
-    }
-  };
 
   const adjustTextarea = () => {
     const el = textareaRef.current;
@@ -228,8 +229,7 @@ export default function CoachPage() {
           sending={sending}
           textareaRef={textareaRef}
           onChange={(v) => { setInput(v); adjustTextarea(); }}
-          onSend={() => handleSend(input)}
-          onKeyDown={handleKeyDown}
+          onSend={(image) => handleSend(input, image)}
         />
       </div>
 
