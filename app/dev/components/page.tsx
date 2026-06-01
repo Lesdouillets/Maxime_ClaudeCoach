@@ -618,7 +618,6 @@ export default function ComponentsPage() {
                 textareaRef={{ current: null } as React.RefObject<HTMLTextAreaElement>}
                 onChange={setShowcaseInput}
                 onSend={() => setShowcaseInput("")}
-                onKeyDown={() => {}}
               />
             </div>
           </ComponentBlock>
