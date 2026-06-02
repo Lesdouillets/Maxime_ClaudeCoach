@@ -53,7 +53,7 @@ export function getCoachMemory(): CoachMemory {
 export function setCoachMemory(memory: CoachMemory): void {
   if (typeof window === "undefined") return;
   const now = new Date().toISOString().slice(0, 10);
-  const withDate = { ...memory, lastUpdated: now };
+  const withDate = { ...memory, lastUpdated: now, keyNotes: memory.keyNotes.slice(-50) };
   localStorage.setItem(MEMORY_KEY, JSON.stringify(withDate));
   localStorage.setItem(MEMORY_UPDATED_AT_KEY, new Date().toISOString());
 }
