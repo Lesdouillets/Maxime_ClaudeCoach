@@ -310,6 +310,47 @@ function stripCoachNotes(plans: Record<string, unknown>[]): Record<string, unkno
   });
 }
 
+const RETRYABLE_CODES = new Set([429, 502, 503, 504, 529]);
+const RETRY_DELAYS_MS = [1000, 2000];
+
+async function callAnthropic(
+  apiKey: string,
+  body: Record<string, unknown>,
+  messageExcerpt: string,
+): Promise<Record<string, unknown>> {
+  const startTime = Date.now();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+    }
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
+      },
+      body: JSON.stringify(body),
+    });
+    if (resp.ok) return resp.json() as Promise<Record<string, unknown>>;
+    const errText = await resp.text();
+    if (!RETRYABLE_CODES.has(resp.status)) {
+      throw new Error(`Anthropic API error ${resp.status}: ${errText}`);
+    }
+    const isLast = attempt === 2;
+    console.error(JSON.stringify({
+      event: isLast ? "anthropic_failed" : "anthropic_retry",
+      attempt: attempt + 1,
+      code: resp.status,
+      duration_ms: Date.now() - startTime,
+      message_excerpt: messageExcerpt,
+    }));
+    if (isLast) throw new Error(`Anthropic API error ${resp.status}: ${errText}`);
+  }
+  throw new Error("callAnthropic: max retries exceeded");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
@@ -444,38 +485,29 @@ Deno.serve(async (req: Request) => {
       memory_update: null,
     };
 
+    const lastUserRaw = [...(messages as Array<{ role: string; content: unknown }>)]
+      .reverse()
+      .find((m) => m.role === "user");
+    const messageExcerpt = typeof lastUserRaw?.content === "string"
+      ? lastUserRaw.content.slice(0, 80)
+      : "";
+
     const MAX_ITERATIONS = 5;
 
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-      const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "prompt-caching-2024-07-31",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 8192,
-          system: [
-            {
-              type: "text",
-              text: systemPrompt,
-              cache_control: { type: "ephemeral" },
-            },
-          ],
-          tools: COACH_TOOLS,
-          messages: conversationMessages,
-        }),
-      });
-
-      if (!anthropicResp.ok) {
-        const errText = await anthropicResp.text();
-        throw new Error(`Anthropic API error ${anthropicResp.status}: ${errText}`);
-      }
-
-      const anthropicData = await anthropicResp.json();
+      const anthropicData = await callAnthropic(apiKey, {
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: [
+          {
+            type: "text",
+            text: systemPrompt,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        tools: COACH_TOOLS,
+        messages: conversationMessages,
+      }, messageExcerpt);
       const stopReason = anthropicData.stop_reason as string;
 
       if (anthropicData.usage) {
