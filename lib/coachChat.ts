@@ -18,6 +18,7 @@ export interface ChatMessage {
   content: string;
   imageBase64?: string;
   timestamp: string; // ISO
+  error?: boolean;               // ephemeral error state, never persisted
   modifiedCount?: number;      // set once plans are applied
   deletedCount?: number;       // set once deletions are applied
   card?: {
