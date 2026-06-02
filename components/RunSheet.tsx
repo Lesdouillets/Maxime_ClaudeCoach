@@ -63,6 +63,7 @@ export default function RunSheet() {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ y: number; t: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentSheetDateRef = useRef<string | null>(null);
   const dateStr = sheet.state?.date ?? toLocalDateStr(new Date());
   const [coachRun, setCoachRun] = useState<CoachRun | null>(null);
   const [doneSession, setDoneSession] = useState<RunSession | null>(null);
@@ -94,6 +95,10 @@ export default function RunSheet() {
       return () => cancelAnimationFrame(id2);
     });
     return () => cancelAnimationFrame(id1);
+  }, [sheet.state]);
+
+  useEffect(() => {
+    currentSheetDateRef.current = sheet.state?.date ?? null;
   }, [sheet.state]);
 
   // Pull the recorded session (if any), the coach run, and the generic
@@ -220,6 +225,7 @@ export default function RunSheet() {
 
   const handleClose = useCallback(() => {
     const origin = sheet.state?.originRoute;
+    currentSheetDateRef.current = null;
     sheet.close();
     setIsDragging(false);
     setDragY(0);
@@ -238,10 +244,16 @@ export default function RunSheet() {
     noteContext: string | undefined,
     attachments: SessionAttachments | undefined,
   ) => {
+    const analyzedDate = session.date.slice(0, 10);
     setAnalysisAttempted(true);
     setCoachState("analyzing");
     analyzeSession(session, noteContext, attachments)
-      .then((result) => { setCoachResult(result); setCoachState("done"); setPendingImage(null); })
+      .then((result) => {
+        if (currentSheetDateRef.current !== analyzedDate) return;
+        setCoachResult(result);
+        setCoachState("done");
+        setPendingImage(null);
+      })
       .catch(() => { setCoachState("done"); setPendingImage(null); });
   }, []);
 
