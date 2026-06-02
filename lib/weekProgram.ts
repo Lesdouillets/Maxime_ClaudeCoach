@@ -76,7 +76,7 @@ export function buildWeekDays(
       // jour passé — les jours repos restent "planned", pas de statut validé
       if (planType === "rest") {
         status = "planned";
-      } else if (doneSession && doneSession.type === planType) {
+      } else if (doneSession && (doneSession.type === planType || (planType === "course" && doneSession.type === "run"))) {
         status = "done";
       } else {
         status = "missed";

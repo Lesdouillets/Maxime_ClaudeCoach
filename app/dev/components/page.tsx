@@ -9,7 +9,7 @@ import Badge from "@/components/Badge";
 import { StreakBar } from "@/components/StreakBar";
 import { WeekProgram } from "@/components/WeekProgram";
 import { SessionCard, FitnessCard } from "@/components/SessionCard";
-import { WingLeft, WingRight } from "@/components/RaceBadge";
+import { WingLeft, WingRight, RACE_COLOR } from "@/components/RaceBadge";
 import { StreakCard } from "@/components/StreakCard";
 import { computeStreak } from "@/lib/streak";
 import { buildWeekDays } from "@/lib/weekProgram";
@@ -1023,7 +1023,6 @@ const WEEK_SCENARIOS: { label: string; days: DaySlot[] }[] = [
 
 // ── Plan mock data ────────────────────────────────────────────────────────────
 
-const RACE_COLOR_MOCK = "#FEED00";
 
 const PLAN_DAY_STATES: {
   label: string;
@@ -1041,8 +1040,8 @@ const PLAN_DAY_STATES: {
   { label: "missed",        group: "run",     color: "var(--color-error)" },
   { label: "upcoming",      group: "run",     color: "var(--color-blue)" },
   { label: "today-planned", group: "run",     color: "var(--color-blue)", ring: true },
-  { label: "upcoming",      group: "course",  color: RACE_COLOR_MOCK, raceRing: true },
-  { label: "today",         group: "course",  color: RACE_COLOR_MOCK, raceRing: true },
+  { label: "upcoming",      group: "course",  color: RACE_COLOR, raceRing: true },
+  { label: "today",         group: "course",  color: RACE_COLOR, raceRing: true },
   { label: "done",          group: "course",  color: "var(--color-neon)" },
   { label: "today-rest",    group: "rest",    color: "var(--color-muted)", ring: true },
   { label: "rest",          group: "rest",    color: "var(--color-muted)" },
@@ -1068,9 +1067,9 @@ function PlanDayCell({
       style={{ opacity: cancelled ? 0.4 : 1, width: 36, height: 36 }}
     >
       {raceRing ? (
-        <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR_MOCK }}>
+        <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR }}>
           <WingLeft size={6} />
-          <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR_MOCK }}>{day}</span>
+          <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR }}>{day}</span>
           <WingRight size={6} />
         </div>
       ) : (
@@ -1117,7 +1116,7 @@ const PLAN_MONTH_CELLS: { day: number | null; color: string; ring?: boolean; rac
   { day: 22,    color: "var(--color-orange)" },
   { day: 23,    color: "var(--color-muted)" },
   { day: 24,    color: "var(--color-blue)" },
-  { day: 25,    color: RACE_COLOR_MOCK, raceRing: true },
+  { day: 25,    color: RACE_COLOR, raceRing: true },
   { day: 26,    color: "var(--color-orange)", cancelled: true },
   { day: 27,    color: "var(--color-muted)" },
   { day: 28,    color: "var(--color-orange)" },
@@ -1157,9 +1156,9 @@ function PlanMonthMock() {
               style={{ opacity: cell.cancelled ? 0.4 : 1 }}
             >
               {cell.raceRing ? (
-                <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR_MOCK }}>
+                <div className="flex items-center justify-center" style={{ gap: 3, color: RACE_COLOR }}>
                   <WingLeft size={6} />
-                  <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR_MOCK }}>{cell.day}</span>
+                  <span className="text-xs font-medium leading-none" style={{ color: RACE_COLOR }}>{cell.day}</span>
                   <WingRight size={6} />
                 </div>
               ) : (

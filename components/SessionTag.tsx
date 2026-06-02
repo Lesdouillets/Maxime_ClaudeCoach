@@ -1,4 +1,5 @@
 import { RunIcon, WeightIcon, RestIcon } from "@/components/icons";
+import { RACE_COLOR } from "@/components/RaceBadge";
 
 export type SessionType   = "run" | "fitness" | "rest" | "course";
 export type SessionStatus = "planned" | "today" | "done" | "missed";
@@ -23,7 +24,7 @@ const TYPE_BORDER_COLOR: Record<SessionType, string> = {
   run:     "var(--color-blue)",
   fitness: "var(--color-orange)",
   rest:    "var(--color-muted)",
-  course:  "#FEED00",
+  course:  RACE_COLOR,
 };
 
 function getStyles(type: SessionType, status: SessionStatus): {
