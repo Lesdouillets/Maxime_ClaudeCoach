@@ -583,6 +583,17 @@ export default function ComponentsPage() {
             />
           </ComponentBlock>
 
+          <ComponentBlock title="CoachMessageBubble — message en erreur" description="Bulle avec bordure rouge + tag Réessayer">
+            <CoachMessageBubble
+              message={FIXTURE_MSG_USER_ERROR}
+              applying={false}
+              onApply={() => {}}
+              onAdapt={() => {}}
+              isError={true}
+              onRetry={() => {}}
+            />
+          </ComponentBlock>
+
           <ComponentBlock title="CoachMessageBubble — texte coach sans plans" description="Texte libre sans bulle, pas de label ALEX">
             <CoachMessageBubble
               message={FIXTURE_MSG_COACH_TEXT}
@@ -898,6 +909,14 @@ const FIXTURE_MSG_USER = {
   role: "user" as const,
   content: "Propose-moi une semaine running équilibrée",
   timestamp: new Date().toISOString(),
+};
+
+const FIXTURE_MSG_USER_ERROR = {
+  id: "m1-err",
+  role: "user" as const,
+  content: "Ajoute un fractionné jeudi prochain",
+  timestamp: new Date().toISOString(),
+  error: true,
 };
 
 const FIXTURE_MSG_COACH_TEXT = {
