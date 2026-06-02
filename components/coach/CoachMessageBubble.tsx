@@ -48,34 +48,40 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
             {message.content && (
               <div
                 style={{
-                  background: isError ? "rgba(220, 53, 69, 0.2)" : "var(--color-white-10)",
+                  background: "var(--color-white-10)",
                   borderRadius: 20,
                   borderBottomRightRadius: 6,
                   padding: "12px 16px",
-                  border: isError ? "1px solid rgba(220, 53, 69, 0.4)" : "none",
+                  ...(isError && { border: "1.5px solid var(--color-error-border)" }),
                 }}
               >
                 <p style={{ color: "#ddd", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
                   {message.content}
                 </p>
-                {isError && (
-                  <button
-                    onClick={onRetry}
-                    style={{
-                      marginTop: 8,
-                      fontSize: 13,
-                      color: "rgba(220, 53, 69, 0.9)",
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Réessayer
-                  </button>
-                )}
               </div>
+            )}
+            {isError && onRetry && (
+              <button
+                onClick={onRetry}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: "var(--color-error)",
+                  fontSize: 12,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M1 4v6h6"/>
+                  <path d="M23 20v-6h-6"/>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                </svg>
+                Erreur · Réessayer
+              </button>
             )}
           </div>
         </div>
