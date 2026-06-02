@@ -24,7 +24,7 @@ export default function CoachPage() {
   const [clearing, setClearing] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [adaptMsg, setAdaptMsg] = useState<string | null>(null);
-  const [failedMessage, setFailedMessage] = useState<{ text: string; image: CompressedImage | null } | null>(null);
+  const [failedMessage, setFailedMessage] = useState<{ id: string; text: string; image: CompressedImage | null } | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,15 +86,15 @@ export default function CoachPage() {
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticUser.id ? { ...m, error: true } : m))
       );
-      setFailedMessage({ text: trimmed, image: image ?? null });
+      setFailedMessage({ id: optimisticUser.id, text: trimmed, image: image ?? null });
     }
     setSending(false);
   }, [sending]);
 
   const handleRetry = useCallback(async () => {
     if (!failedMessage || sending) return;
-    const { text, image } = failedMessage;
-    setMessages((prev) => prev.filter((m) => !m.error));
+    const { id, text, image } = failedMessage;
+    setMessages((prev) => prev.filter((m) => m.id !== id));
     setFailedMessage(null);
     await handleSend(text, image);
   }, [failedMessage, sending, handleSend]);
