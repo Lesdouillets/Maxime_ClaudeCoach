@@ -11,9 +11,11 @@ interface Props {
   applying: boolean;
   onApply: () => void;
   onAdapt: () => void;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
-export default function CoachMessageBubble({ message, applying, onApply, onAdapt }: Props) {
+export default function CoachMessageBubble({ message, applying, onApply, onAdapt, isError, onRetry }: Props) {
   const [detailWorkout, setDetailWorkout] = useState<CoachWorkout | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -46,15 +48,33 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
             {message.content && (
               <div
                 style={{
-                  background: "var(--color-white-10)",
+                  background: isError ? "rgba(220, 53, 69, 0.2)" : "var(--color-white-10)",
                   borderRadius: 20,
                   borderBottomRightRadius: 6,
                   padding: "12px 16px",
+                  border: isError ? "1px solid rgba(220, 53, 69, 0.4)" : "none",
                 }}
               >
                 <p style={{ color: "#ddd", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
                   {message.content}
                 </p>
+                {isError && (
+                  <button
+                    onClick={onRetry}
+                    style={{
+                      marginTop: 8,
+                      fontSize: 13,
+                      color: "rgba(220, 53, 69, 0.9)",
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Réessayer
+                  </button>
+                )}
               </div>
             )}
           </div>

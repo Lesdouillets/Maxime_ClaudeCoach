@@ -24,6 +24,7 @@ export default function CoachPage() {
   const [clearing, setClearing] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [adaptMsg, setAdaptMsg] = useState<string | null>(null);
+  const [failedMessage, setFailedMessage] = useState<{ text: string; image: CompressedImage | null } | null>(null);
   const [profileName, setProfileName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -61,6 +62,7 @@ export default function CoachPage() {
     setInput("");
     setAdaptMsg(null);
     setSending(true);
+    setFailedMessage(null);
 
     const attachments: ChatAttachments | undefined = image
       ? { imageBase64: image.base64, imageMimeType: image.mimeType }
@@ -77,23 +79,25 @@ export default function CoachPage() {
     setMessages((prev) => [...prev, optimisticUser]);
 
     const result = await sendMessage(trimmed, attachments);
-    // Remplace l'optimistic par l'historique persisté
-    setMessages(getChatHistory());
 
-    if (!result) {
-      // Affiche l'erreur comme message assistant
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== optimisticUser.id),
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "Désolé, une erreur est survenue. Réessaie dans un instant.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+    if (result) {
+      setMessages(getChatHistory());
+    } else {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === optimisticUser.id ? { ...m, error: true } : m))
+      );
+      setFailedMessage({ text: trimmed, image: image ?? null });
     }
     setSending(false);
   }, [sending]);
+
+  const handleRetry = useCallback(async () => {
+    if (!failedMessage || sending) return;
+    const { text, image } = failedMessage;
+    setMessages((prev) => prev.filter((m) => !m.error));
+    setFailedMessage(null);
+    await handleSend(text, image);
+  }, [failedMessage, sending, handleSend]);
 
   const handleClear = async () => {
     if (clearing) return;
@@ -181,6 +185,8 @@ export default function CoachPage() {
                 applying={applying === msg.id}
                 onApply={() => handleApply(msg.id)}
                 onAdapt={handleAdapt}
+                isError={msg.error === true}
+                onRetry={msg.error ? handleRetry : undefined}
               />
             ))}
 
