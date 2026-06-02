@@ -319,9 +319,11 @@ async function callAnthropic(
   messageExcerpt: string,
 ): Promise<Record<string, unknown>> {
   const startTime = Date.now();
+  let lastRetryAfterMs: number | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt - 1]));
+      const retryAfter = lastRetryAfterMs ?? (RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]);
+      await new Promise((r) => setTimeout(r, retryAfter));
     }
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -335,6 +337,8 @@ async function callAnthropic(
     });
     if (resp.ok) return resp.json() as Promise<Record<string, unknown>>;
     const errText = await resp.text();
+    const retryAfterHeader = resp.headers.get("retry-after");
+    if (retryAfterHeader) lastRetryAfterMs = parseInt(retryAfterHeader, 10) * 1000;
     if (!RETRYABLE_CODES.has(resp.status)) {
       throw new Error(`Anthropic API error ${resp.status}: ${errText}`);
     }
