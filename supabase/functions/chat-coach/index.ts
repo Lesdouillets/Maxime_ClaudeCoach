@@ -42,6 +42,7 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
   - Fractionné → "N×Xm" (ex: "10×400m") | Progressif → "Z2>Z3>Z4"
   - Le coach peut proposer librement si ces exemples ne matchent pas (ex: "Fartlek 30min", "Reprise légère") — max 25 caractères
 - \`intervals\` est OBLIGATOIRE pour fractionne, tempo et progressif — ne jamais omettre ce tableau
+- \`pace\` est OBLIGATOIRE sur chaque intervalle du tableau — ne jamais omettre ce champ, même sur l'échauffement et le retour au calme
 - Labels des intervals STANDARDISÉS : échauffement → toujours \"Échauffement\" | retour au calme → \"Retour au calme\" (fractionné/progressif) ou \"Récup\" (tempo) | bloc de répétitions → doit avoir \`reps\` > 0
 - \`restSeconds\` est OBLIGATOIRE sur le bloc de répétitions du fractionné (temps de récupération entre chaque répétition, en secondes, ex: 90)
 - \`targetHR\` est OBLIGATOIRE à la racine pour z2 et course (format \"min-max\" en bpm, ex: \"112-149\")

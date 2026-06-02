@@ -101,6 +101,7 @@ Quelques repères à ta disposition (pas des règles automatiques) :
 - \`runType\` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
 - \`durationMin\` est OBLIGATOIRE pour les séances avec intervals
 - \`intervals\` est OBLIGATOIRE pour fractionne, tempo et progressif — ne jamais omettre ce tableau
+- \`pace\` est OBLIGATOIRE sur chaque intervalle du tableau — ne jamais omettre ce champ, même sur l'échauffement et le retour au calme
 - Labels des intervals STANDARDISÉS : échauffement → toujours "Échauffement" | retour au calme → "Retour au calme" (fractionné/progressif) ou "Récup" (tempo) | bloc de répétitions → doit avoir \`reps\` > 0
 - \`targetHR\` est OBLIGATOIRE à la racine pour z2 et course (format "min-max" en bpm, ex: "112-149")
 

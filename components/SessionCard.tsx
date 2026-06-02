@@ -119,7 +119,7 @@ export function RunCard({ todayCoachRun, todaySession, onOpenRun, variant = "def
                 <StatGroup value={`~${todayCoachRun.durationMin}`} unit="min" />
               </>
             )}
-            {todayCoachRun.pace && (
+            {todayCoachRun.pace && (todayCoachRun.runType === "z2" || todayCoachRun.runType === "course" || todayCoachRun.isRace) && (
               <>
                 <Separator />
                 <StatGroup value={todayCoachRun.pace} unit="/km" />

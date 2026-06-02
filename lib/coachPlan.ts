@@ -232,7 +232,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     label: String(data.label ?? "RUN"),
     coachNote: data.coachNote != null ? String(data.coachNote) : undefined,
     distanceKm: Number(data.distance ?? data.distanceKm ?? 0),
-    pace: String(data.pace ?? "6:00"),
+    pace: data.pace != null ? String(data.pace) : undefined,
     targetHR: data.targetHR != null ? String(data.targetHR) : undefined,
     targetZone: data.targetZone != null ? String(data.targetZone) : undefined,
     durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
