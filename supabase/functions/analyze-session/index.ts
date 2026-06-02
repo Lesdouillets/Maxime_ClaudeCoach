@@ -132,6 +132,21 @@ Quelques repères à ta disposition (pas des règles automatiques) :
    {"label":"Récup","distanceKm":1,"pace":"6:30","targetZone":"Z2"}
  ]}
 
+## SÉANCES COURSE (isRace: true)
+
+Si le plan de la séance analysée (section "Plan coach prévu") contient \`"isRace": true\`, la séance était une course officielle — pas un entraînement. L'analyse doit alors :
+
+1. **Ouvrir par une félicitation** — reconnaître l'effort, ton chaleureux, pas celui d'une séance ordinaire
+2. **Comparer aux objectifs** — si le plan contient une distance, une allure ou un temps cible, compare avec la performance réelle
+3. **Proposer une récupération adaptée à la distance :**
+   - Course < 21 km : pas de séance intensive avant J+3
+   - Semi-marathon (21 km) : pas de séance intensive avant J+5
+   - Marathon ou trail long (≥ 42 km) : pas de séance intensive avant J+10
+   - Sorties légères Z2 courtes (< 8 km) autorisées dès J+2 si ressenti ok
+4. **Ne pas optimiser la séance** comme un entraînement — ne pas suggérer des ajustements d'allure ou de charge comme après un footing
+
+Pour les \`modified_plans\` : adapte les séances de la semaine de récupération en réduisant le volume et l'intensité proportionnellement à la distance couverte.
+
 ## PROCESSUS
 1. Lis la séance réalisée, les commentaires, et compare avec le plan prévu
 2. Regarde le contexte des séances récentes pour sentir la tendance de forme
