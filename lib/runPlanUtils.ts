@@ -9,8 +9,10 @@ export function parsePaceSec(pace: string): number {
 }
 
 export function segDuration(seg: CoachRunInterval): string {
-  const totalSec = seg.distanceKm * parsePaceSec(seg.pace) * (seg.reps ?? 1);
-  const min = Math.round(totalSec / 60);
+  const reps = seg.reps ?? 1;
+  const runSec = seg.distanceKm * parsePaceSec(seg.pace) * reps;
+  const restSec = (seg.restSeconds ?? 0) * reps;
+  const min = Math.round((runSec + restSec) / 60);
   return `~${min} min`;
 }
 
