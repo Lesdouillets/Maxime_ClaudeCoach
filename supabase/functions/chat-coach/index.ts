@@ -37,7 +37,9 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 
 - \`runType\` est OBLIGATOIRE sur chaque run : "z2" | "tempo" | "fractionne" | "progressif" | "course"
 - \`isRace: true\` — à ajouter UNIQUEMENT sur les courses officielles avec dossard (10 km, semi-marathon, marathon, trail). Absent ou \`false\` sur tous les entraînements ordinaires.
-- \`durationMin\` est OBLIGATOIRE : temps total terrain en minutes entières, arrondi. Inclut la course ET les temps de repos. Estime-le de manière cohérente avec les distances et allures indiquées.
+- \`durationMin\` est OBLIGATOIRE sur chaque séance (run ET fitness) : durée totale en minutes entières, arrondie.
+  - Run : inclut la course ET les temps de repos, cohérent avec distances et allures indiquées.
+  - Fitness : somme des temps de travail + repos par série, sur tous les exercices. Ex : 6 exercices × 4 séries × (30s travail + 90s repos) ≈ 60 min.
 - \`label\` est un TITRE COURT descriptif, jamais le type seul :
   - Z2 long → "Sortie Longue" | Z2 moyen → "Footing" | Tempo → "Seuil Xkm"
   - Fractionné → "N×Xm" (ex: "10×400m") | Progressif → "Z2>Z3>Z4"
@@ -79,7 +81,7 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"course","label":"Semi-marathon Lyon","distanceKm":21.1,"durationMin":110,"targetHR":"149-168","isRace":true}
 
 **Séance fitness**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS","durationMin":60,"coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
 
 IMPORTANT : N'inclus JAMAIS le champ "setPlans" dans tes réponses. Utilise uniquement sets/reps/weight.
 
