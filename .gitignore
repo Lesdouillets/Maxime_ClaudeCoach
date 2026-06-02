@@ -48,3 +48,6 @@ supabase/.temp/
 
 # Route /dev — showcase local uniquement, jamais en prod
 /app/dev/
+
+# Superpowers brainstorming sessions
+.superpowers/
