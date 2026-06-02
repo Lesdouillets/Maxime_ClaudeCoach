@@ -225,7 +225,7 @@ export default function HomePage() {
             days={weekDays}
             weekLabel=""
             onDayClick={(date, type) => {
-              if (type === "run") runSheet.open(date, { originRoute: "/" });
+              if (type === "run" || type === "course") runSheet.open(date, { originRoute: "/" });
               else {
                 const result = session.open(date, { originRoute: "/" });
                 if (result === "no-plan") router.push(`/log/fitness?date=${date}`);

@@ -105,7 +105,7 @@ export default function ComponentsPage() {
           {/* SessionTag */}
           <ComponentBlock title="SessionTag" description="Tag de séance — type × statut × taille">
 
-            {(["run", "fitness", "rest"] as SessionType[]).map((type) => {
+            {(["run", "fitness", "rest", "course"] as SessionType[]).map((type) => {
               const statuses: SessionStatus[] =
                 type === "rest" ? ["planned", "today"] : ["planned", "today", "done", "missed"];
               return (

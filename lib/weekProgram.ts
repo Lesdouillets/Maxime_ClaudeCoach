@@ -63,7 +63,7 @@ export function buildWeekDays(
 
     let planType: SessionType | "rest" = "rest";
     if (coachWorkout) planType = "fitness";
-    else if (coachRun) planType = "run";
+    else if (coachRun) planType = coachRun.isRace ? "course" : "run";
 
     const doneSession = sessions.find((s) => s.date.slice(0, 10) === dateStr);
 

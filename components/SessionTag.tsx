@@ -1,6 +1,6 @@
 import { RunIcon, WeightIcon, RestIcon } from "@/components/icons";
 
-export type SessionType   = "run" | "fitness" | "rest";
+export type SessionType   = "run" | "fitness" | "rest" | "course";
 export type SessionStatus = "planned" | "today" | "done" | "missed";
 export type SessionTagSize = "sm" | "md" | "lg";
 
@@ -23,6 +23,7 @@ const TYPE_BORDER_COLOR: Record<SessionType, string> = {
   run:     "var(--color-blue)",
   fitness: "var(--color-orange)",
   rest:    "var(--color-muted)",
+  course:  "#FEED00",
 };
 
 function getStyles(type: SessionType, status: SessionStatus): {
@@ -71,7 +72,7 @@ export function SessionTag({
   const { dim, iconSize, radius } = SIZE_MAP[size];
   const { background, border, iconColor } = getStyles(type, status);
 
-  const Icon = type === "run" ? RunIcon : type === "fitness" ? WeightIcon : RestIcon;
+  const Icon = (type === "run" || type === "course") ? RunIcon : type === "fitness" ? WeightIcon : RestIcon;
 
   return (
     <div
