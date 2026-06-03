@@ -140,8 +140,8 @@ export default function CoachPage() {
         paddingBottom: "120px",
         overflowY: isEmpty ? "hidden" : "auto",
         overscrollBehavior: "contain",
-        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
-        maskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 90%, transparent 100%)",
+        maskImage: "linear-gradient(to bottom, black 0%, black 90%, transparent 100%)",
       }}>
 
         {isEmpty ? (
