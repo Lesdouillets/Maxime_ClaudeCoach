@@ -144,7 +144,7 @@ export default function CoachPage() {
 
       {/* Zone messages scrollable */}
       {/* Évite une scrollbar fantôme sur l'état vide */}
-      <div className="flex-1 px-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 220px)", overflowY: isEmpty ? "hidden" : "auto" }}>
+      <div className="flex-1 px-4" style={{ paddingBottom: "100px", overflowY: isEmpty ? "hidden" : "auto", overscrollBehavior: "contain" }}>
 
         {isEmpty ? (
           /* État vide — salutation */
@@ -220,13 +220,9 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Barre d'input — fixed au-dessus de la nav, z-index sous z-nav (50) */}
+      {/* Barre d'input — flux normal, pas de position:fixed pour éviter le jitter iOS */}
       <div style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 40,
+        flexShrink: 0,
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
         background: "linear-gradient(to top, var(--color-background) 65%, transparent)",
       }}>
