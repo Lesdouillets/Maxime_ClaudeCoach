@@ -29,10 +29,16 @@ export default function CoachPage() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Référence au timer d'effacement d'erreur pour pouvoir l'annuler au démontage
+  const archiveErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("coach-page");
-    return () => document.documentElement.classList.remove("coach-page");
+    return () => {
+      document.documentElement.classList.remove("coach-page");
+      // Annule le timer d'erreur d'archivage si le composant est démonté avant expiration
+      if (archiveErrorTimerRef.current) clearTimeout(archiveErrorTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -102,7 +108,8 @@ export default function CoachPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur lors de l'archivage";
       setArchiveError(msg);
-      setTimeout(() => setArchiveError(null), 3000);
+      setMessages(getChatHistory()); // resynchronise avec l'état localStorage réel
+      archiveErrorTimerRef.current = setTimeout(() => setArchiveError(null), 3000);
     } finally {
       setArchiving(false);
     }
