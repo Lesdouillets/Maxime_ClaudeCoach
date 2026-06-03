@@ -19,7 +19,10 @@ type ArchiveRow = { messages: Array<{ role: string; content: string; imageBase64
 
 function compactArchives(archives: ArchiveRow[]): string {
   const parts = archives.map((archive) => {
-    const msgs = archive.messages.filter((m) => !m.imageBase64);
+    // Striper les images mais conserver le texte des messages mixtes (image + texte)
+    const msgs = archive.messages
+      .map(({ role, content }) => ({ role, content }))
+      .filter((m) => m.content && m.content.trim() !== "");
     if (msgs.length === 0) return null;
 
     const head = msgs.slice(0, 2);

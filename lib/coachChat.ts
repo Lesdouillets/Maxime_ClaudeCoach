@@ -126,11 +126,12 @@ export async function archiveChatHistory(): Promise<void> {
   });
   if (error) throw new Error(error.message);
 
-  // Vider localement et forcer la synchronisation — une erreur ici est signalée
-  // (l'archive est déjà créée, on doit éviter l'incohérence local/remote)
+  // Vider localement — l'archive est en Supabase, c'est la source de vérité
+  // pushChatToSupabase peut échouer sans danger : loadChatFromSupabase récupérera au prochain montage
   _saveChatLocal([]);
-  try { await pushChatToSupabase(); } catch (err) {
-    throw new Error(`Archive créée mais échec du vidage Supabase : ${err instanceof Error ? err.message : String(err)}`);
+  try { await pushChatToSupabase(); } catch {
+    // Non critique : l'archive est créée, le localStorage est vidé
+    console.warn("[archiveChatHistory] sync Supabase échouée, sera récupérée au prochain chargement");
   }
 }
 
