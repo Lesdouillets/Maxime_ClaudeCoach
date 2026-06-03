@@ -526,7 +526,7 @@ export default function RunSheet() {
             </>
           ) : coachRun ? (
             <>
-              <SessionBriefCard brief={coachRun.coachNote} />
+              <SessionBriefCard brief={coachRun.sessionBrief ?? coachRun.coachNote} />
               <RunPlanSection coachRun={coachRun} />
             </>
           ) : (

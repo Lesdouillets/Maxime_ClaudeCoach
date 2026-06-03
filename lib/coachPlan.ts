@@ -48,6 +48,7 @@ export interface CoachRun {
   date: string;
   label: string;
   coachNote?: string;
+  sessionBrief?: string;
   distanceKm: number;
   pace?: string;        // target pace "6:00" — absent pour séances à allure variable
   durationMin?: number;
@@ -232,6 +233,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     date: String(data.date ?? new Date().toISOString().slice(0, 10)),
     label: String(data.label ?? "RUN"),
     coachNote: data.coachNote != null ? String(data.coachNote) : undefined,
+    sessionBrief: data.sessionBrief != null ? String(data.sessionBrief) : undefined,
     distanceKm: Number(data.distance ?? data.distanceKm ?? 0),
     pace: data.pace != null ? String(data.pace) : undefined,
     targetHR: data.targetHR != null ? String(data.targetHR) : undefined,

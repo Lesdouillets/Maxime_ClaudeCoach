@@ -171,17 +171,19 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 - **Ne mentionne pas "doublon supprimé" dans le label** — la déduplication est gérée côté client, contente-toi de renvoyer le plan canonique propre.
 
 Format séance salle (fitness) :
-{"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","durationMin":60,"coachNote":"Focus dos","sessionBrief":"Aujourd'hui on consolide la base. Travaille la connexion esprit-muscle sur chaque tirage, pas la charge. Si les épaules chauffent sur le développé militaire, réduis le poids sans hésiter.","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"Descendre lentement"}]}
+{"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","durationMin":60,"coachNote":"Focus dos","sessionBrief":"Aujourd'hui on travaille le dos en priorité. Pense à bien sentir le dos travailler sur chaque tirage, pas juste tirer avec les bras. Sur le militaire, garde une charge légère et fais-le proprement.","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"Descendre lentement"}]}
 
 - \`durationMin\` OBLIGATOIRE : durée totale en minutes (somme temps de travail + repos sur tous les exercices).
 - \`coachNote\` au niveau séance = **tag court, 2-3 mots max** (ex: "Focus dos", "Décharge", "Full upper"). Affiché comme badge dans la card.
-- \`sessionBrief\` = **mot du coach** (1-3 phrases) : l'intention de la séance et les points d'attention — pourquoi on fait ça aujourd'hui, sur quoi concentrer l'effort ou la technique. PAS une description du programme (l'utilisateur le voit déjà). Optionnel.
+- \`sessionBrief\` = **mot du coach** (1-3 phrases) : pourquoi on fait ça aujourd'hui, et sur quoi faire attention. PAS une description du programme (l'utilisateur le voit déjà). Langage simple et direct, comme un vrai coach parlerait. Jamais de tiret long (—). Jamais de jargon ("connexion esprit-muscle", "activation", "proprioception"...). Optionnel.
 
 Pour proposer une variation série par série (pyramide, drop set, RPE progressif…), ajoute le champ "setPlans" à l'exercice. Dans ce cas, "sets"/"reps"/"weight" deviennent les valeurs indicatives mais c'est "setPlans" qui fait foi :
 {"name":"Squat","weight":90,"reps":6,"sets":5,"setPlans":[{"weight":80,"reps":10},{"weight":90,"reps":8},{"weight":100,"reps":6},{"weight":100,"reps":6},{"weight":90,"reps":8}],"restSeconds":120,"coachNote":"Pyramide montante puis descendante"}
 
 Format séance run :
-{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Mercredi","coachNote":"...","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2"}
+{"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Mercredi","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2","sessionBrief":"Reste en zone 2 toute la sortie. Si la FC monte, ralentis plutôt que de forcer. C'est une séance de fond, pas d'effort."}
+
+- \`sessionBrief\` sur les runs = **mot du coach** (1-3 phrases) : l'objectif de la sortie et les points d'attention. Langage simple et direct. Jamais de tiret long (—). Jamais de jargon. Optionnel.
 
 ## MISE À JOUR MÉMOIRE (champ memory_update — optionnel)
 
