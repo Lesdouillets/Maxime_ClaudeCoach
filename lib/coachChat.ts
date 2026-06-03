@@ -109,6 +109,26 @@ export async function clearChatHistory(): Promise<void> {
   await saveChatHistory([]);
 }
 
+/** Archive current conversation then clear it. Throws on Supabase error (no silent loss). */
+export async function archiveChatHistory(): Promise<void> {
+  const messages = getChatHistory();
+  if (messages.length === 0) return;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("non authentifié");
+  const profileId = getActiveProfileId();
+  if (!profileId) throw new Error("profil manquant");
+
+  const { error } = await supabase.from("chat_archives").insert({
+    user_id: user.id,
+    profile_id: profileId,
+    messages,
+  });
+  if (error) throw new Error(error.message);
+
+  await saveChatHistory([]);
+}
+
 // ─── Context builders ─────────────────────────────────────────────────────────
 
 /** Get all future coach plans (from today onwards). The Edge Function handles
@@ -134,6 +154,10 @@ export interface ChatAttachments {
 export async function sendMessage(userText: string, attachments?: ChatAttachments): Promise<ChatMessage | null> {
   const profile = getActiveProfile();
   const profileName = profile?.name ?? "Maxime";
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
+  const profileId = getActiveProfileId() ?? null;
 
   // Build context
   const recentSessions = getSessions().slice(0, 5).map(compactSession);
@@ -172,6 +196,8 @@ export async function sendMessage(userText: string, attachments?: ChatAttachment
         previousAnalyses,
         today,
         coachMemory,
+        userId,
+        profileId,
         ...(attachments?.imageBase64 && {
           imageBase64: attachments.imageBase64,
           imageMimeType: attachments.imageMimeType,
