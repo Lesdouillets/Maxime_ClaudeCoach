@@ -123,7 +123,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden", position: "relative" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
@@ -212,11 +212,25 @@ export default function CoachPage() {
         )}
       </div>
 
+      {/* Gradient qui fait disparaître les messages derrière la zone basse (input + nav) */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 0, right: 0, bottom: 0,
+          height: "calc(280px + env(safe-area-inset-bottom, 0px))",
+          background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 50%)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
       {/* Barre d'input — flux normal, pas de position:fixed pour éviter le jitter iOS */}
       <div style={{
         flexShrink: 0,
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
-        background: "linear-gradient(to top, var(--color-background) 65%, transparent)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)",
+        position: "relative",
+        zIndex: 2,
       }}>
         <CoachInputBar
           value={input}
