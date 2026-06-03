@@ -35,7 +35,9 @@ CREATE TABLE chat_archives (
 -- RLS : chaque utilisateur ne voit que ses propres archives
 ALTER TABLE chat_archives ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "user_owns_archives" ON chat_archives
-  FOR ALL USING (auth.uid() = user_id);
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Note : l'Edge Function utilise la service role key (bypass RLS) —
+-- la policy protège uniquement les accès directs depuis le client.
 ```
 
 Pas de localStorage mirror pour les archives — elles sont uniquement consommées par l'Edge Function via Supabase, jamais lues côté client.
@@ -87,7 +89,7 @@ style={{ position: "absolute", top: 16, right: 20 }}
 style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 16px)", right: 20 }}
 ```
 
-- Gestion d'erreur visible si l'archivage échoue (état `archiveError: string | null`) — pas d'effacement silencieux.
+- Gestion d'erreur visible si l'archivage échoue : état `archiveError: string | null`, affiché en message inline sous le bouton archive, disparaît après 3 secondes. Pas d'effacement silencieux.
 
 ---
 
@@ -100,6 +102,8 @@ const { messages, ..., userId, profileId } = await req.json();
 ```
 
 `userId` et `profileId` sont passés par le client (même pattern que `profileName`, `coachMemory`, etc.).
+
+**Compromis de sécurité accepté :** l'Edge Function fait confiance au `userId` envoyé dans le body (pas de validation JWT). C'est le pattern existant de toute la fonction — risque acceptable pour une app mono-user personnelle.
 
 ### 2. Client Supabase admin dans l'Edge Function
 
@@ -148,20 +152,27 @@ Pour chaque archive : 2 premiers messages (contexte du sujet) + 4 derniers messa
 
 ```typescript
 function compactArchives(archives: { messages: unknown[]; archived_at: string }[]): string {
-  return archives.map((archive, i) => {
+  return archives.map((archive) => {
     const msgs = (archive.messages as Array<{ role: string; content: string; imageBase64?: string }>)
       .filter((m) => !m.imageBase64); // exclure les images
+    if (msgs.length === 0) return null; // conv 100% images — ignorer
+
     const head = msgs.slice(0, 2);
-    const tail = msgs.slice(-4);
-    const combined = [...head, ...(msgs.length > 6 ? [{ role: "system", content: "..." }] : []), ...tail];
+    // tail commence après head pour éviter les doublons si conv courte
+    const tail = msgs.slice(Math.max(2, msgs.length - 4));
+    const separator = msgs.length > 6 ? [{ role: "system", content: "..." }] : [];
+    const combined = [...head, ...separator, ...tail];
+
     const text = combined
       .map((m) => `${m.role === "user" ? "Utilisateur" : "Coach"}: ${m.content}`)
       .join("\n")
       .slice(0, 1500);
     const date = new Date(archive.archived_at).toLocaleDateString("fr-FR");
     return `--- Conversation archivée le ${date} ---\n${text}`;
-  }).join("\n\n");
+  }).filter(Boolean).join("\n\n");
 }
+// Fix : tail = msgs.slice(Math.max(2, msgs.length - 4)) évite le chevauchement
+// avec head quand la conversation est courte (< 6 messages).
 ```
 
 ### 6. Instruction dans le system prompt
@@ -211,6 +222,12 @@ User : "dans une précédente conversation tu m'avais dit..."
 | Archive pendant offline | INSERT échoue → erreur affichée, conv conservée intacte |
 | Conv vide (0 messages) | Bouton archive masqué (même logique que le bouton trash actuel) |
 | Faux positif du tool | Archives retournées, ~1100 tokens + ~1-2s latence — rare, acceptable |
+
+---
+
+## Dette connue
+
+- **Rétention illimitée** : la table `chat_archives` accumule toutes les archives sans nettoyage automatique. La query est limitée à 3 mais les données restent en base indéfiniment. Acceptable en mono-user ; à surveiller si l'usage s'intensifie.
 
 ---
 
