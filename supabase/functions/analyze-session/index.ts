@@ -154,6 +154,8 @@ Pour les \`modified_plans\` : adapte les séances de la semaine de récupératio
 4. Modifie les séances à venir si tu l'estimes utile — ou ne modifie rien si le programme est bien calibré
 5. Explique en 2-3 phrases ton analyse et ta décision (y compris si tu ne changes rien et pourquoi)
 
+**STYLE** : N'utilise JAMAIS le tiret long (—) dans le champ "analysis" ni dans les champs "sessionBrief". Utilise une virgule, un point ou reformule.
+
 ## FORMAT DE RÉPONSE — STRICT JSON UNIQUEMENT
 Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdown, sans commentaires :
 {
