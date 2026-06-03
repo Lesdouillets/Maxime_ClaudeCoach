@@ -13,7 +13,7 @@ import {
 import type { CompressedImage } from "@/lib/imageCompressor";
 import { TrashIcon } from "@/components/icons";
 import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
-import CoachInputBar from "@/components/coach/CoachInputBar";
+import CoachBottomBar from "@/components/coach/CoachBottomBar";
 import { getActiveProfile } from "@/lib/profiles";
 
 
@@ -137,7 +137,7 @@ export default function CoachPage() {
       {/* Zone messages scrollable */}
       {/* Évite une scrollbar fantôme sur l'état vide */}
       <div className="flex-1 px-4" style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 240px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 250px)",
         overflowY: isEmpty ? "hidden" : "auto",
         overscrollBehavior: "contain",
       }}>
@@ -216,24 +216,13 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Barre d'input — position:fixed comme la BottomNav, gradient identique.
-          Le body ne scrollant plus (html.coach-page), il n'y a pas de jitter iOS. */}
-      <div style={{
-        position: "fixed",
-        left: 0, right: 0,
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 58px)",
-        zIndex: 49,
-        paddingTop: "48px",
-        background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 40%)",
-      }}>
-        <CoachInputBar
-          value={input}
-          sending={sending}
-          textareaRef={textareaRef}
-          onChange={(v) => { setInput(v); adjustTextarea(); }}
-          onSend={(image) => handleSend(input, image)}
-        />
-      </div>
+      <CoachBottomBar
+        value={input}
+        sending={sending}
+        textareaRef={textareaRef}
+        onChange={(v) => { setInput(v); adjustTextarea(); }}
+        onSend={(image) => handleSend(input, image)}
+      />
 
       <style>{`
         @keyframes pulse-dot {

@@ -9,8 +9,8 @@ import { useTimer } from "@/contexts/TimerContext";
 import { ARCHIVO_WIDE_BOLD, JETBRAINS_MONO_TINY } from "@/lib/typography";
 import { formatMMSS } from "@/lib/formatting";
 
-const ACTIVE = "#FFFFFF";
-const MUTED  = "var(--color-muted)";
+export const ACTIVE = "#FFFFFF";
+export const MUTED  = "var(--color-muted)";
 
 const STRIP_STYLE: CSSProperties = {
   height: 48,
@@ -27,10 +27,9 @@ export type BottomNavState = "nav" | "hidden";
 
 interface BottomNavProps {
   state?: BottomNavState;
-  solidBackground?: boolean;
 }
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   {
     href: "/",
     label: "Home",
@@ -84,7 +83,7 @@ const NAV_ITEMS = [
   },
 ];
 
-function SessionStrip() {
+export function SessionStrip() {
   const session = useSession();
   const { timerKey, timerSec, timerTotalSec } = useTimer();
 
@@ -170,7 +169,7 @@ function SessionStrip() {
   );
 }
 
-export default function BottomNav({ state = "nav", solidBackground = false }: BottomNavProps) {
+export default function BottomNav({ state = "nav" }: BottomNavProps) {
   const pathname = usePathname();
   const [activating, setActivating] = useState<string | null>(null);
 
@@ -186,9 +185,7 @@ export default function BottomNav({ state = "nav", solidBackground = false }: Bo
     <div
       className="fixed left-0 right-0 bottom-0 z-nav"
       style={{
-        background: solidBackground
-          ? "var(--color-background)"
-          : "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000000 35%)",
+        background: "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000000 35%)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
