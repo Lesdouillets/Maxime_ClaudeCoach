@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toLocalDateStr } from "@/lib/plan";
-import { getCurrentUser } from "@/lib/sync";
+import { getCurrentUser, syncFull } from "@/lib/sync";
 import { getSessions, getRescheduledDays } from "@/lib/storage";
 import { useSession } from "@/contexts/SessionContext";
 import { useRunSheet } from "@/contexts/RunSheetContext";
@@ -90,6 +90,11 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true);
     refresh();
+    syncFull().then((result) => {
+      refresh();
+      // Si le mutex était pris (SyncProvider déjà en cours), on rattrape sa fin
+      if (!result.ok) setTimeout(refresh, 2500);
+    }).catch(() => {});
   }, [refresh]);
 
   if (!mounted) return null;
