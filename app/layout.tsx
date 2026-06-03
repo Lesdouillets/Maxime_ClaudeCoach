@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, JetBrains_Mono, Playfair_Display } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import SyncProvider from "@/components/SyncProvider";
 import GlobalUI from "@/components/GlobalUI";
@@ -53,7 +54,7 @@ export default function RootLayout({
   const env = process.env.NEXT_PUBLIC_ENV;
 
   return (
-    <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
+    <html lang="fr" suppressHydrationWarning className={`${archivo.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -62,7 +63,7 @@ export default function RootLayout({
         <link rel="icon" type="image/x-icon" sizes="32x32" href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/favicon.ico`} />
         <link rel="apple-touch-icon" sizes="180x180" href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/apple-touch-icon.png`} />
       </head>
-      <body className="bg-background text-white font-body antialiased">
+      <body className="bg-background font-body antialiased">
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
             window.addEventListener('load', () => {
@@ -87,12 +88,19 @@ export default function RootLayout({
             {env === "staging" ? "STG2" : "LOCAL"}
           </div>
         )}
-        <SyncProvider />
-        <GlobalUI>
-          <div className="pb-nav">
-            {children}
-          </div>
-        </GlobalUI>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          themes={['light', 'dark']}
+          storageKey="cc-theme"
+        >
+          <SyncProvider />
+          <GlobalUI>
+            <div className="pb-nav">
+              {children}
+            </div>
+          </GlobalUI>
+        </ThemeProvider>
       </body>
     </html>
   );
