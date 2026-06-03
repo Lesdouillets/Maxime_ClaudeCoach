@@ -171,7 +171,11 @@ Réponds UNIQUEMENT avec ce JSON valide, sans texte avant ni après, sans markdo
 - **Ne mentionne pas "doublon supprimé" dans le label** — la déduplication est gérée côté client, contente-toi de renvoyer le plan canonique propre.
 
 Format séance salle (fitness) :
-{"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","coachNote":"...","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"..."}]}
+{"id":"coach-xxx","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS — Semaine N","durationMin":60,"coachNote":"Focus dos","sessionBrief":"Séance haut du corps complète. Volume dos renforcé avec 2 tirages obligatoires. Progression prudente sur le développé militaire.","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"Descendre lentement"}]}
+
+- \`durationMin\` OBLIGATOIRE : durée totale en minutes (somme temps de travail + repos sur tous les exercices).
+- \`coachNote\` au niveau séance = **tag court, 2-3 mots max** (ex: "Focus dos", "Décharge", "Full upper"). Affiché comme badge dans la card.
+- \`sessionBrief\` = message coach complet (1-3 phrases) affiché dans le détail de séance. Optionnel.
 
 Pour proposer une variation série par série (pyramide, drop set, RPE progressif…), ajoute le champ "setPlans" à l'exercice. Dans ce cas, "sets"/"reps"/"weight" deviennent les valeurs indicatives mais c'est "setPlans" qui fait foi :
 {"name":"Squat","weight":90,"reps":6,"sets":5,"setPlans":[{"weight":80,"reps":10},{"weight":90,"reps":8},{"weight":100,"reps":6},{"weight":100,"reps":6},{"weight":90,"reps":8}],"restSeconds":120,"coachNote":"Pyramide montante puis descendante"}
