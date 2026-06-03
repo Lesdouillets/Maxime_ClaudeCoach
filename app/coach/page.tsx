@@ -137,11 +137,9 @@ export default function CoachPage() {
       {/* Zone messages scrollable */}
       {/* Évite une scrollbar fantôme sur l'état vide */}
       <div className="flex-1 px-4" style={{
-        paddingBottom: "120px",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 240px)",
         overflowY: isEmpty ? "hidden" : "auto",
         overscrollBehavior: "contain",
-        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 90%, transparent 100%)",
-        maskImage: "linear-gradient(to bottom, black 0%, black 90%, transparent 100%)",
       }}>
 
         {isEmpty ? (
@@ -218,10 +216,15 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Barre d'input — flux normal, pas de position:fixed pour éviter le jitter iOS */}
+      {/* Barre d'input — position:fixed comme la BottomNav, gradient identique.
+          Le body ne scrollant plus (html.coach-page), il n'y a pas de jitter iOS. */}
       <div style={{
-        flexShrink: 0,
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)",
+        position: "fixed",
+        left: 0, right: 0,
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 58px)",
+        zIndex: 49,
+        paddingTop: "48px",
+        background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 40%)",
       }}>
         <CoachInputBar
           value={input}
