@@ -27,6 +27,7 @@ export type BottomNavState = "nav" | "hidden";
 
 interface BottomNavProps {
   state?: BottomNavState;
+  solidBackground?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -169,7 +170,7 @@ function SessionStrip() {
   );
 }
 
-export default function BottomNav({ state = "nav" }: BottomNavProps) {
+export default function BottomNav({ state = "nav", solidBackground = false }: BottomNavProps) {
   const pathname = usePathname();
   const [activating, setActivating] = useState<string | null>(null);
 
@@ -185,7 +186,9 @@ export default function BottomNav({ state = "nav" }: BottomNavProps) {
     <div
       className="fixed left-0 right-0 bottom-0 z-nav"
       style={{
-        background: "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000000 35%)",
+        background: solidBackground
+          ? "var(--color-background)"
+          : "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000000 35%)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >

@@ -35,7 +35,7 @@ function BottomNavGate() {
   const pathname = usePathname();
   if (pathname.startsWith("/dev/")) return null;
   if (session.view === "expanded" || runSheet.view === "expanded") return null;
-  return <BottomNav state="nav" />;
+  return <BottomNav state="nav" solidBackground={pathname === "/coach"} />;
 }
 
 export default function GlobalUI({ children }: { children: React.ReactNode }) {
