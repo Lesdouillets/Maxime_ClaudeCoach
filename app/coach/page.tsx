@@ -41,20 +41,6 @@ export default function CoachPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
-  // Bloque le scroll body sur iOS PWA — scrollTo(0,0) avant le lock évite le saut de layout
-  useEffect(() => {
-    const savedY = window.scrollY;
-    window.scrollTo(0, 0);
-    document.body.style.position = "fixed";
-    document.body.style.top = "0";
-    document.body.style.width = "100%";
-    return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, savedY);
-    };
-  }, []);
 
   const handleSend = useCallback(async (text: string, image?: CompressedImage | null) => {
     const trimmed = text.trim();
@@ -132,7 +118,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden", marginBottom: "calc(-100px - env(safe-area-inset-bottom, 0px))" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
