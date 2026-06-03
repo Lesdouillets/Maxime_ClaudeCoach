@@ -30,7 +30,7 @@ export default function CoachBottomBar({ value, sending, textareaRef, onChange, 
       style={{
         position: "fixed",
         left: 0, right: 0, bottom: 0,
-        zIndex: 49,
+        zIndex: 50,
         paddingTop: "48px",
         background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 35%)",
       }}
