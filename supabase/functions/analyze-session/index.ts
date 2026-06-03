@@ -177,7 +177,7 @@ Format séance salle (fitness) :
 
 - \`durationMin\` OBLIGATOIRE : durée totale en minutes (somme temps de travail + repos sur tous les exercices).
 - \`coachNote\` au niveau séance = **tag court, 2-3 mots max** (ex: "Focus dos", "Décharge", "Full upper"). Affiché comme badge dans la card.
-- \`sessionBrief\` = **mot du coach** (1-3 phrases) : pourquoi on fait ça aujourd'hui, et sur quoi faire attention. PAS une description du programme (l'utilisateur le voit déjà). Langage simple et direct, comme un vrai coach parlerait. Jamais de tiret long (—). Jamais de jargon ("connexion esprit-muscle", "activation", "proprioception"...). À inclure sur chaque séance créée ou modifiée.
+- \`sessionBrief\` = mot du coach obligatoire (1-3 phrases) : l'intention de la séance et les points d'attention. Pas une description du programme. À inclure sur chaque séance créée ou modifiée.
 
 Pour proposer une variation série par série (pyramide, drop set, RPE progressif…), ajoute le champ "setPlans" à l'exercice. Dans ce cas, "sets"/"reps"/"weight" deviennent les valeurs indicatives mais c'est "setPlans" qui fait foi :
 {"name":"Squat","weight":90,"reps":6,"sets":5,"setPlans":[{"weight":80,"reps":10},{"weight":90,"reps":8},{"weight":100,"reps":6},{"weight":100,"reps":6},{"weight":90,"reps":8}],"restSeconds":120,"coachNote":"Pyramide montante puis descendante"}
@@ -185,7 +185,7 @@ Pour proposer une variation série par série (pyramide, drop set, RPE progressi
 Format séance run :
 {"id":"coach-run-xxx","date":"YYYY-MM-DD","type":"run","runType":"z2","label":"RUN Z2 — Mercredi","distanceKm":8,"pace":"6:00","targetHR":"112-149","targetZone":"Z2","sessionBrief":"Reste en zone 2 toute la sortie. Si la FC monte, ralentis plutôt que de forcer. C'est une séance de fond, pas d'effort."}
 
-- \`sessionBrief\` sur les runs = **mot du coach** (1-3 phrases) : l'objectif de la sortie et les points d'attention. Langage simple et direct. Jamais de tiret long (—). Jamais de jargon. À inclure sur chaque run créé ou modifié.
+- \`sessionBrief\` = mot du coach obligatoire (1-3 phrases) : l'intention de la séance et les points d'attention. Pas une description du programme. À inclure sur chaque run créé ou modifié.
 
 ## MISE À JOUR MÉMOIRE (champ memory_update — optionnel)
 
