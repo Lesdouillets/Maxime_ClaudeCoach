@@ -136,7 +136,13 @@ export default function CoachPage() {
 
       {/* Zone messages scrollable */}
       {/* Évite une scrollbar fantôme sur l'état vide */}
-      <div className="flex-1 px-4" style={{ paddingBottom: "100px", overflowY: isEmpty ? "hidden" : "auto", overscrollBehavior: "contain" }}>
+      <div className="flex-1 px-4" style={{
+        paddingBottom: "120px",
+        overflowY: isEmpty ? "hidden" : "auto",
+        overscrollBehavior: "contain",
+        WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
+        maskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
+      }}>
 
         {isEmpty ? (
           /* État vide — salutation */
@@ -212,25 +218,10 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Gradient qui fait disparaître les messages derrière la zone basse (input + nav) */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: 0, right: 0, bottom: 0,
-          height: "calc(280px + env(safe-area-inset-bottom, 0px))",
-          background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 50%)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
-
       {/* Barre d'input — flux normal, pas de position:fixed pour éviter le jitter iOS */}
       <div style={{
         flexShrink: 0,
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)",
-        position: "relative",
-        zIndex: 2,
       }}>
         <CoachInputBar
           value={input}
