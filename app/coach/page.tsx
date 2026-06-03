@@ -41,6 +41,15 @@ export default function CoachPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
+  // Bloque le scroll body sur iOS PWA — overflow:hidden sur html est fiable sans layout shift
+  useEffect(() => {
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   const handleSend = useCallback(async (text: string, image?: CompressedImage | null) => {
     const trimmed = text.trim();
@@ -118,7 +127,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, overflow: "hidden" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
