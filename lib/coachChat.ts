@@ -126,7 +126,12 @@ export async function archiveChatHistory(): Promise<void> {
   });
   if (error) throw new Error(error.message);
 
-  await saveChatHistory([]);
+  // Vider localement et forcer la synchronisation — une erreur ici est signalée
+  // (l'archive est déjà créée, on doit éviter l'incohérence local/remote)
+  _saveChatLocal([]);
+  try { await pushChatToSupabase(); } catch (err) {
+    throw new Error(`Archive créée mais échec du vidage Supabase : ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 // ─── Context builders ─────────────────────────────────────────────────────────
@@ -155,9 +160,13 @@ export async function sendMessage(userText: string, attachments?: ChatAttachment
   const profile = getActiveProfile();
   const profileName = profile?.name ?? "Maxime";
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id ?? null;
-  const profileId = getActiveProfileId() ?? null;
+  let userId: string | null = null;
+  let profileId: string | null = null;
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    userId = authUser?.id ?? null;
+    profileId = getActiveProfileId() ?? null;
+  } catch { /* auth indisponible — on envoie sans userId, le coach fonctionnera sans archives */ }
 
   // Build context
   const recentSessions = getSessions().slice(0, 5).map(compactSession);
