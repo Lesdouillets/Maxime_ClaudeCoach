@@ -195,6 +195,12 @@ textarea::placeholder {
   padding-bottom: calc(100px + env(safe-area-inset-bottom));
 }
 
+/* Annule pb-nav sur la page Coach — le scroll est géré dans le conteneur de messages,
+   pas dans le body. Sans ça, le body est scrollable et fait jitter le BottomNav sur iOS. */
+html.coach-page .pb-nav {
+  padding-bottom: 0;
+}
+
 /* Progress bar animation */
 @keyframes progress-fill {
   from { width: 0; }

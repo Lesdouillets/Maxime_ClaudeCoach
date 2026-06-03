@@ -30,6 +30,11 @@ export default function CoachPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    document.documentElement.classList.add("coach-page");
+    return () => document.documentElement.classList.remove("coach-page");
+  }, []);
+
+  useEffect(() => {
     setProfileName(getActiveProfile()?.name ?? null);
     setMessages(getChatHistory());
     loadChatFromSupabase().then(() => {
@@ -118,7 +123,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden", marginBottom: "calc(-100px - env(safe-area-inset-bottom, 0px))" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
