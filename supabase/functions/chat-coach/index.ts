@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 // Edge Function — conversation directe avec le coach Alex
 // Déployer : supabase functions deploy chat-coach --no-verify-jwt
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
@@ -6,6 +8,37 @@ const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Client admin — bypass RLS pour requêtes archives depuis l'Edge Function
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+type ArchiveRow = { messages: Array<{ role: string; content: string; imageBase64?: string }>; archived_at: string };
+
+function compactArchives(archives: ArchiveRow[]): string {
+  const parts = archives.map((archive) => {
+    const msgs = archive.messages.filter((m) => !m.imageBase64);
+    if (msgs.length === 0) return null;
+
+    const head = msgs.slice(0, 2);
+    // tail commence après head pour éviter les doublons sur les courtes convs
+    const tail = msgs.slice(Math.max(2, msgs.length - 4));
+    const separator = msgs.length > 6 ? [{ role: "system", content: "..." }] : [];
+    const combined = [...head, ...separator, ...tail];
+
+    const text = combined
+      .map((m) => m.role === "system" ? "..." : `${m.role === "user" ? "Utilisateur" : "Coach"}: ${m.content}`)
+      .join("\n")
+      .slice(0, 1500);
+
+    const date = new Date(archive.archived_at).toLocaleDateString("fr-FR");
+    return `--- Conversation archivée le ${date} ---\n${text}`;
+  }).filter(Boolean);
+
+  return parts.length > 0 ? parts.join("\n\n") : "Aucune conversation archivée.";
+}
 
 function buildSystemPrompt(profileName: string): string {
   return `Tu es Alex, coach sportif personnel de ${profileName}. Tu discutes directement avec lui pour ajuster ou créer son programme d'entraînement selon ses objectifs.
@@ -111,11 +144,12 @@ Quand un run \`isRace: true\` est dans le programme :
 
 ## OUTILS DISPONIBLES
 
-Tu disposes de 3 outils. Utilise-les comme un vrai coach qui planifie et mémorise :
+Tu disposes de 4 outils. Utilise-les comme un vrai coach qui planifie et mémorise :
 
 1. **propose_plan_batch** — quand tu crées ou modifies des séances. Toujours demander confirmation.
 2. **apply_plan_batch** — quand l'user confirme explicitement un plan ("ok", "valide", "go"). Résous les IDs depuis tes propose_plan_batch précédents dans cette conversation.
 3. **update_memory** — quand l'user mentionne une blessure, un objectif de course, une contrainte physique, ou que tu observes une tendance significative. PAS pour chaque échange.
+4. **fetch_previous_conversations** — quand l'user fait référence à une conversation passée ("dans une précédente conversation", "tu m'avais dit", "on avait parlé de", "tu te souviens quand"...). N'utilise PAS cet outil dans les échanges ordinaires.
 
 Si tu réponds juste à une question sans modifier le programme, n'appelle aucun outil.`;
 }
@@ -289,6 +323,19 @@ const COACH_TOOLS = [
       },
     },
   },
+  {
+    name: "fetch_previous_conversations",
+    description:
+      "Récupère les conversations archivées. " +
+      "À utiliser UNIQUEMENT si l'user fait référence à une discussion passée " +
+      "('dans une précédente conversation', 'tu m\\'avais dit', 'on avait parlé de', 'tu te souviens quand', etc.). " +
+      "Ne pas appeler dans les échanges ordinaires.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ] as const;
 
 function resolvePlansByIds(
@@ -408,6 +455,8 @@ Deno.serve(async (req: Request) => {
       coachMemory,
       imageBase64,
       imageMimeType,
+      userId,
+      profileId,
     } = body;
 
     // Validation type MIME image (même logique que analyze-session)
@@ -588,6 +637,25 @@ Deno.serve(async (req: Request) => {
           result.memory_update = input;
           toolResultContent = "Mémoire mise à jour.";
           console.log("[chat-coach] update_memory appelé");
+        } else if (name === "fetch_previous_conversations") {
+          if (!userId || !profileId) {
+            toolResultContent = "Aucune conversation archivée.";
+          } else {
+            const { data, error: archiveError } = await supabaseAdmin
+              .from("chat_archives")
+              .select("messages, archived_at")
+              .eq("user_id", userId)
+              .eq("profile_id", profileId)
+              .order("archived_at", { ascending: false })
+              .limit(3);
+
+            if (archiveError || !data || data.length === 0) {
+              toolResultContent = "Aucune conversation archivée.";
+            } else {
+              toolResultContent = compactArchives(data as ArchiveRow[]);
+            }
+          }
+          console.log("[chat-coach] fetch_previous_conversations appelé");
         }
 
         toolResults.push({ type: "tool_result", tool_use_id: id, content: toolResultContent });
