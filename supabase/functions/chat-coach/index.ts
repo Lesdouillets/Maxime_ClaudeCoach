@@ -649,13 +649,21 @@ Deno.serve(async (req: Request) => {
               .order("archived_at", { ascending: false })
               .limit(3);
 
-            if (archiveError || !data || data.length === 0) {
+            if (archiveError) {
+              console.error("[chat-coach] fetch_previous_conversations error:", archiveError.message);
+              toolResultContent = "Aucune conversation archivée.";
+            } else if (!data || data.length === 0) {
               toolResultContent = "Aucune conversation archivée.";
             } else {
               toolResultContent = compactArchives(data as ArchiveRow[]);
             }
           }
           console.log("[chat-coach] fetch_previous_conversations appelé");
+        }
+
+        if (!toolResultContent) {
+          toolResultContent = `Outil inconnu : ${name}`;
+          console.error("[chat-coach] outil non géré:", name);
         }
 
         toolResults.push({ type: "tool_result", tool_use_id: id, content: toolResultContent });
