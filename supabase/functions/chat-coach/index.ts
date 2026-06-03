@@ -81,10 +81,10 @@ Tu peux générer autant de séances que nécessaire pour un objectif ambitieux 
 {"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"run","runType":"course","label":"Semi-marathon Lyon","distanceKm":21.1,"durationMin":110,"targetHR":"149-168","isRace":true}
 
 **Séance fitness**
-{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS","durationMin":60,"coachNote":"Focus dos","sessionBrief":"Séance haut du corps complète. Volume dos renforcé avec 2 tirages obligatoires. Progression prudente sur le développé militaire.","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"Descendre lentement"}]}
+{"id":"coach-chat-YYYY-MM-DD-0","date":"YYYY-MM-DD","type":"fitness","category":"upper","label":"HAUT DU CORPS","durationMin":60,"coachNote":"Focus dos","sessionBrief":"Aujourd'hui on consolide la base. Travaille la connexion esprit-muscle sur chaque tirage, pas la charge. Si les épaules chauffent sur le développé militaire, réduis le poids sans hésiter.","exercises":[{"name":"Développé couché haltères","sets":4,"reps":8,"weight":20,"restSeconds":90,"coachNote":"Descendre lentement"}]}
 
-- \`coachNote\` au niveau séance = **tag court, 2-3 mots max** (ex: "Focus dos", "Décharge", "Full upper", "2 tirages"). Affiché comme badge dans la card.
-- \`sessionBrief\` = message coach complet (1-3 phrases) affiché dans le détail de séance. Optionnel mais recommandé.
+- \`coachNote\` au niveau séance = **tag court, 2-3 mots max** (ex: "Focus dos", "Décharge", "Full upper"). Affiché comme badge dans la card.
+- \`sessionBrief\` = **mot du coach** (1-3 phrases) : l'intention de la séance et les points d'attention — pourquoi on fait ça aujourd'hui, sur quoi concentrer l'effort ou la technique. PAS une description du programme (l'utilisateur le voit déjà). Optionnel mais recommandé.
 
 IMPORTANT : N'inclus JAMAIS le champ "setPlans" dans tes réponses. Utilise uniquement sets/reps/weight.
 
