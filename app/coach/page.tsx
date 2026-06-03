@@ -41,13 +41,18 @@ export default function CoachPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
-  // Bloque le scroll body sur iOS PWA — overflow:hidden sur html est fiable sans layout shift
+  // Bloque le scroll body sur iOS PWA — scrollTo(0,0) avant le lock évite le saut de layout
   useEffect(() => {
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
+    const savedY = window.scrollY;
+    window.scrollTo(0, 0);
+    document.body.style.position = "fixed";
+    document.body.style.top = "0";
+    document.body.style.width = "100%";
     return () => {
-      document.documentElement.style.overflow = "";
-      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, savedY);
     };
   }, []);
 
