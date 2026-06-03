@@ -161,7 +161,8 @@ export default function CoachPage() {
               width: 44,
               height: 44,
               borderRadius: "50%",
-              background: "rgba(255,255,255,0.07)",
+              background: "var(--color-surface-2)",
+              border: "1px solid rgba(242, 244, 247, 0.30)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -169,7 +170,7 @@ export default function CoachPage() {
             }}
             aria-label="Archiver la conversation"
           >
-            <ArchiveIcon size={18} color="var(--color-muted)" />
+            <ArchiveIcon size={18} color="#ffffff" />
           </button>
           {archiveError && (
             <p style={{ fontSize: 11, color: "#ff6b6b", maxWidth: 160, textAlign: "left" }}>
