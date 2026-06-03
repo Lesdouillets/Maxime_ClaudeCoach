@@ -457,7 +457,7 @@ export default function SessionSheet() {
                 onOpenSession={() => {}}
                 variant="embedded"
               />
-              <SessionBriefCard brief={sessionCoachWorkout?.sessionBrief} />
+              <SessionBriefCard brief={sessionCoachWorkout?.sessionBrief ?? sessionCoachWorkout?.coachNote} />
               <div className="flex items-center justify-between px-1 pt-1">
                 <span style={JETBRAINS_MONO_LABEL}>PROGRAMME</span>
                 <span style={JETBRAINS_MONO_LABEL}>

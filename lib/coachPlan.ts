@@ -202,7 +202,7 @@ function parseFitness(data: Record<string, unknown>, index = 0): CoachWorkout {
     label: String(data.label ?? (data.category === "lower" ? "BAS DU CORPS" : "HAUT DU CORPS")),
     coachNote: data.coachNote != null ? String(data.coachNote) : (data.note != null ? String(data.note) : undefined),
     sessionBrief: data.sessionBrief != null ? String(data.sessionBrief) : undefined,
-    durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
+    durationMin: data.durationMin != null && !isNaN(Number(data.durationMin)) ? Number(data.durationMin) : undefined,
     exercises: (data.exercises as Record<string, unknown>[]).map((ex) => {
       const setPlans = Array.isArray(ex.setPlans)
         ? (ex.setPlans as Record<string, unknown>[]).map((sp) => ({
@@ -238,7 +238,7 @@ function parseRun(data: Record<string, unknown>, index = 0): CoachRun {
     pace: data.pace != null ? String(data.pace) : undefined,
     targetHR: data.targetHR != null ? String(data.targetHR) : undefined,
     targetZone: data.targetZone != null ? String(data.targetZone) : undefined,
-    durationMin: data.durationMin != null ? Number(data.durationMin) : undefined,
+    durationMin: data.durationMin != null && !isNaN(Number(data.durationMin)) ? Number(data.durationMin) : undefined,
     isRace: data.isRace === true,
     runType: isRunType(data.runType) ? data.runType : undefined,
     userNote: data.userNote != null ? String(data.userNote) : undefined,
