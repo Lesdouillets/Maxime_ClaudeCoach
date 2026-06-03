@@ -4,14 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   getChatHistory,
   sendMessage,
-  clearChatHistory,
+  archiveChatHistory,
   loadChatFromSupabase,
   applyPendingPlans,
   type ChatMessage,
   type ChatAttachments,
 } from "@/lib/coachChat";
 import type { CompressedImage } from "@/lib/imageCompressor";
-import { TrashIcon } from "@/components/icons";
+import { ArchiveIcon } from "@/components/icons";
 import CoachMessageBubble from "@/components/coach/CoachMessageBubble";
 import CoachBottomBar from "@/components/coach/CoachBottomBar";
 import { getActiveProfile } from "@/lib/profiles";
@@ -21,7 +21,8 @@ export default function CoachPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [clearing, setClearing] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [adaptMsg, setAdaptMsg] = useState<string | null>(null);
   const [failedMessage, setFailedMessage] = useState<{ id: string; text: string; image: CompressedImage | null } | null>(null);
@@ -91,12 +92,20 @@ export default function CoachPage() {
     await handleSend(text, image);
   }, [failedMessage, sending, handleSend]);
 
-  const handleClear = async () => {
-    if (clearing) return;
-    setClearing(true);
-    await clearChatHistory();
-    setMessages([]);
-    setClearing(false);
+  const handleArchive = async () => {
+    if (archiving) return;
+    setArchiving(true);
+    setArchiveError(null);
+    try {
+      await archiveChatHistory();
+      setMessages([]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'archivage";
+      setArchiveError(msg);
+      setTimeout(() => setArchiveError(null), 3000);
+    } finally {
+      setArchiving(false);
+    }
   };
 
   const handleApply = async (msgId: string) => {
@@ -125,12 +134,32 @@ export default function CoachPage() {
   return (
     <div className="flex flex-col" style={{ height: "100dvh", overflow: "hidden", position: "relative" }}>
 
-      {/* Bouton clear — visible uniquement quand il y a des messages */}
+      {/* Bouton archive — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
-        <div style={{ position: "absolute", top: 16, right: 20, zIndex: 10 }}>
-          <button onClick={handleClear} disabled={clearing} className="press-effect" style={{ padding: 8, opacity: clearing ? 0.4 : 1 }} aria-label="Effacer l'historique">
-            <TrashIcon size={18} color="var(--color-muted)" />
+        <div style={{
+          position: "absolute",
+          top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+          right: 20,
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 4,
+        }}>
+          <button
+            onClick={handleArchive}
+            disabled={archiving}
+            className="press-effect"
+            style={{ padding: 8, opacity: archiving ? 0.4 : 1 }}
+            aria-label="Archiver la conversation"
+          >
+            <ArchiveIcon size={18} color="var(--color-muted)" />
           </button>
+          {archiveError && (
+            <p style={{ fontSize: 11, color: "#ff6b6b", maxWidth: 160, textAlign: "right" }}>
+              {archiveError}
+            </p>
+          )}
         </div>
       )}
 
