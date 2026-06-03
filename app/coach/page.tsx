@@ -146,24 +146,33 @@ export default function CoachPage() {
         <div style={{
           position: "absolute",
           top: "calc(env(safe-area-inset-top, 0px) + 16px)",
-          right: 20,
+          left: 16,
           zIndex: 10,
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-end",
+          alignItems: "flex-start",
           gap: 4,
         }}>
           <button
             onClick={handleArchive}
             disabled={archiving}
             className="press-effect"
-            style={{ padding: 8, opacity: archiving ? 0.4 : 1 }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.07)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: archiving ? 0.4 : 1,
+            }}
             aria-label="Archiver la conversation"
           >
             <ArchiveIcon size={18} color="var(--color-muted)" />
           </button>
           {archiveError && (
-            <p style={{ fontSize: 11, color: "#ff6b6b", maxWidth: 160, textAlign: "right" }}>
+            <p style={{ fontSize: 11, color: "#ff6b6b", maxWidth: 160, textAlign: "left" }}>
               {archiveError}
             </p>
           )}
