@@ -162,7 +162,7 @@ export default function CoachPage() {
               height: 44,
               borderRadius: "50%",
               background: "var(--color-surface-2)",
-              border: "1px solid rgba(242, 244, 247, 0.30)",
+              border: "1px solid var(--color-white-25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -170,10 +170,10 @@ export default function CoachPage() {
             }}
             aria-label="Archiver la conversation"
           >
-            <ArchiveIcon size={18} color="#ffffff" />
+            <ArchiveIcon size={18} color="white" />
           </button>
           {archiveError && (
-            <p style={{ fontSize: 11, color: "#ff6b6b", maxWidth: 160, textAlign: "left" }}>
+            <p style={{ fontSize: 11, color: "var(--color-error)", maxWidth: 160, textAlign: "left" }}>
               {archiveError}
             </p>
           )}
