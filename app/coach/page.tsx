@@ -41,19 +41,6 @@ export default function CoachPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
-  // Bloque le scroll du body sur la page Coach — position:fixed sur le wrapper est la méthode la plus fiable
-  useEffect(() => {
-    const y = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${y}px`;
-    document.body.style.width = "100%";
-    return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, y);
-    };
-  }, []);
 
   const handleSend = useCallback(async (text: string, image?: CompressedImage | null) => {
     const trimmed = text.trim();
@@ -131,7 +118,7 @@ export default function CoachPage() {
   const isEmpty = messages.length === 0 && !sending;
 
   return (
-    <div className="flex flex-col" style={{ height: "100dvh", position: "relative", overflow: "hidden" }}>
+    <div className="flex flex-col" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, overflow: "hidden" }}>
 
       {/* Bouton clear — visible uniquement quand il y a des messages */}
       {messages.length > 0 && (
