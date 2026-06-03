@@ -78,7 +78,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
 
       {exercise.comment && exercise.comment.trim() !== "" && (
         <button onClick={onOpenNote} className="w-full text-left px-4 pb-2 press-effect">
-          <p className="text-xs italic" style={{ color: "#aaa" }}>✎ {exercise.comment}</p>
+          <p className="text-xs italic" style={{ color: "var(--color-white-65)" }}>✎ {exercise.comment}</p>
         </button>
       )}
 
@@ -117,7 +117,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
               }}
             >
               <div className="flex-1">
-                <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 18, lineHeight: 1, color: isDone ? "#fff" : isActiveRow ? "var(--color-neon)" : "var(--color-dim)" }}>
+                <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 18, lineHeight: 1, color: isDone ? "var(--color-text)" : isActiveRow ? "var(--color-neon)" : "var(--color-dim)" }}>
                   {String(idx + 1).padStart(2, "0")}
                 </span>
               </div>
@@ -125,7 +125,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
               <div className="flex-1">
                 {isDone ? (
                   <div className="rounded-lg w-full" style={{ border: "1px solid transparent" }}>
-                    <p className="text-center" style={{ ...NUM_STYLE, color: "#fff" }}>
+                    <p className="text-center" style={{ ...NUM_STYLE, color: "var(--color-text)" }}>
                       {set.reps}
                     </p>
                   </div>
@@ -153,7 +153,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
               <div className="flex-1">
                 {isDone ? (
                   <div className="rounded-lg w-full" style={{ border: "1px solid transparent" }}>
-                    <p className="text-center" style={{ ...NUM_STYLE, color: "#fff" }}>
+                    <p className="text-center" style={{ ...NUM_STYLE, color: "var(--color-text)" }}>
                       {set.weight > 0 ? set.weight : "—"}
                     </p>
                   </div>

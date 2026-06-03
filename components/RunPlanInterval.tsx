@@ -62,7 +62,7 @@ function RepBlock({ seg }: { seg: CoachRunInterval }) {
       <div className="flex">
         <div className="flex-1">
           <p style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-neon)" }}>ALLURE / KM</p>
-          <p className="font-display leading-none mt-2" style={{ fontSize: 16, color: "#fff" }}>{seg.pace ?? "—"}</p>
+          <p className="font-display leading-none mt-2" style={{ fontSize: 16, color: "var(--color-text)" }}>{seg.pace ?? "—"}</p>
         </div>
         {seg.restSeconds != null && (
           <div className="flex-1" style={{ borderLeft: "1px solid var(--color-subtle)", paddingLeft: 16 }}>

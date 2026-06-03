@@ -5,7 +5,7 @@ import type { DaySlot } from "@/lib/weekProgram";
 import type { CSSProperties } from "react";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 
-const DAY_LETTER_TODAY: CSSProperties = { ...JETBRAINS_MONO_LABEL, color: "#fff" };
+const DAY_LETTER_TODAY: CSSProperties = { ...JETBRAINS_MONO_LABEL, color: "var(--color-text)" };
 const DAY_LETTER_MUTED: CSSProperties = { ...JETBRAINS_MONO_LABEL, color: "var(--color-muted)" };
 
 export interface WeekProgramProps {

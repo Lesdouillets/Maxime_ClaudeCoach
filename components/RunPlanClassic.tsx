@@ -16,7 +16,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <span style={{ ...JETBRAINS_MONO_DATA, color: "var(--color-secondary)", fontSize: 11 }}>
         {label}
       </span>
-      <span className="font-display leading-none" style={{ fontSize: 16, color: "#fff" }}>{value}</span>
+      <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-text)" }}>{value}</span>
     </div>
   );
 }

@@ -95,7 +95,7 @@ export default function NoteModal({ open, initialValue, onClose, onSave }: NoteM
           style={{
             background: "var(--color-surface-3)",
             border: "1px solid var(--color-subtle)",
-            color: "#eee",
+            color: "var(--color-text)",
             fontSize: 14,
             minHeight: 160,
           }}

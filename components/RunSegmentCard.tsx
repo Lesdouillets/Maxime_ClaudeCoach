@@ -15,10 +15,10 @@ export default function RunSegmentCard({ seg }: Props) {
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)" }}
     >
       <div className="flex items-baseline justify-between">
-        <p className="font-display leading-none" style={{ fontSize: 16, color: "#fff" }}>
+        <p className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-text)" }}>
           {seg.label ?? segDistLabel(seg)}
         </p>
-        <span className="font-display leading-none" style={{ fontSize: 16, color: "#fff" }}>
+        <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-text)" }}>
           {segDuration(seg)}
         </span>
       </div>
