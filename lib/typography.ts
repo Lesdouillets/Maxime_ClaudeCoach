@@ -12,7 +12,7 @@ export const EXERCISE_NAME_STYLE: CSSProperties = {
   ...ARCHIVO_WIDE_BOLD,
   fontSize: 18,
   lineHeight: "22px",
-  color: "#fff",
+  color: "var(--color-text)",
 };
 
 // Base partagée JetBrains Mono 12px — LABEL et DATA en dérivent
@@ -48,12 +48,12 @@ export const STAT_VALUE_STYLE: CSSProperties = {
   fontSize: 22,
   lineHeight: "22px",
   letterSpacing: 0,
-  color: "#fff",
+  color: "var(--color-text)",
 };
 
 // Unité associée à une valeur de stat (9px mono)
 export const STAT_UNIT_STYLE: CSSProperties = {
   ...JETBRAINS_MONO_TINY,
-  color: "#888",
+  color: "var(--color-secondary)",
   marginLeft: 2,
 };
