@@ -31,12 +31,12 @@ export default function LogFitness() {
   return (
     <div className="max-w-md mx-auto animate-fade-in pb-24">
       <div className="px-5 pt-12">
-        <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+        <div className="rounded-2xl p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}>
           <p className="text-sm text-muted">Aucun plan coach pour cette date.</p>
           <button
             onClick={() => router.push("/")}
             className="mt-3 w-full py-2.5 rounded-xl text-sm press-effect"
-            style={{ background: "transparent", border: "1px solid #1a1a1a", color: "#888" }}
+            style={{ background: "transparent", border: "1px solid var(--color-surface-2)", color: "var(--color-secondary)" }}
           >
             Retour
           </button>

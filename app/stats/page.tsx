@@ -74,13 +74,13 @@ export default function StatsPage() {
 
         {/* Summary row */}
         <div className="grid grid-cols-2 gap-3">
-          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="#CDFF00" />
+          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="var(--color-neon)" />
           <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="var(--color-orange)" />
           <BigStat
             value={avgPace ? `${Math.floor(avgPace / 60)}:${String(Math.round(avgPace % 60)).padStart(2, "0")}` : "—"}
             unit="/km"
             label="Allure moyenne"
-            accent="#CDFF00"
+            accent="var(--color-neon)"
           />
           <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="var(--color-orange)" />
         </div>
@@ -88,7 +88,7 @@ export default function StatsPage() {
         {/* Tab selector */}
         <div
           className="flex rounded-2xl p-1 gap-1"
-          style={{ background: "#111", border: "1px solid #1a1a1a" }}
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
         >
           {(["runs", "fitness", "weight"] as const).map((t) => (
             <button
@@ -96,8 +96,8 @@ export default function StatsPage() {
               onClick={() => setTab(t)}
               className="flex-1 py-2 rounded-xl text-xs font-bold tracking-wide press-effect capitalize"
               style={{
-                background: tab === t ? "#1a1a1a" : "transparent",
-                color: tab === t ? "#CDFF00" : "#555",
+                background: tab === t ? "var(--color-surface-2)" : "transparent",
+                color: tab === t ? "var(--color-neon-text)" : "var(--color-muted)",
                 border: tab === t ? "1px solid rgba(205,255,0,0.2)" : "1px solid transparent",
               }}
             >
@@ -113,16 +113,16 @@ export default function StatsPage() {
               {weeklyRunData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={150}>
                   <BarChart data={weeklyRunData} barSize={20}>
-                    <CartesianGrid stroke="#1a1a1a" vertical={false} />
-                    <XAxis dataKey="week" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
+                    <CartesianGrid stroke="var(--color-surface-2)" vertical={false} />
+                    <XAxis dataKey="week" tick={{ fill: "var(--color-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--color-muted)", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#888", fontSize: 11 }}
-                      itemStyle={{ color: "#CDFF00" }}
+                      contentStyle={{ background: "var(--color-surface-2)", border: "1px solid var(--color-subtle)", borderRadius: 8 }}
+                      labelStyle={{ color: "var(--color-secondary)", fontSize: 11 }}
+                      itemStyle={{ color: "var(--color-neon-text)" }}
                       formatter={(v: number) => [`${v.toFixed(1)} km`, ""]}
                     />
-                    <Bar dataKey="km" fill="#CDFF00" opacity={0.85} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="km" fill="var(--color-neon)" opacity={0.85} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -136,14 +136,14 @@ export default function StatsPage() {
                   <AreaChart data={paceChartData}>
                     <defs>
                       <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#CDFF00" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#CDFF00" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--color-neon)" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="var(--color-neon)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#1a1a1a" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fill: "#555", fontSize: 9 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid stroke="var(--color-surface-2)" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "var(--color-muted)", fontSize: 9 }} axisLine={false} tickLine={false} />
                     <YAxis
-                      tick={{ fill: "#555", fontSize: 10 }}
+                      tick={{ fill: "var(--color-muted)", fontSize: 10 }}
                       axisLine={false}
                       tickLine={false}
                       width={36}
@@ -155,15 +155,15 @@ export default function StatsPage() {
                       tickFormatter={(v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`}
                     />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#888", fontSize: 11 }}
-                      itemStyle={{ color: "#CDFF00" }}
+                      contentStyle={{ background: "var(--color-surface-2)", border: "1px solid var(--color-subtle)", borderRadius: 8 }}
+                      labelStyle={{ color: "var(--color-secondary)", fontSize: 11 }}
+                      itemStyle={{ color: "var(--color-neon-text)" }}
                       formatter={(v: number) => [
                         `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}/km`,
                         "Allure",
                       ]}
                     />
-                    <Area type="monotone" dataKey="pace" stroke="#CDFF00" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="pace" stroke="var(--color-neon)" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -183,7 +183,7 @@ export default function StatsPage() {
               <ExerciseWeightCard title="BAS DU CORPS" exercises={lastWeights.lower} />
             )}
             {lastWeights.upper.length === 0 && lastWeights.lower.length === 0 && (
-              <div className="rounded-2xl p-6 text-center" style={{ background: "#111", border: "1px dashed #222" }}>
+              <div className="rounded-2xl p-6 text-center" style={{ background: "var(--color-surface)", border: "1px dashed var(--color-surface-3)" }}>
                 <p className="text-muted text-sm">Aucune séance de salle</p>
               </div>
             )}
@@ -195,7 +195,7 @@ export default function StatsPage() {
           <div className="space-y-5 animate-fade-in">
             <div
               className="rounded-2xl p-4 flex gap-3"
-              style={{ background: "#111", border: "1px solid #1a1a1a" }}
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
             >
               <div className="flex-1">
                 <label className="text-xs text-muted uppercase tracking-wide block mb-2">
@@ -208,7 +208,7 @@ export default function StatsPage() {
                     onChange={(e) => setNewWeight(e.target.value)}
                     placeholder="75.5"
                     className="bg-transparent border-none p-0 font-display text-4xl w-24 focus:outline-none"
-                    style={{ color: "white" }}
+                    style={{ color: "var(--color-text)" }}
                     step="0.1"
                   />
                   <span className="text-base text-muted pb-1.5">kg</span>
@@ -219,8 +219,8 @@ export default function StatsPage() {
                 disabled={!newWeight}
                 className="self-end px-4 py-2.5 rounded-xl text-sm font-bold press-effect disabled:opacity-40"
                 style={{
-                  background: "linear-gradient(135deg, #CDFF00, #1a7a09)",
-                  color: "#0a0a0a",
+                  background: "linear-gradient(135deg, var(--color-neon), #1a7a09)",
+                  color: "#0a0a0a", /* texte sombre sur fond neon — intentionnel */
                 }}
               >
                 Ajouter
@@ -236,21 +236,21 @@ export default function StatsPage() {
                   }))}>
                     <defs>
                       <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#CDFF00" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#CDFF00" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--color-neon)" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="var(--color-neon)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#1a1a1a" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 9 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={30}
+                    <CartesianGrid stroke="var(--color-surface-2)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fill: "var(--color-muted)", fontSize: 9 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--color-muted)", fontSize: 10 }} axisLine={false} tickLine={false} width={30}
                       domain={["auto", "auto"]}
                     />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#888", fontSize: 11 }}
+                      contentStyle={{ background: "var(--color-surface-2)", border: "1px solid var(--color-subtle)", borderRadius: 8 }}
+                      labelStyle={{ color: "var(--color-secondary)", fontSize: 11 }}
                       formatter={(v: number) => [`${v} kg`, "Poids"]}
                     />
-                    <Area type="monotone" dataKey="kg" stroke="#CDFF00" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="kg" stroke="var(--color-neon)" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -261,12 +261,12 @@ export default function StatsPage() {
                 <div
                   key={i}
                   className="flex justify-between items-center py-3 px-4 rounded-xl"
-                  style={{ background: "#111", border: "1px solid #1a1a1a" }}
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
                 >
                   <span className="text-sm text-muted">
                     {new Date(entry.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
                   </span>
-                  <span className="font-display text-2xl" style={{ color: "#CDFF00" }}>
+                  <span className="font-display text-2xl" style={{ color: "var(--color-neon-text)" }}>
                     {entry.kg}
                     <span className="text-sm text-muted ml-1">kg</span>
                   </span>
@@ -286,7 +286,7 @@ export default function StatsPage() {
 
 function BigStat({ value, unit, label, accent }: { value: string; unit: string; label: string; accent: string }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+    <div className="rounded-2xl p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}>
       <div className="flex items-end gap-1 mb-1">
         <span className="font-display text-4xl leading-none" style={{ color: accent }}>{value}</span>
         {unit && <span className="text-sm pb-1" style={{ color: accent, opacity: 0.6 }}>{unit}</span>}
@@ -298,7 +298,7 @@ function BigStat({ value, unit, label, accent }: { value: string; unit: string; 
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+    <div className="rounded-2xl p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}>
       <p className="text-xs text-muted uppercase tracking-widest mb-3">{title}</p>
       {children}
     </div>
@@ -321,24 +321,24 @@ function ExerciseWeightCard({
   exercises: { name: string; weight: number; sets: number; reps: number }[];
 }) {
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}>
       <div className="px-4 pt-3 pb-2">
         <p className="text-xs text-muted uppercase tracking-widest">{title}</p>
       </div>
       {exercises.map((ex, i) => (
         <div key={ex.name}>
-          {i > 0 && <div className="mx-4 h-px" style={{ background: "#161616" }} />}
+          {i > 0 && <div className="mx-4 h-px" style={{ background: "var(--color-surface-0)" }} />}
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-sm font-medium" style={{ color: "#ccc" }}>{ex.name}</span>
+            <span className="text-sm font-medium" style={{ color: "var(--color-white-85)" }}>{ex.name}</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-xs" style={{ color: "#444" }}>
+              <span className="text-xs" style={{ color: "var(--color-dim)" }}>
                 {ex.sets}×{ex.reps}
               </span>
               <span className="font-display text-lg leading-none" style={{ color: "var(--color-orange)" }}>
                 {ex.weight > 0 ? (
                   <>{ex.weight}<span className="text-xs ml-0.5" style={{ color: "var(--color-orange)", opacity: 0.6 }}>kg</span></>
                 ) : (
-                  <span className="text-sm" style={{ color: "#444" }}>PC</span>
+                  <span className="text-sm" style={{ color: "var(--color-dim)" }}>PC</span>
                 )}
               </span>
             </div>

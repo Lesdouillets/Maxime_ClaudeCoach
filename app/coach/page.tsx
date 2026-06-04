@@ -207,7 +207,7 @@ export default function CoachPage() {
                 style={{
                   fontFamily: "var(--font-serif-display)",
                   fontWeight: 400,
-                  color: "#ffffff",
+                  color: "var(--color-text)",
                   fontSize: 18,
                   marginTop: 12,
                   lineHeight: 1.4,
@@ -235,7 +235,7 @@ export default function CoachPage() {
             {/* Message temporaire Adapter (non persisté dans l'historique) */}
             {adaptMsg && (
               <div className="flex justify-start">
-                <p style={{ color: "#ffffff", fontSize: 15, whiteSpace: "pre-wrap" }}>{adaptMsg}</p>
+                <p style={{ color: "var(--color-text)", fontSize: 15, whiteSpace: "pre-wrap" }}>{adaptMsg}</p>
               </div>
             )}
 

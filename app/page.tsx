@@ -149,7 +149,7 @@ export default function HomePage() {
   const { days: weekDays } = buildWeekDays(todayStr, coachWorkouts, coachRuns, sessions);
 
   return (
-    <div className="pb-nav" style={{ background: "#0d0d0d" }}>
+    <div className="pb-nav" style={{ background: "var(--color-surface-0)" }}>
 
       {/* ── Header ── */}
       <div
@@ -168,12 +168,12 @@ export default function HomePage() {
             lineHeight: "12px",
             letterSpacing: "0.10em",
             textTransform: "uppercase",
-            color: "#555",
+            color: "var(--color-muted)",
           }}>
             {dateLabel}
           </p>
           {/* Titre */}
-          <h1 style={{ ...TITLE_FONT, fontSize: 28, lineHeight: "32px", color: "#fff" }}>
+          <h1 style={{ ...TITLE_FONT, fontSize: 28, lineHeight: "32px", color: "var(--color-text)" }}>
             Bonjour{firstName ? ` ${firstName}` : ""}
           </h1>
         </div>
@@ -189,13 +189,13 @@ export default function HomePage() {
             marginTop: 2,
           }}
         >
-          <AccountIcon size={20} color="#aaa" />
+          <AccountIcon size={20} color="var(--color-white-65)" />
           <span style={{
             position: "absolute", bottom: 2, right: 2,
             width: 8, height: 8, borderRadius: "50%",
-            background: authUser ? "#CDFF00" : "#333",
-            border: "1.5px solid #0d0d0d",
-            boxShadow: authUser ? "0 0 4px #CDFF00" : "none",
+            background: authUser ? "var(--color-neon)" : "var(--color-subtle)",
+            border: "1.5px solid var(--color-surface-0)",
+            boxShadow: authUser ? "0 0 4px var(--color-neon)" : "none",
           }} />
         </Link>
       </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <p style={MONO_LABEL}>{weekRangeLabel}</p>
             <Link href="/plan">
-              <ArrowForwardIcon size={16} color="#555" />
+              <ArrowForwardIcon size={16} color="var(--color-muted)" />
             </Link>
           </div>
           <WeekProgram
