@@ -25,7 +25,8 @@ const CONTENT_COL_STYLE: CSSProperties = { padding: 12, display: "flex", flexDir
 const TITLE_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "center", gap: 6 };
 const STATS_ROW_STYLE: CSSProperties = { display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "nowrap" };
 const STAT_GROUP_STYLE: CSSProperties = { display: "flex", alignItems: "baseline", gap: 4, flexShrink: 0 };
-const SEPARATOR_STYLE: CSSProperties = { color: "var(--color-dim)", fontSize: 14, lineHeight: "22px" };
+/* Séparateur sur fond photo sombre — blanc semi-transparent fixe */
+const SEPARATOR_STYLE: CSSProperties = { color: "rgba(255,255,255,0.35)", fontSize: 14, lineHeight: "22px" };
 const CHECK_ICON_STYLE: CSSProperties = { display: "inline", verticalAlign: "middle", marginLeft: 8, flexShrink: 0 };
 const DIVIDER_STYLE: CSSProperties = { height: 1, background: "var(--color-white-10)" };
 
@@ -44,8 +45,9 @@ function Separator() {
 function StatGroup({ value, unit, color }: { value: string | number; unit: string; color?: string }) {
   return (
     <span style={STAT_GROUP_STYLE}>
-      <span style={{ ...STAT_VALUE_STYLE, color: color ?? "var(--color-text)" }}>{value}</span>
-      <span style={STAT_UNIT_STYLE}>{unit}</span>
+      {/* Texte sur fond photo sombre — blanc fixe intentionnel */}
+      <span style={{ ...STAT_VALUE_STYLE, color: color ?? "#ffffff" }}>{value}</span>
+      <span style={{ ...STAT_UNIT_STYLE, color: "rgba(255,255,255,0.55)" }}>{unit}</span>
     </span>
   );
 }
@@ -65,7 +67,8 @@ function RestCard() {
       <img src={IMAGES.rest} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: GRADIENT }} />
       <div className="absolute bottom-0 left-0 right-0" style={CONTENT_COL_STYLE}>
-        <h2 style={{ ...TITLE_STYLE, color: "var(--color-text)" }}>Repos</h2>
+        {/* Titre sur fond photo sombre — blanc fixe intentionnel */}
+        <h2 style={{ ...TITLE_STYLE, color: "#ffffff" }}>Repos</h2>
         <div style={DIVIDER_STYLE} />
         <p className="text-center text-sm font-semibold text-muted">On recharge les batteries</p>
       </div>
@@ -104,7 +107,8 @@ export function RunCard({ todayCoachRun, todaySession, onOpenRun, variant = "def
 
       <div className="absolute bottom-0 left-0 right-0" style={CONTENT_COL_STYLE}>
         <div style={TITLE_ROW_STYLE}>
-          <span style={{ ...TITLE_STYLE, color: isDone ? "var(--color-neon)" : "var(--color-text)" }}>
+          {/* Titre sur fond photo sombre — blanc fixe si non fait, neon si fait */}
+          <span style={{ ...TITLE_STYLE, color: isDone ? "var(--color-neon)" : "#ffffff" }}>
             {todayCoachRun?.label ?? "Run"}
           </span>
           {isDone && <CheckIcon />}
@@ -162,7 +166,8 @@ export function RunCard({ todayCoachRun, todaySession, onOpenRun, variant = "def
         {variant === "default" && (
           <>
             <div style={DIVIDER_STYLE} />
-            <p className="text-center text-sm font-semibold" style={{ color: "var(--color-white-65)" }}>Voir le détail ›</p>
+            {/* Texte sur fond photo sombre — blanc semi-transparent fixe */}
+            <p className="text-center text-sm font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>Voir le détail ›</p>
           </>
         )}
       </div>
@@ -198,7 +203,8 @@ export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession, va
 
       <div className="absolute bottom-0 left-0 right-0" style={CONTENT_COL_STYLE}>
         <div style={TITLE_ROW_STYLE}>
-          <span style={{ ...TITLE_STYLE, color: isDone ? "var(--color-neon)" : "var(--color-text)" }}>{titleBase}</span>
+          {/* Titre sur fond photo sombre — blanc fixe si non fait, neon si fait */}
+          <span style={{ ...TITLE_STYLE, color: isDone ? "var(--color-neon)" : "#ffffff" }}>{titleBase}</span>
           {isDone && <CheckIcon />}
         </div>
 
@@ -237,7 +243,8 @@ export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession, va
         {variant === "default" && (
           <>
             <div style={DIVIDER_STYLE} />
-            <p className="text-center text-sm font-semibold" style={{ color: "var(--color-white-65)" }}>Voir le détail ›</p>
+            {/* Texte sur fond photo sombre — blanc semi-transparent fixe */}
+            <p className="text-center text-sm font-semibold" style={{ color: "rgba(255,255,255,0.65)" }}>Voir le détail ›</p>
           </>
         )}
       </div>

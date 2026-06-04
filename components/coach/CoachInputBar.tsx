@@ -72,7 +72,7 @@ export default function CoachInputBar({
             onKeyDown={handleKeyDown}
             placeholder="Écrire un message..."
             rows={1}
-            className="placeholder:text-white/30"
+            className="placeholder:text-muted"
             style={{
               width: "100%",
               background: "transparent",
@@ -100,7 +100,7 @@ export default function CoachInputBar({
                 alignItems: "center",
                 gap: 8,
                 paddingTop: 6,
-                borderTop: "1px solid rgba(255,255,255,0.06)",
+                borderTop: "1px solid var(--color-white-06)",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -113,7 +113,7 @@ export default function CoachInputBar({
                 style={{
                   flex: 1,
                   fontSize: 12,
-                  color: "rgba(255,255,255,0.5)",
+                  color: "var(--color-muted)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -130,7 +130,7 @@ export default function CoachInputBar({
                   width: 18,
                   height: 18,
                   borderRadius: "50%",
-                  background: "rgba(255,255,255,0.12)",
+                  background: "var(--color-white-15)",
                   border: "none",
                   display: "flex",
                   alignItems: "center",

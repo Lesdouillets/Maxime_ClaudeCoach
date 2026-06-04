@@ -9,7 +9,7 @@ import { useTimer } from "@/contexts/TimerContext";
 import { ARCHIVO_WIDE_BOLD, JETBRAINS_MONO_TINY } from "@/lib/typography";
 import { formatMMSS } from "@/lib/formatting";
 
-export const ACTIVE = "#FFFFFF";
+export const ACTIVE = "var(--color-text)";
 export const MUTED  = "var(--color-muted)";
 
 const STRIP_STYLE: CSSProperties = {
@@ -185,7 +185,7 @@ export default function BottomNav({ state = "nav" }: BottomNavProps) {
     <div
       className="fixed left-0 right-0 bottom-0 z-nav"
       style={{
-        background: "linear-gradient(to bottom, rgba(0,0,0,0) 0%, #000000 35%)",
+        background: "linear-gradient(to bottom, transparent 0%, var(--color-background) 35%)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
