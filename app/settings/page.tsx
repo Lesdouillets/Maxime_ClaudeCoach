@@ -32,7 +32,7 @@ function AvatarFemale() {
 }
 
 function Divider() {
-  return <div className="ml-[68px] mr-4 h-px" style={{ background: "var(--color-surface-0)" }}/>;
+  return <div className="ml-[68px] mr-4 h-px" style={{ background: "var(--color-subtle)" }}/>;
 }
 
 export default function SettingsPage() {
@@ -248,7 +248,7 @@ export default function SettingsPage() {
                   transition: 'all 0.15s',
                   background: isActive ? 'var(--color-surface)' : 'transparent',
                   color: isActive ? 'var(--color-neon-text)' : 'var(--color-muted)',
-                  boxShadow: isActive ? '0 1px 3px var(--color-white-06)' : 'none',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
                 }}
               >
                 <span style={{ fontSize: 13 }}>{icon}</span>
@@ -260,7 +260,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Actions ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-surface-0)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-subtle)" }}>
 
         {/* Strava */}
         <button
@@ -292,7 +292,7 @@ export default function SettingsPage() {
 
       {/* ── GitHub footer ── */}
       <div className="mt-3 px-4 py-3.5 rounded-2xl flex items-center justify-between"
-        style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-surface-0)" }}>
+        style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-subtle)" }}>
         <div>
           <p className="text-sm font-medium" style={{ color: user ? "var(--color-muted)" : "var(--color-surface-3)" }}>{ghName}</p>
           <p className="text-[11px]" style={{ color: "var(--color-surface-3)" }}>Sync {syncLabel}</p>
