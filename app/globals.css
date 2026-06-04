@@ -11,6 +11,7 @@
   /* Palette — source de vérité pour les styles inline et les SVGs */
   --color-neon: #CDFF00;
   --color-neon-dim: #4a5e00;
+  --color-race: #FEED00;
   --color-neon-bg: #0a1a00;
   --color-orange: #D07900;
   --color-orange-light: #ff9a3c;
@@ -79,6 +80,8 @@ html.light {
 
   /* Neon */
   --color-neon-text:   #6B8600;
+  /* Gold lisible sur fond clair — remplace le jaune pur FEED00 illisible */
+  --color-race:        #B89200;
 
   /* Variantes neon (base #6B8600) */
   --color-neon-04:     rgba(107, 134, 0, 0.04);

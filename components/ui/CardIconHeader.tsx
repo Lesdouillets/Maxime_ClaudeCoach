@@ -15,8 +15,8 @@ export default function CardIconHeader({ icon, label, trailing }: CardIconHeader
         style={{
           width: 28,
           height: 28,
-          background: "rgba(205,255,0,0.12)",
-          border: "1px solid rgba(205,255,0,0.25)",
+          background: "var(--color-neon-10)",
+          border: "1px solid var(--color-neon-20)",
         }}
       >
         {icon}

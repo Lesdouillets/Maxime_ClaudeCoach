@@ -12,7 +12,7 @@ const STATUS_FR: Record<WeekStatus, string> = {
 };
 
 function barColor(status: WeekStatus, isCurrent: boolean): string {
-  if (isCurrent) return "var(--color-neon)";
+  if (isCurrent) return "var(--color-neon-text)";
   if (status === "validated") return "var(--color-neon-dim)";
   return "var(--color-muted)";
 }

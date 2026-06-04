@@ -362,7 +362,7 @@ export default function SessionSheet() {
                     style={{
                       height: i === activeExIdx ? 3 : 2,
                       background: i < activeExIdx
-                        ? "rgba(205,255,0,0.3)"
+                        ? "var(--color-neon-35)"
                         : i === activeExIdx
                         ? "var(--color-neon)"
                         : "var(--color-secondary)",

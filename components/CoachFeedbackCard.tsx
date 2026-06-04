@@ -9,7 +9,7 @@ interface Props {
 
 const PlusIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-    <path d="M12 5v14M5 12h14" stroke="var(--color-neon)" strokeWidth="2.2" strokeLinecap="round" />
+    <path d="M12 5v14M5 12h14" stroke="var(--color-neon-text)" strokeWidth="2.2" strokeLinecap="round" />
   </svg>
 );
 
@@ -20,7 +20,7 @@ const PulseDots = () => (
         key={i}
         className="w-1 h-1 rounded-full inline-block"
         style={{
-          background: "var(--color-neon)",
+          background: "var(--color-neon-text)",
           animation: `pulse-dot 1.2s ${i * 0.25}s ease-in-out infinite`,
         }}
       />
@@ -66,9 +66,9 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
               onClick={onRetry}
               className="flex-shrink-0 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-xl press-effect"
               style={{
-                background: "rgba(205,255,0,0.08)",
+                background: "var(--color-neon-08)",
                 color: "var(--color-neon-text)",
-                border: "1px solid rgba(205,255,0,0.25)",
+                border: "1px solid var(--color-neon-20)",
               }}
             >
               RÉESSAYER

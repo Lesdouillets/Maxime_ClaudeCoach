@@ -113,11 +113,11 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
                 paddingBottom: 10,
                 paddingLeft: 13,
                 paddingRight: 12,
-                background: isActiveRow ? "rgba(205,255,0,0.03)" : "transparent",
+                background: isActiveRow ? "var(--color-neon-04)" : "transparent",
               }}
             >
               <div className="flex-1">
-                <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 18, lineHeight: 1, color: isDone ? "var(--color-text)" : isActiveRow ? "var(--color-neon)" : "var(--color-dim)" }}>
+                <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 18, lineHeight: 1, color: isDone ? "var(--color-text)" : isActiveRow ? "var(--color-neon-text)" : "var(--color-dim)" }}>
                   {String(idx + 1).padStart(2, "0")}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
                       onBlur={() => commitEdit(repsKey, (v) => session.updateSet(exercise.id, idx, { reps: v }))}
                       inputMode="numeric"
                       className="text-center font-display focus:outline-none w-full"
-                      style={{ ...NUM_STYLE, padding: 0, color: isActiveRow ? "var(--color-neon)" : "var(--color-dim)", border: "none", background: "transparent", boxShadow: "none" }}
+                      style={{ ...NUM_STYLE, padding: 0, color: isActiveRow ? "var(--color-neon-text)" : "var(--color-dim)", border: "none", background: "transparent", boxShadow: "none" }}
                       min={0}
                       step={1}
                     />
@@ -170,7 +170,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
                       onBlur={() => commitEdit(weightKey, (v) => session.updateSet(exercise.id, idx, { weight: v }), true)}
                       inputMode="decimal"
                       className="text-center font-display focus:outline-none w-full"
-                      style={{ ...NUM_STYLE, padding: 0, color: isActiveRow ? "var(--color-neon)" : "var(--color-dim)", border: "none", background: "transparent", boxShadow: "none" }}
+                      style={{ ...NUM_STYLE, padding: 0, color: isActiveRow ? "var(--color-neon-text)" : "var(--color-dim)", border: "none", background: "transparent", boxShadow: "none" }}
                       min={0}
                       step={0.5}
                     />

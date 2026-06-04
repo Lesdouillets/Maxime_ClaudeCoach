@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { JETBRAINS_MONO_TINY } from "@/lib/typography";
 
-export const RACE_COLOR = "#FEED00";
+export const RACE_COLOR = "var(--color-race)";
 // Ratio hauteur/largeur issu du viewBox original du designer (14 / 6.5)
 const WING_ASPECT_RATIO = 14 / 6.5;
 

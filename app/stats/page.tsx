@@ -74,13 +74,13 @@ export default function StatsPage() {
 
         {/* Summary row */}
         <div className="grid grid-cols-2 gap-3">
-          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="var(--color-neon)" />
+          <BigStat value={`${totalRunKm.toFixed(0)}`} unit="km" label="Total run" accent="var(--color-neon-text)" />
           <BigStat value={`${totalSessions}`} unit="" label="Séances totales" accent="var(--color-orange)" />
           <BigStat
             value={avgPace ? `${Math.floor(avgPace / 60)}:${String(Math.round(avgPace % 60)).padStart(2, "0")}` : "—"}
             unit="/km"
             label="Allure moyenne"
-            accent="var(--color-neon)"
+            accent="var(--color-neon-text)"
           />
           <BigStat value={`${last30Days}`} unit="" label="Séances (30j)" accent="var(--color-orange)" />
         </div>
@@ -98,7 +98,7 @@ export default function StatsPage() {
               style={{
                 background: tab === t ? "var(--color-surface-2)" : "transparent",
                 color: tab === t ? "var(--color-neon-text)" : "var(--color-muted)",
-                border: tab === t ? "1px solid rgba(205,255,0,0.2)" : "1px solid transparent",
+                border: tab === t ? "1px solid var(--color-neon-20)" : "1px solid transparent",
               }}
             >
               {t === "runs" ? "Run" : t === "fitness" ? "Salle" : "Poids"}
@@ -122,7 +122,7 @@ export default function StatsPage() {
                       itemStyle={{ color: "var(--color-neon-text)" }}
                       formatter={(v: number) => [`${v.toFixed(1)} km`, ""]}
                     />
-                    <Bar dataKey="km" fill="var(--color-neon)" opacity={0.85} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="km" fill="var(--color-neon-text)" opacity={0.85} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -163,7 +163,7 @@ export default function StatsPage() {
                         "Allure",
                       ]}
                     />
-                    <Area type="monotone" dataKey="pace" stroke="var(--color-neon)" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="pace" stroke="var(--color-neon-text)" fill="url(#paceGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -250,7 +250,7 @@ export default function StatsPage() {
                       labelStyle={{ color: "var(--color-secondary)", fontSize: 11 }}
                       formatter={(v: number) => [`${v} kg`, "Poids"]}
                     />
-                    <Area type="monotone" dataKey="kg" stroke="var(--color-neon)" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="kg" stroke="var(--color-neon-text)" fill="url(#weightGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
