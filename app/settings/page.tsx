@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getLastSync, signInWithGitHub, signOut } from "@/lib/sync";
@@ -35,6 +36,7 @@ function Divider() {
 }
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [mounted,           setMounted]           = useState(false);
   const [user,              setUser]              = useState<User | null>(null);
   const [lastSync,          setLastSync]          = useState("");
@@ -174,6 +176,86 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Apparence ── */}
+      <div style={{
+        background: 'var(--color-surface-0)',
+        border: '1px solid var(--color-subtle)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginBottom: 12,
+      }}>
+        {/* Header du bloc */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '13px 14px 10px',
+        }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-surface-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 16,
+            flexShrink: 0,
+          }}>
+            🎨
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text)' }}>
+            Apparence
+          </span>
+        </div>
+
+        {/* Segmented control */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          margin: '0 14px 14px',
+          borderRadius: 10,
+          background: 'var(--color-surface-2)',
+          gap: 2,
+          padding: 3,
+        }}>
+          {[
+            { value: 'light',  label: 'Clair',  icon: '☀️' },
+            { value: 'dark',   label: 'Sombre', icon: '🌙' },
+            { value: 'system', label: 'Auto',   icon: '⚙️' },
+          ].map(({ value, label, icon }) => {
+            const isActive = theme === value;
+            return (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                style={{
+                  border: 'none',
+                  padding: '8px 0',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  transition: 'all 0.15s',
+                  background: isActive ? 'var(--color-surface)' : 'transparent',
+                  color: isActive ? 'var(--color-neon-text)' : 'var(--color-muted)',
+                  boxShadow: isActive ? '0 1px 3px var(--color-white-06)' : 'none',
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{icon}</span>
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
