@@ -14,10 +14,10 @@ interface Props {
 }
 
 const STYLES = {
-  planned:     { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
-  upcoming:    { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
+  planned:     { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "var(--color-text)", dashColor: "var(--color-surface-3)" },
+  upcoming:    { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "var(--color-text)", dashColor: "var(--color-surface-3)" },
   completed:   { bg: "var(--color-neon-bg)",      border: "1px solid var(--color-neon-08)",        nameColor: "var(--color-muted)", dashColor: "var(--color-neon)" },
-  in_progress: { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "#fff", dashColor: "var(--color-surface-3)" },
+  in_progress: { bg: "var(--color-surface-2)",    border: "1px solid var(--color-surface-3)",     nameColor: "var(--color-text)", dashColor: "var(--color-surface-3)" },
 } as const;
 
 function SetDashes({ count, color, doneSets }: { count: number; color: string; doneSets?: number }) {
