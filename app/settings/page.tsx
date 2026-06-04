@@ -15,8 +15,8 @@ import {
 function AvatarMale() {
   return (
     <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="9" r="4" stroke="#555" strokeWidth="1.5"/>
-      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="9" r="4" stroke="var(--color-muted)" strokeWidth="1.5"/>
+      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="var(--color-muted)" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -24,15 +24,15 @@ function AvatarMale() {
 function AvatarFemale() {
   return (
     <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="9" r="4" stroke="#777" strokeWidth="1.5"/>
-      <path d="M8.5 7C8.5 4.5 10 3 12 3s3.5 1.5 3.5 4" stroke="#777" strokeWidth="1.3" strokeLinecap="round"/>
-      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#777" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="9" r="4" stroke="var(--color-secondary)" strokeWidth="1.5"/>
+      <path d="M8.5 7C8.5 4.5 10 3 12 3s3.5 1.5 3.5 4" stroke="var(--color-secondary)" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="var(--color-secondary)" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
 function Divider() {
-  return <div className="ml-[68px] mr-4 h-px" style={{ background: "#161616" }}/>;
+  return <div className="ml-[68px] mr-4 h-px" style={{ background: "var(--color-surface-0)" }}/>;
 }
 
 export default function SettingsPage() {
@@ -110,7 +110,7 @@ export default function SettingsPage() {
       {/* ── Avatar + nom ── */}
       <div className="flex flex-col items-center pb-8">
         <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-          style={{ background: "#111", border: "2px solid #1e1e1e" }}>
+          style={{ background: "var(--color-surface)", border: "2px solid var(--color-surface-2)" }}>
           {isFemale ? <AvatarFemale /> : <AvatarMale />}
         </div>
 
@@ -122,29 +122,29 @@ export default function SettingsPage() {
           >
             {isSwitching && (
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="spinner">
-                <circle cx="12" cy="12" r="9" stroke="#222" strokeWidth="2"/>
-                <path d="M12 3a9 9 0 0 1 9 9" stroke="#CDFF00" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="9" stroke="var(--color-surface-3)" strokeWidth="2"/>
+                <path d="M12 3a9 9 0 0 1 9 9" stroke="var(--color-neon)" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             )}
-            <span className="text-xl font-semibold" style={{ color: "#CDFF00" }}>{profileName}</span>
+            <span className="text-xl font-semibold" style={{ color: "var(--color-neon-text)" }}>{profileName}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9l6 6 6-6" stroke="#2a2a2a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 9l6 6 6-6" stroke="var(--color-surface-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
 
           {showSwitch && (
             <div className="absolute top-0 z-50 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background: "#131313", border: "1px solid #222", minWidth: 160 }}>
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-3)", minWidth: 160 }}>
               <button
                 onClick={() => setShowSwitch(false)}
                 className="w-full flex items-center justify-center gap-1.5 px-6 pt-4 pb-2 press-effect"
               >
-                <span className="text-xl font-semibold" style={{ color: "#CDFF00" }}>{profileName}</span>
+                <span className="text-xl font-semibold" style={{ color: "var(--color-neon-text)" }}>{profileName}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: "rotate(180deg)" }}>
-                  <path d="M6 9l6 6 6-6" stroke="#CDFF00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 9l6 6 6-6" stroke="var(--color-neon)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
-              <div className="mx-4 h-px" style={{ background: "#1e1e1e" }}/>
+              <div className="mx-4 h-px" style={{ background: "var(--color-surface-2)" }}/>
               <div className="px-6 pt-2 pb-4 flex items-center justify-center gap-2">
                 {editingOther ? (
                   <input
@@ -154,21 +154,21 @@ export default function SettingsPage() {
                     onBlur={handleRenameOther}
                     onKeyDown={(e) => { if (e.key === "Enter") handleRenameOther(); if (e.key === "Escape") setEditingOther(false); }}
                     className="text-center bg-transparent outline-none text-base font-semibold w-28"
-                    style={{ color: "#eee", borderBottom: "1px solid #333" }}
+                    style={{ color: "var(--color-text)", borderBottom: "1px solid var(--color-subtle)" }}
                     maxLength={20}
                   />
                 ) : (
                   <>
                     <button onClick={handleSwitchTo}
-                      className="text-base font-semibold press-effect" style={{ color: "#eee" }}>
+                      className="text-base font-semibold press-effect" style={{ color: "var(--color-text)" }}>
                       {targetName}
                     </button>
                     <button
                       onClick={() => { setEditName(targetName); setEditingOther(true); }}
                       className="press-effect" style={{ opacity: 0.3 }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#aaa" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="var(--color-white-65)" strokeWidth="2" strokeLinecap="round"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="var(--color-white-65)" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
                     </button>
                   </>
@@ -260,7 +260,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Actions ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-surface-0)" }}>
 
         {/* Strava */}
         <button
@@ -269,21 +269,21 @@ export default function SettingsPage() {
           style={{ opacity: isStravaConnected ? 1 : 0.7 }}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#131313", border: "1px solid #1e1e1e" }}>
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}>
             <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/strava.svg`} width={20} height={20} alt="Strava"
               style={{ opacity: isStravaConnected ? 1 : 0.3 }}/>
           </div>
           <div className="flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: isStravaConnected ? "#ccc" : "#555" }}>
+            <p className="text-sm font-medium" style={{ color: isStravaConnected ? "var(--color-white-85)" : "var(--color-muted)" }}>
               Strava
             </p>
-            <p className="text-[11px]" style={{ color: "#333" }}>
+            <p className="text-[11px]" style={{ color: "var(--color-subtle)" }}>
               {isStravaConnected ? "Connecté" : "Non connecté"}
             </p>
           </div>
           {!isStravaConnected && (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 6l6 6-6 6" stroke="#252525" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 6l6 6-6 6" stroke="var(--color-surface-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </button>
@@ -292,17 +292,17 @@ export default function SettingsPage() {
 
       {/* ── GitHub footer ── */}
       <div className="mt-3 px-4 py-3.5 rounded-2xl flex items-center justify-between"
-        style={{ background: "#0d0d0d", border: "1px solid #161616" }}>
+        style={{ background: "var(--color-surface-0)", border: "1px solid var(--color-surface-0)" }}>
         <div>
-          <p className="text-sm font-medium" style={{ color: user ? "#555" : "#252525" }}>{ghName}</p>
-          <p className="text-[11px]" style={{ color: "#252525" }}>Sync {syncLabel}</p>
+          <p className="text-sm font-medium" style={{ color: user ? "var(--color-muted)" : "var(--color-surface-3)" }}>{ghName}</p>
+          <p className="text-[11px]" style={{ color: "var(--color-surface-3)" }}>Sync {syncLabel}</p>
         </div>
         <button onClick={user ? signOut : signInWithGitHub} className="flex items-center gap-2 press-effect">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "#555" : "#222"}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={user ? "var(--color-muted)" : "var(--color-surface-3)"}>
             <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
           </svg>
           <span className="w-2 h-2 rounded-full"
-            style={{ background: user ? "#CDFF00" : "#1e1e1e", boxShadow: user ? "0 0 5px #CDFF00" : "none" }}/>
+            style={{ background: user ? "var(--color-neon)" : "var(--color-surface-2)", boxShadow: user ? "0 0 5px var(--color-neon)" : "none" }}/>
         </button>
       </div>
 
