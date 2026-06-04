@@ -17,7 +17,7 @@ const DATE_STYLE: CSSProperties = {
 
 const LABEL_STYLE: CSSProperties = {
   fontSize: 12,
-  color: "var(--color-neon)",
+  color: "var(--color-neon-text)",
   textTransform: "uppercase",
   textAlign: "right",
 };

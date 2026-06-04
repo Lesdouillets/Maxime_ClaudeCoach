@@ -300,7 +300,7 @@ export default function SessionSheet() {
                     {
                       label: "Valider la séance",
                       icon: <CheckIcon size={16} color="var(--color-neon)" />,
-                      color: "var(--color-neon)",
+                      color: "var(--color-neon-text)",
                       onClick: () => { setShowFinishMenu(false); session.confirmFinish(); },
                     },
                     {

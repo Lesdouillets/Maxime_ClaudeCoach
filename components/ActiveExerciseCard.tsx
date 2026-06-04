@@ -54,7 +54,7 @@ export default function ActiveExerciseCard({ exercise, onOpenNote }: Props) {
     >
       <div className="flex items-start justify-between px-4 pt-4 pb-3">
         <div className="flex-1 min-w-0 pr-2">
-          <p style={{ ...JETBRAINS_MONO_LABEL, fontSize: 11, lineHeight: "13px", color: "var(--color-neon)" }}>
+          <p style={{ ...JETBRAINS_MONO_LABEL, fontSize: 11, lineHeight: "13px", color: "var(--color-neon-text)" }}>
             Exercice en cours
           </p>
           <p style={{ ...EXERCISE_NAME_STYLE, fontSize: 22, lineHeight: "26px", marginTop: 0 }}>

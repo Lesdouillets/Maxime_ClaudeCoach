@@ -37,7 +37,7 @@ const SCROLL_OFFSET = 64; // hauteur du gradient fixe + safe-area-inset-top
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function statusColor(status: StatusKind, planType: PlanType): string {
-  if (status === "done")                                  return "var(--color-neon)";
+  if (status === "done")                                  return "var(--color-neon-text)";
   if (status === "missed")                                return "var(--color-error)";
   if (status === "today-rest" || status === "rest")       return "var(--color-muted)";
   return planType === "run" ? "var(--color-blue)" : "var(--color-orange)";

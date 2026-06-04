@@ -5,10 +5,10 @@ interface BadgeProps {
 }
 
 const VARIANT_CLASSES = {
-  neon:    "bg-neon/10 text-neon border border-neon/30",
+  neon:    "bg-neon/10 text-neon-text border border-neon/30",
   orange:  "bg-orange/10 text-orange border border-orange/30",
-  muted:   "bg-surface-2 text-[#888] border border-surface-3",
-  surface: "bg-surface-3 text-white border border-subtle",
+  muted:   "bg-surface-2 text-secondary border border-surface-3",
+  surface: "bg-surface-3 text-secondary border border-subtle",
 };
 
 const SIZE_CLASSES = {

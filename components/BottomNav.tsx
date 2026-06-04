@@ -143,7 +143,7 @@ export function SessionStrip() {
       ) : (
         <span
           className="text-xs font-medium flex-shrink-0"
-          style={{ color: "var(--color-neon)", opacity: 0.5 }}
+          style={{ color: "var(--color-neon-text)", opacity: 0.5 }}
         >
           EN COURS
         </span>

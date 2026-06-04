@@ -26,10 +26,10 @@ function TempoCard({ seg }: { seg: CoachRunInterval }) {
       }}
     >
       <div className="flex items-baseline justify-between">
-        <p className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon)" }}>
+        <p className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon-text)" }}>
           {seg.label ?? "Tempo"}
         </p>
-        <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon)" }}>
+        <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon-text)" }}>
           {segDuration(seg)}
         </span>
       </div>

@@ -67,7 +67,7 @@ export default function CoachFeedbackCard({ state, result, onRetry }: Props) {
               className="flex-shrink-0 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-xl press-effect"
               style={{
                 background: "rgba(205,255,0,0.08)",
-                color: "var(--color-neon)",
+                color: "var(--color-neon-text)",
                 border: "1px solid rgba(205,255,0,0.25)",
               }}
             >

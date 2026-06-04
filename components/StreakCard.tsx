@@ -70,10 +70,10 @@ export function StreakCard({ streakResult }: StreakCardProps) {
         <div style={LABEL_COLUMN_STYLE}>
           <Label size="sm" color="muted">Série en cours</Label>
           <p style={STREAK_VALUE_ROW_STYLE}>
-            <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 28, lineHeight: "22px", color: "var(--color-neon)" }}>
+            <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 28, lineHeight: "22px", color: "var(--color-neon-text)" }}>
               {streakCount}
             </span>
-            <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "14px", color: "var(--color-neon)" }}>
+            <span style={{ ...ARCHIVO_WIDE_BOLD, fontSize: 14, lineHeight: "14px", color: "var(--color-neon-text)" }}>
               {streakCount <= 1 ? "semaine" : "semaines"}
             </span>
           </p>

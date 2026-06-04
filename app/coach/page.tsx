@@ -170,7 +170,7 @@ export default function CoachPage() {
             }}
             aria-label="Archiver la conversation"
           >
-            <ArchiveIcon size={18} color="white" />
+            <ArchiveIcon size={18} color="var(--color-text)" />
           </button>
           {archiveError && (
             <p style={{ fontSize: 11, color: "var(--color-error)", maxWidth: 160, textAlign: "left" }}>
@@ -197,7 +197,7 @@ export default function CoachPage() {
                   fontFamily: "var(--font-serif-display)",
                   fontWeight: 700,
                   fontSize: 34,
-                  color: "var(--color-neon)",
+                  color: "var(--color-neon-text)",
                   lineHeight: 1.15,
                 }}
               >

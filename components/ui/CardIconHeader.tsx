@@ -21,7 +21,7 @@ export default function CardIconHeader({ icon, label, trailing }: CardIconHeader
       >
         {icon}
       </div>
-      <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon)" }}>
+      <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon-text)" }}>
         {label}
       </span>
       {trailing !== undefined && <div className="ml-auto">{trailing}</div>}

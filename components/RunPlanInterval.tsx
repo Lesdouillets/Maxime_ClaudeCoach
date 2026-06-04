@@ -31,14 +31,14 @@ function RepBlock({ seg }: { seg: CoachRunInterval }) {
     >
       <div className="flex items-baseline justify-between mb-3">
         <div className="flex items-baseline gap-1">
-          <span className="font-display leading-none" style={{ fontSize: 20, color: "var(--color-neon)" }}>
+          <span className="font-display leading-none" style={{ fontSize: 20, color: "var(--color-neon-text)" }}>
             {seg.reps}
           </span>
-          <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon)" }}>
+          <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon-text)" }}>
             × {segDistOnly(seg)}
           </span>
         </div>
-        <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon)" }}>
+        <span className="font-display leading-none" style={{ fontSize: 16, color: "var(--color-neon-text)" }}>
           {segDuration(seg)}
         </span>
       </div>
@@ -61,7 +61,7 @@ function RepBlock({ seg }: { seg: CoachRunInterval }) {
       <div style={{ borderTop: "1px solid var(--color-neon-15)", marginBottom: 16 }} />
       <div className="flex">
         <div className="flex-1">
-          <p style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-neon)" }}>ALLURE / KM</p>
+          <p style={{ ...JETBRAINS_MONO_TINY, color: "var(--color-neon-text)" }}>ALLURE / KM</p>
           <p className="font-display leading-none mt-2" style={{ fontSize: 16, color: "var(--color-text)" }}>{seg.pace ?? "—"}</p>
         </div>
         {seg.restSeconds != null && (

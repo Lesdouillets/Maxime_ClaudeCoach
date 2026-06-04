@@ -55,7 +55,7 @@ export default function CoachExerciseDetailModal({ workout, onClose }: Props) {
         >
           <div style={{ width: 36, height: 36, flexShrink: 0 }} />
 
-          <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon)" }}>
+          <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon-text)" }}>
             {workout.label}
           </span>
 
