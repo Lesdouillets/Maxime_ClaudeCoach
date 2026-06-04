@@ -39,10 +39,11 @@ function getStyles(type: SessionType, status: SessionStatus): {
       return {
         background: "var(--color-surface-3)",
         border: `2px solid ${typeBorder}`,
-        iconColor: "#ffffff",
+        iconColor: "var(--color-text)",
       };
     case "today":
       return {
+        // Fond blanc fixe : état "aujourd'hui" = tag qui se démarque visuellement du fond sombre, intentionnel
         background: "#ffffff",
         border: `2px solid ${typeBorder}`,
         iconColor: "var(--color-surface-3)",
@@ -57,6 +58,7 @@ function getStyles(type: SessionType, status: SessionStatus): {
       return {
         background: "var(--color-error-bg)",
         border: "2px solid var(--color-error-border)",
+        // Blanc fixe : l'icône doit toujours rester blanche sur le fond rouge --color-error-bg
         iconColor: "#ffffff",
       };
   }

@@ -11,7 +11,7 @@ interface StatCardProps {
 const COLOR_VAR = {
   neon:   "var(--color-neon)",
   orange: "var(--color-orange)",
-  white:  "#ffffff",
+  white:  "var(--color-text)",
 };
 
 export default function StatCard({ value, unit, label, accent = "white", className = "" }: StatCardProps) {

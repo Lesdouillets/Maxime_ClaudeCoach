@@ -13,7 +13,7 @@ const COLOR_MAP = {
   muted: "var(--color-muted)",
   dim:   "var(--color-dim)",
   neon:  "var(--color-neon)",
-  white: "#ffffff",
+  white: "var(--color-text)",
 };
 
 const SIZE_STYLES = {
