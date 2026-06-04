@@ -55,7 +55,7 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
                   ...(isError && { border: "1.5px solid var(--color-error-border)" }),
                 }}
               >
-                <p style={{ color: "#ddd", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
+                <p style={{ color: "var(--color-white-85)", fontSize: 15, whiteSpace: "pre-wrap", margin: 0 }}>
                   {message.content}
                 </p>
               </div>
@@ -123,7 +123,7 @@ export default function CoachMessageBubble({ message, applying, onApply, onAdapt
       <div className="flex justify-start flex-col gap-3">
         <p
           style={{
-            color: "#ffffff",
+            color: "var(--color-text)",
             fontSize: 16,
             fontFamily: "Georgia, 'Times New Roman', serif",
             lineHeight: 1.65,

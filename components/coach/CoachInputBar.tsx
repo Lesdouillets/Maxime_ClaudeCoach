@@ -83,8 +83,8 @@ export default function CoachInputBar({
               resize: "none",
               padding: 0,
               margin: 0,
-              color: "#ffffff",
-              caretColor: "#ffffff",
+              color: "var(--color-text)",
+              caretColor: "var(--color-text)",
               maxHeight: "120px",
               fontSize: "16px",
               lineHeight: "1.4",
@@ -136,7 +136,7 @@ export default function CoachInputBar({
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 9,
-                  color: "#aaa",
+                  color: "var(--color-white-65)",
                   cursor: "pointer",
                   flexShrink: 0,
                 }}
@@ -162,7 +162,7 @@ export default function CoachInputBar({
               }}
               aria-label="Ajouter une image"
             >
-              <PlusIcon size={20} color="#ffffff" />
+              <PlusIcon size={20} color="var(--color-text)" />
             </button>
 
             <button
@@ -183,6 +183,7 @@ export default function CoachInputBar({
                 opacity: (sending || (!value.trim() && !pendingImage)) ? 0.5 : 1,
               }}
             >
+              {/* Icône sur fond orange — blanc intentionnel */}
               <ArrowUpIcon size={14} color="#ffffff" />
             </button>
           </div>
