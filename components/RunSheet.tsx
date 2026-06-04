@@ -359,7 +359,7 @@ export default function RunSheet() {
           position: "fixed",
           inset: 0,
           background: "var(--color-background)",
-          color: "#fff",
+          color: "var(--color-text)",
           zIndex: 60,
           transform: isDragging
             ? `translateY(${dragY}px)`
@@ -377,7 +377,7 @@ export default function RunSheet() {
           <button
             onClick={handleClose}
             className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-            style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#ddd" }}
+            style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "var(--color-white-85)" }}
             aria-label="Réduire"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -411,7 +411,7 @@ export default function RunSheet() {
               <button
                 onClick={() => { setOptionsMenuOpen((v) => !v); setOptionsPanel(null); }}
                 className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
-                style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "#777" }}
+                style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "var(--color-secondary)" }}
                 aria-label="Options"
               >
                 <OptionsIcon size={20} color="currentColor" />
@@ -457,7 +457,7 @@ export default function RunSheet() {
                     min={toLocalDateStr(new Date())}
                     autoFocus
                     className="flex-1 rounded-xl px-3 py-2.5 text-xs focus:outline-none"
-                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-orange-shadow)", color: "white" }}
+                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-orange-shadow)", color: "var(--color-text)" }}
                   />
                   <button
                     onClick={handleRescheduleRun}
@@ -482,7 +482,7 @@ export default function RunSheet() {
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="Raison de l'annulation…"
                   className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)", color: "white" }}
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-subtle)", color: "var(--color-text)" }}
                   onKeyDown={(e) => { if (e.key === "Enter") handleCancelRun(); }}
                   autoFocus
                 />
@@ -490,7 +490,7 @@ export default function RunSheet() {
                   <button
                     onClick={handleCancelRun}
                     className="flex-1 py-2.5 rounded-xl text-sm font-bold press-effect"
-                    style={{ background: "var(--color-surface-2)", color: "#aaa", border: "1px solid var(--color-subtle)" }}
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-white-65)", border: "1px solid var(--color-subtle)" }}
                   >Confirmer l&apos;annulation</button>
                   <button
                     onClick={() => { setOptionsPanel(null); setCancelReason(""); }}
@@ -585,7 +585,7 @@ export default function RunSheet() {
                       borderRadius: 20,
                       padding: "5px 8px 5px 10px",
                       fontSize: 12,
-                      color: "#ddd",
+                      color: "var(--color-white-85)",
                     }}
                   >
                     <span>📝 &ldquo;{noteValue.length > 28 ? noteValue.slice(0, 28) + "…" : noteValue}&rdquo;</span>
@@ -597,7 +597,7 @@ export default function RunSheet() {
                         background: "rgba(255,255,255,0.12)",
                         border: "none",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, color: "#aaa",
+                        fontSize: 9, color: "var(--color-white-65)",
                         cursor: "pointer",
                         flexShrink: 0,
                       }}
@@ -616,7 +616,7 @@ export default function RunSheet() {
                       borderRadius: 20,
                       padding: "4px 8px 4px 4px",
                       fontSize: 12,
-                      color: "#ddd",
+                      color: "var(--color-white-85)",
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -639,7 +639,7 @@ export default function RunSheet() {
                         background: "rgba(255,255,255,0.12)",
                         border: "none",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, color: "#aaa",
+                        fontSize: 9, color: "var(--color-white-65)",
                         cursor: "pointer",
                         flexShrink: 0,
                       }}
