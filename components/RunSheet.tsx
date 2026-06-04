@@ -664,7 +664,7 @@ export default function RunSheet() {
                   }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M12 5v14M5 12h14" stroke="var(--color-text)" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </button>
                 {addContentMenuOpen && (
