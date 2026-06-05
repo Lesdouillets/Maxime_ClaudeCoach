@@ -65,18 +65,18 @@
 
 html.light {
   /* Fond et surfaces */
-  --color-background:  #F3F3F6;
-  --color-surface-0:   #F0F0F4;
-  --color-surface:     #FFFFFF;
-  --color-surface-2:   #EBEBEF;
-  --color-surface-3:   #E0E0E5;
+  --color-background:  #F4EFE8;
+  --color-surface-0:   #F0E9E1;
+  --color-surface:     #FAF8F3;
+  --color-surface-2:   #EDE5DB;
+  --color-surface-3:   #E1D7CC;
 
   /* Texte */
   --color-text:        #0a0a0a;
   --color-secondary:   #555555;
-  --color-muted:       #9A9AA0;
-  --color-dim:         #B0B0B8;
-  --color-subtle:      #D5D5DC;
+  --color-muted:       #9A9188;
+  --color-dim:         #B2A99E;
+  --color-subtle:      #D2C8BB;
 
   /* Neon */
   --color-neon-text:   #6B8600;
@@ -104,8 +104,8 @@ html.light {
   --color-white-85:  rgba(0, 0, 0, 0.75);
 
   /* Surfaces avec blur */
-  --color-bg-blur:        rgba(243, 243, 246, 0.85);
-  --color-surface-2-blur: rgba(255, 255, 255, 0.92);
+  --color-bg-blur:        rgba(244, 239, 232, 0.85);
+  --color-surface-2-blur: rgba(250, 248, 243, 0.92);
   --color-overlay:        rgba(0, 0, 0, 0.35);
 
   /* neon-bg adapté */
