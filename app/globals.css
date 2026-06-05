@@ -111,8 +111,8 @@ html.light {
   --color-surface-2-blur: rgba(250, 248, 243, 0.92);
   --color-overlay:        rgba(0, 0, 0, 0.35);
 
-  /* neon-bg adapté */
-  --color-neon-bg:    #E8F0CC;
+  /* neon-bg adapté — plus chaud que le vert menthe #E8F0CC */
+  --color-neon-bg:    #ECEFD8;
 }
 
 @keyframes timer-halo-pulse {
