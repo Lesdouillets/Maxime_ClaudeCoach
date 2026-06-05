@@ -78,10 +78,13 @@ html.light {
   --color-dim:         #B2A99E;
   --color-subtle:      #D2C8BB;
 
-  /* Neon */
+  /* Neon — #CDFF00 (luminance 0.95) invisible sur ivory (0.92) : version sombre pour fills */
+  --color-neon:        #7A9C00;
   --color-neon-text:   #6B8600;
   /* Gold lisible sur fond clair — remplace le jaune pur FEED00 illisible */
   --color-race:        #B89200;
+  /* Bleu — #6BD2FF cyan conçu pour fond sombre, contraste 1.5:1 sur ivory → bleu profond */
+  --color-blue:        #1B78C4;
 
   /* Variantes neon (base #6B8600) */
   --color-neon-04:     rgba(107, 134, 0, 0.04);
