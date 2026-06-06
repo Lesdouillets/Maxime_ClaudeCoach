@@ -2,7 +2,7 @@
 // Strategy: network-first for HTML navigation, cache-first for hashed static assets.
 // skipWaiting + clients.claim ensure updates apply immediately on next open.
 
-const STATIC_CACHE = "cc-static-3bf586b";
+const STATIC_CACHE = "cc-static-51803bb";
 
 self.addEventListener("install", () => {
   self.skipWaiting(); // activate immediately, don't wait for old SW to finish
