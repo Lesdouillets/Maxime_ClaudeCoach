@@ -52,7 +52,7 @@ export default function ExerciseRowCard({ name, sets, reps, weight, variant, don
           <p style={{ ...ROW_NAME_STYLE, color: s.nameColor }}>{name}</p>
           <div className="flex items-center gap-2 mt-2">
             <SetDashes count={sets} color={s.dashColor} doneSets={variant === "in_progress" ? doneSets : undefined} />
-            <span style={{ ...JETBRAINS_MONO_DATA, color: isCompleted ? "var(--color-dim)" : "#7A7C7E" }}>
+            <span style={{ ...JETBRAINS_MONO_DATA, color: isCompleted ? "var(--color-dim)" : "var(--color-secondary)" }}>
               · {reps} reps{weight > 0 ? ` · ${weight} kg` : ""}
             </span>
           </div>

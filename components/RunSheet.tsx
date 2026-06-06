@@ -713,7 +713,7 @@ export default function RunSheet() {
                 disabled={stravaSyncing}
                 className="flex-1 flex items-center justify-center gap-2.5 press-effect"
                 style={{
-                  background: stravaSyncing ? "#7a2500" : "#FC4C02",
+                  background: stravaSyncing ? "var(--color-orange-dim)" : "var(--color-strava)",
                   borderRadius: "12px",
                   padding: "15px 20px",
                   fontWeight: 600,

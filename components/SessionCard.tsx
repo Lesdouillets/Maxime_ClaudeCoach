@@ -97,7 +97,7 @@ export function RunCard({ todayCoachRun, todaySession, onOpenRun, variant = "def
           ? `1px solid var(--color-neon)`
           : `1px solid color-mix(in srgb, ${isRace ? RACE_COLOR : accent} 50%, transparent)`,
         boxShadow: isDone
-          ? `0 0 16px rgba(205,255,0,0.12)`
+          ? `0 0 16px var(--color-neon-10)`
           : isRace ? `0 0 24px rgba(254,237,0,0.08)` : undefined,
       }}
     >

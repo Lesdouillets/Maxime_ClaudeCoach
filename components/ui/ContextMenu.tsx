@@ -24,7 +24,7 @@ export function ContextMenu({ onClose, items, width = 220, menuClassName = "abso
         style={{
           width,
           background: "rgba(28,28,30,0.96)",
-          border: "1px solid #2a2a2a",
+          border: "1px solid var(--color-subtle)",
           backdropFilter: "blur(40px)",
           WebkitBackdropFilter: "blur(40px)",
           boxShadow: "0 18px 48px rgba(0,0,0,0.6)",
