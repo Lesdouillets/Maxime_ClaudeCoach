@@ -63,57 +63,6 @@
   --color-white-85: rgba(255, 255, 255, 0.85);
 }
 
-html.light {
-  /* Fond et surfaces */
-  --color-background:  #F4EFE8;
-  --color-surface-0:   #F0E9E1;
-  --color-surface:     #FAF8F3;
-  --color-surface-2:   #EDE5DB;
-  --color-surface-3:   #E1D7CC;
-
-  /* Texte */
-  --color-text:        #0a0a0a;
-  --color-secondary:   #555555;
-  --color-muted:       #9A9188;
-  --color-dim:         #B2A99E;
-  --color-subtle:      #D2C8BB;
-
-  /* Neon — #CDFF00 (luminance 0.95) invisible sur ivory (0.92) : version sombre pour fills */
-  --color-neon:        #7A9C00;
-  --color-neon-text:   #6B8600;
-  /* Gold lisible sur fond clair — remplace le jaune pur FEED00 illisible */
-  --color-race:        #B89200;
-  /* Bleu — #6BD2FF cyan conçu pour fond sombre, contraste 1.5:1 sur ivory → bleu profond */
-  --color-blue:        #1B78C4;
-
-  /* Variantes neon (base #6B8600) */
-  --color-neon-04:     rgba(107, 134, 0, 0.04);
-  --color-neon-08:     rgba(107, 134, 0, 0.08);
-  --color-neon-10:     rgba(107, 134, 0, 0.10);
-  --color-neon-15:     rgba(107, 134, 0, 0.15);
-  --color-neon-20:     rgba(107, 134, 0, 0.20);
-  --color-neon-35:     rgba(107, 134, 0, 0.30);
-  --color-neon-40:     rgba(107, 134, 0, 0.35);
-  --color-neon-glow:   rgba(107, 134, 0, 0.50);
-  --color-neon-shadow: rgba(107, 134, 0, 0.25);
-
-  /* Tokens rgba "white" → inversés en noirs semi-transparents */
-  --color-white-06:  rgba(0, 0, 0, 0.04);
-  --color-white-08:  rgba(0, 0, 0, 0.06);
-  --color-white-10:  rgba(0, 0, 0, 0.08);
-  --color-white-15:  rgba(0, 0, 0, 0.12);
-  --color-white-25:  rgba(0, 0, 0, 0.20);
-  --color-white-65:  rgba(0, 0, 0, 0.55);
-  --color-white-85:  rgba(0, 0, 0, 0.75);
-
-  /* Surfaces avec blur */
-  --color-bg-blur:        rgba(244, 239, 232, 0.85);
-  --color-surface-2-blur: rgba(250, 248, 243, 0.92);
-  --color-overlay:        rgba(0, 0, 0, 0.35);
-
-  /* neon-bg adapté — plus chaud que le vert menthe #E8F0CC */
-  --color-neon-bg:    #ECEFD8;
-}
 
 @keyframes timer-halo-pulse {
   0%, 100% {

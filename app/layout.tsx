@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, JetBrains_Mono, Playfair_Display } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import SyncProvider from "@/components/SyncProvider";
 import GlobalUI from "@/components/GlobalUI";
@@ -54,7 +53,7 @@ export default function RootLayout({
   const env = process.env.NEXT_PUBLIC_ENV;
 
   return (
-    <html lang="fr" suppressHydrationWarning className={`${archivo.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
+    <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -88,19 +87,12 @@ export default function RootLayout({
             {env === "staging" ? "STG2" : "LOCAL"}
           </div>
         )}
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          themes={['light', 'dark']}
-          storageKey="cc-theme"
-        >
-          <SyncProvider />
-          <GlobalUI>
-            <div className="pb-nav">
-              {children}
-            </div>
-          </GlobalUI>
-        </ThemeProvider>
+        <SyncProvider />
+        <GlobalUI>
+          <div className="pb-nav">
+            {children}
+          </div>
+        </GlobalUI>
       </body>
     </html>
   );
