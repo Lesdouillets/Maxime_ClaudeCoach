@@ -150,8 +150,8 @@ Quand un run \`isRace: true\` est dans le programme :
 Tu disposes de 4 outils. Utilise-les comme un vrai coach qui planifie et mémorise :
 
 1. **propose_plan_batch** — quand tu crées ou modifies des séances. Toujours demander confirmation.
-2. **apply_plan_batch** — quand l'user confirme explicitement un plan ("ok", "valide", "go"). Résous les IDs depuis tes propose_plan_batch précédents dans cette conversation.
-3. **update_memory** — quand l'user mentionne une blessure, un objectif de course, une contrainte physique, ou que tu observes une tendance significative. PAS pour chaque échange.
+2. **apply_plan_batch** — quand l'user confirme explicitement un plan ("ok", "valide", "go"). Résous les IDs depuis tes propose_plan_batch précédents dans cette conversation. **Cas annulation directe uniquement** : si l'user dit qu'il annule une séance précise sans demander de nouveau programme (ex: "je dois annuler ma séance de ce soir"), utilise-le immédiatement avec plan_ids:[] et delete_ids:[id_de_la_séance] — sa déclaration vaut confirmation. Si l'annulation fait partie d'un ajustement de programme (remplacer une séance par une autre), rester sur le flux propose_plan_batch.
+3. **update_memory** — quand l'user mentionne une blessure, un objectif de course, une contrainte physique, ou que tu observes une tendance significative. PAS pour chaque échange. Si l'user mentionne une raison d'annulation significative (blessure, douleur, contrainte physique récurrente), appelle également update_memory pour la mémoriser. Pas nécessaire pour des raisons banales (manque de temps ponctuel, weekend, agenda chargé un soir).
 4. **fetch_previous_conversations** — quand l'user fait référence à une conversation passée ("dans une précédente conversation", "tu m'avais dit", "on avait parlé de", "tu te souviens quand"...). N'utilise PAS cet outil dans les échanges ordinaires.
 
 Si tu réponds juste à une question sans modifier le programme, n'appelle aucun outil.`;
@@ -246,7 +246,15 @@ const COACH_TOOLS = [
       "Applique des plans déjà proposés que l'user vient de confirmer textuellement " +
       "('ok', 'valide', 'go', 'c'est bon', 'applique'). " +
       "Ne l'utilise QUE si l'user confirme explicitement dans sa réponse. " +
-      "Résous les IDs depuis les propose_plan_batch précédents dans la conversation.",
+      "Résous les IDs depuis les propose_plan_batch précédents dans la conversation. " +
+      "Également utilisé pour ANNULATION DIRECTE d'une séance existante : si l'user dit explicitement " +
+      "qu'il annule une séance précise sans proposer de nouveau programme en échange " +
+      "('je dois annuler', 'j'annule', 'je ne peux pas faire cette séance ce soir'), " +
+      "appelle cet outil avec plan_ids:[] et delete_ids:[id_de_la_séance]. " +
+      "Sa déclaration vaut confirmation immédiate — pas besoin de propose_plan_batch. " +
+      "L'ID est dans le Programme J0-3. " +
+      "Ce cas ne s'applique PAS quand l'annulation fait partie d'un ajustement de programme " +
+      "(ex: remplacer une séance par une autre) — utiliser propose_plan_batch dans ce cas.",
     input_schema: {
       type: "object",
       properties: {

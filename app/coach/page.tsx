@@ -219,7 +219,7 @@ export default function CoachPage() {
           </div>
         ) : (
           /* Liste de messages */
-          <div className="flex flex-col gap-3 py-4">
+          <div className="flex flex-col gap-3" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 72px)", paddingBottom: "16px" }}>
             {messages.map((msg) => (
               <CoachMessageBubble
                 key={msg.id}
