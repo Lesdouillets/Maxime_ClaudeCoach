@@ -772,39 +772,7 @@ export default function RunSheet() {
                 )}
               </div>
             )}
-            {stravaPickerActivities.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs text-center" style={{ color: "var(--color-secondary)" }}>
-                  {stravaPickerActivities.length} activités trouvées — laquelle synchroniser ?
-                </p>
-                {stravaPickerActivities.map((activity) => (
-                  <button
-                    key={activity.id}
-                    onClick={() => handlePickerSelect(activity)}
-                    className="w-full flex items-center justify-between rounded-2xl px-4 py-3 press-effect"
-                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
-                  >
-                    <div className="text-left">
-                      <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{activity.name}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
-                        {(activity.distance / 1000).toFixed(1)} km · {formatPickerDuration(activity.moving_time)} · {formatPickerTime(activity.start_date)}
-                      </p>
-                    </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 6l6 6-6 6" stroke="var(--color-orange)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                ))}
-                <button
-                  onClick={handlePickerCancel}
-                  className="w-full text-center text-sm press-effect py-2"
-                  style={{ color: "var(--color-muted)" }}
-                >
-                  Annuler
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-3">
+            <div className="flex gap-3">
                 <div className="relative" style={{ flexShrink: 0 }}>
                   <button
                     onClick={() => setAddContentMenuOpen((v) => !v)}
@@ -880,11 +848,84 @@ export default function RunSheet() {
                   {!stravaSyncing && <StravaIcon size={20} />}
                   {stravaSyncing ? "Recherche en cours…" : IS_DEV_SYNC && needsStravaSync ? "Simuler synchro (dev)" : "Sync Strava"}
                 </button>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Modale picker Strava — même style que CoachExerciseDetailModal */}
+      {stravaPickerActivities.length > 0 && (
+        <div
+          role="dialog"
+          aria-modal
+          aria-label="Choisir l'activité Strava"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            background: "var(--color-overlay)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)",
+            paddingBottom: 20,
+            paddingLeft: 20,
+            paddingRight: 20,
+          }}
+          onClick={handlePickerCancel}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-3xl w-full max-w-md"
+            style={{
+              background: "var(--color-surface-2)",
+              border: "1px solid var(--color-subtle)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+              maxHeight: "80vh",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              className="flex items-center justify-between p-4"
+              style={{ position: "sticky", top: 0, zIndex: 1, background: "var(--color-surface-2)" }}
+            >
+              <div style={{ width: 36, height: 36, flexShrink: 0 }} />
+              <span style={{ ...JETBRAINS_MONO_LABEL, color: "var(--color-neon-text)" }}>
+                SYNC STRAVA
+              </span>
+              <button
+                onClick={handlePickerCancel}
+                className="btn-icon btn-icon-surface press-effect"
+                aria-label="Fermer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-2" style={{ padding: "0 16px calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
+              {stravaPickerActivities.map((activity) => (
+                <button
+                  key={activity.id}
+                  onClick={() => handlePickerSelect(activity)}
+                  className="w-full flex items-center justify-between rounded-2xl px-4 py-3 press-effect text-left"
+                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-3)" }}
+                >
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{activity.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
+                      {(activity.distance / 1000).toFixed(1)} km · {formatPickerDuration(activity.moving_time)} · {formatPickerTime(activity.start_date)}
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 6l6 6-6 6" stroke="var(--color-orange)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
