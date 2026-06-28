@@ -25,7 +25,7 @@ import {
   type SessionAttachments,
 } from "@/lib/coachAnalyzer";
 import type { CoachRun } from "@/lib/coachPlan";
-import type { RunSession, StravaLap } from "@/lib/types";
+import type { RunSession, StravaActivity, StravaLap } from "@/lib/types";
 import { compressImage, type CompressedImage } from "@/lib/imageCompressor";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -50,6 +50,19 @@ const DEV_MOCK_LAPS: StravaLap[] = process.env.NEXT_PUBLIC_DISABLE_SYNC === "tru
   { lap_index: 15, name: "Lap 15", elapsed_time: 325, moving_time: 323, distance: 1000, average_speed: 3.10, average_heartrate: 138, total_elevation_gain: 3  },
   { lap_index: 16, name: "Lap 16", elapsed_time: 323, moving_time: 321, distance: 1200, average_speed: 3.12, average_heartrate: 135, total_elevation_gain: 2  },
 ] : [];
+
+function formatPickerDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function formatPickerTime(isoDate: string): string {
+  return new Date(isoDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 const DRAG_CLOSE_THRESHOLD_PX = 80;
 const TAP_MAX_MOVEMENT_PX = 6;
 const TAP_MAX_DURATION_MS = 250;
@@ -64,6 +77,7 @@ export default function RunSheet() {
   const dragStartRef = useRef<{ y: number; t: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentSheetDateRef = useRef<string | null>(null);
+  const pickerBusyRef = useRef(false);
   const dateStr = sheet.state?.date ?? toLocalDateStr(new Date());
   const [coachRun, setCoachRun] = useState<CoachRun | null>(null);
   const [doneSession, setDoneSession] = useState<RunSession | null>(null);
@@ -72,6 +86,8 @@ export default function RunSheet() {
   const [analysisAttempted, setAnalysisAttempted] = useState(false);
   const [stravaSyncing, setStravaSyncing] = useState(false);
   const [stravaSyncMsg, setStravaSyncMsg] = useState("");
+  const [stravaPickerActivities, setStravaPickerActivities] = useState<StravaActivity[]>([]);
+  const [stravaPickerMode, setStravaPickerMode] = useState<"import" | "sync">("sync");
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false);
   const [optionsPanel, setOptionsPanel] = useState<"reschedule" | "cancel" | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -108,6 +124,7 @@ export default function RunSheet() {
     setPendingImage(null);
     setOptionsMenuOpen(false);
     setOptionsPanel(null);
+    setStravaPickerActivities([]);
     const dateStr = sheet.state.date ?? toLocalDateStr(new Date());
 
     const recorded = getSessions().find(
@@ -123,6 +140,61 @@ export default function RunSheet() {
     setAnalysisAttempted(false);
   }, [sheet.state]);
 
+  const doStravaImport = async (activity: StravaActivity) => {
+    const tokens = getStravaTokens();
+    if (!tokens) { setStravaSyncMsg("Non connecté à Strava"); setStravaSyncing(false); return; }
+    try {
+      const laps = await fetchActivityLaps(tokens, activity.id);
+      const session = autoImportActivity(activity, laps);
+      if (!session || session.type !== "run") { setStravaSyncMsg("Erreur lors de l'import"); return; }
+      const alreadyLogged = getSessions().some((s) => s.type === "run" && s.date.slice(0, 10) === dateStr);
+      if (alreadyLogged) { setStravaSyncMsg("Une séance run existe déjà pour ce jour"); return; }
+      addSession(session);
+      setDoneSession(session as RunSession);
+      autoSyncPush().catch(() => {});
+      const note = coachRun?.userNote ?? "";
+      triggerDirectAnalysis(
+        session as RunSession,
+        note ? `Note de l'athlète : "${note}"` : undefined,
+        pendingImage ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType } : undefined,
+      );
+    } catch {
+      setStravaSyncMsg("Erreur de synchronisation");
+    } finally {
+      setStravaSyncing(false);
+      setTimeout(() => setStravaSyncMsg(""), 4000);
+    }
+  };
+
+  const doStravaSync = async (activityId: number) => {
+    if (!doneSession) { setStravaSyncing(false); return; }
+    const tokens = getStravaTokens();
+    if (!tokens) { setStravaSyncMsg("Non connecté à Strava"); setStravaSyncing(false); return; }
+    try {
+      const laps = await fetchActivityLaps(tokens, activityId);
+      if (laps.length > 1) {
+        const updated: RunSession = { ...doneSession, laps, stravaActivityId: activityId, importedFromStrava: true };
+        updateSession(updated);
+        setDoneSession(updated);
+        autoSyncPush().catch(() => {});
+        setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
+        const note = coachRun?.userNote ?? updated.comment ?? "";
+        triggerDirectAnalysis(
+          updated,
+          note ? `Note de l'athlète : "${note}"` : undefined,
+          pendingImage ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType } : undefined,
+        );
+      } else {
+        setStravaSyncMsg("Aucune fraction trouvée dans Strava");
+      }
+    } catch {
+      setStravaSyncMsg("Erreur de synchronisation");
+    } finally {
+      setStravaSyncing(false);
+      setTimeout(() => setStravaSyncMsg(""), 4000);
+    }
+  };
+
   const handleStravaImport = async () => {
     if (stravaSyncing) return;
     const tokens = getStravaTokens();
@@ -132,28 +204,22 @@ export default function RunSheet() {
     try {
       const dayStart = Math.floor(new Date(dateStr + "T00:00:00").getTime() / 1000);
       const activities = await fetchRecentActivities(tokens, dayStart);
-      const match = activities.find(
-        (a) => a.start_date.slice(0, 10) === dateStr &&
-          ["Run", "TrailRun", "VirtualRun"].includes(a.type)
+      const matches = activities.filter(
+        (a) => a.start_date.slice(0, 10) === dateStr && ["Run", "TrailRun", "VirtualRun"].includes(a.type)
       );
-      if (!match) { setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour"); return; }
-      const laps = await fetchActivityLaps(tokens, match.id);
-      const session = autoImportActivity(match, laps);
-      if (!session || session.type !== "run") { setStravaSyncMsg("Erreur lors de l'import"); return; }
-      const alreadyLogged = getSessions().some((s) => s.type === "run" && s.date.slice(0, 10) === dateStr);
-      if (alreadyLogged) { setStravaSyncMsg("Une séance run existe déjà pour ce jour"); return; }
-      addSession(session);
-      setDoneSession(session as RunSession);
-      autoSyncPush().catch(() => {});
-      const importNote = coachRun?.userNote ?? "";
-      const importNoteCtx = importNote ? `Note de l'athlète : "${importNote}"` : undefined;
-      const importAttachments: SessionAttachments | undefined = pendingImage
-        ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
-        : undefined;
-      triggerDirectAnalysis(session as RunSession, importNoteCtx, importAttachments);
+      if (matches.length === 0) {
+        setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour");
+        setStravaSyncing(false);
+        setTimeout(() => setStravaSyncMsg(""), 4000);
+        return;
+      }
+      if (matches.length === 1) { await doStravaImport(matches[0]); return; }
+      setStravaPickerActivities(matches);
+      setStravaPickerMode("import");
+      setStravaSyncing(false);
     } catch {
       setStravaSyncMsg("Erreur de synchronisation");
-    } finally {
+      setStravaPickerActivities([]);
       setStravaSyncing(false);
       setTimeout(() => setStravaSyncMsg(""), 4000);
     }
@@ -167,46 +233,52 @@ export default function RunSheet() {
     setStravaSyncMsg("");
     try {
       let activityId = doneSession.stravaActivityId;
-
       if (!activityId) {
-        // Cherche une activité run Strava le même jour
         const dayStart = Math.floor(new Date(dateStr + "T00:00:00").getTime() / 1000);
         const activities = await fetchRecentActivities(tokens, dayStart);
-        const match = activities.find(
-          (a) => a.start_date.slice(0, 10) === dateStr &&
-            ["Run", "TrailRun", "VirtualRun"].includes(a.type)
+        const matches = activities.filter(
+          (a) => a.start_date.slice(0, 10) === dateStr && ["Run", "TrailRun", "VirtualRun"].includes(a.type)
         );
-        if (match) activityId = match.id;
+        if (matches.length === 0) {
+          setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour");
+          setStravaSyncing(false);
+          setTimeout(() => setStravaSyncMsg(""), 4000);
+          return;
+        }
+        if (matches.length > 1) {
+          setStravaPickerActivities(matches);
+          setStravaPickerMode("sync");
+          setStravaSyncing(false);
+          return;
+        }
+        activityId = matches[0].id;
       }
-
-      if (!activityId) {
-        setStravaSyncMsg("Aucune activité Strava trouvée pour ce jour");
-        return;
-      }
-
-      const laps = await fetchActivityLaps(tokens, activityId);
-      if (laps.length > 1) {
-        const updated: RunSession = { ...doneSession, laps, stravaActivityId: activityId, importedFromStrava: true };
-        updateSession(updated);
-        setDoneSession(updated);
-        autoSyncPush().catch(() => {});
-        setStravaSyncMsg(`${laps.length} fractions synchronisées ✓`);
-        const syncNote = coachRun?.userNote ?? updated.comment ?? "";
-        const syncNoteCtx = syncNote ? `Note de l'athlète : "${syncNote}"` : undefined;
-        const syncAttachments: SessionAttachments | undefined = pendingImage
-          ? { imageBase64: pendingImage.base64, imageMimeType: pendingImage.mimeType }
-          : undefined;
-        triggerDirectAnalysis(updated, syncNoteCtx, syncAttachments);
-      } else {
-        setStravaSyncMsg("Aucune fraction trouvée dans Strava");
-      }
+      await doStravaSync(activityId);
     } catch {
       setStravaSyncMsg("Erreur de synchronisation");
-    } finally {
+      setStravaPickerActivities([]);
       setStravaSyncing(false);
       setTimeout(() => setStravaSyncMsg(""), 4000);
     }
   };
+
+  const handlePickerSelect = async (activity: StravaActivity) => {
+    if (pickerBusyRef.current) return;
+    pickerBusyRef.current = true;
+    setStravaPickerActivities([]);
+    setStravaSyncing(true);
+    try {
+      if (stravaPickerMode === "import") {
+        await doStravaImport(activity);
+      } else {
+        await doStravaSync(activity.id);
+      }
+    } finally {
+      pickerBusyRef.current = false;
+    }
+  };
+
+  const handlePickerCancel = () => setStravaPickerActivities([]);
 
   const handleMockStravaSync = () => {
     if (!doneSession || stravaSyncing) return;
@@ -649,83 +721,116 @@ export default function RunSheet() {
                 )}
               </div>
             )}
-            <div className="flex gap-3">
-              <div className="relative" style={{ flexShrink: 0 }}>
+            {stravaPickerActivities.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-center" style={{ color: "var(--color-secondary)" }}>
+                  {stravaPickerActivities.length} activités trouvées — laquelle synchroniser ?
+                </p>
+                {stravaPickerActivities.map((activity) => (
+                  <button
+                    key={activity.id}
+                    onClick={() => handlePickerSelect(activity)}
+                    className="w-full flex items-center justify-between rounded-2xl px-4 py-3 press-effect"
+                    style={{ background: "var(--color-surface)", border: "1px solid var(--color-surface-2)" }}
+                  >
+                    <div className="text-left">
+                      <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{activity.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--color-muted)" }}>
+                        {(activity.distance / 1000).toFixed(1)} km · {formatPickerDuration(activity.moving_time)} · {formatPickerTime(activity.start_date)}
+                      </p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 6l6 6-6 6" stroke="var(--color-orange)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                ))}
                 <button
-                  onClick={() => setAddContentMenuOpen((v) => !v)}
-                  aria-label="Ajouter une image ou une note"
-                  className="flex items-center justify-center press-effect"
+                  onClick={handlePickerCancel}
+                  className="w-full text-center text-sm press-effect py-2"
+                  style={{ color: "var(--color-muted)" }}
+                >
+                  Annuler
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <div className="relative" style={{ flexShrink: 0 }}>
+                  <button
+                    onClick={() => setAddContentMenuOpen((v) => !v)}
+                    aria-label="Ajouter une image ou une note"
+                    className="flex items-center justify-center press-effect"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "14px",
+                      background: "var(--color-white-06)",
+                      border: "1px solid var(--color-white-10)",
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="var(--color-text)" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                  {addContentMenuOpen && (
+                    <ContextMenu
+                      onClose={() => setAddContentMenuOpen(false)}
+                      menuClassName="absolute left-0 bottom-16"
+                      width={240}
+                      items={[
+                        {
+                          label: "Ajouter une image",
+                          icon: <ImageIcon size={16} color="currentColor" />,
+                          onClick: () => { setAddContentMenuOpen(false); fileInputRef.current?.click(); },
+                        },
+                        {
+                          label: "Ajouter une note",
+                          icon: <NoteIcon size={16} color="currentColor" />,
+                          onClick: () => { setAddContentMenuOpen(false); setNoteModalOpen(true); },
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const compressed = await compressImage(file);
+                      setPendingImage(compressed);
+                    } catch {
+                      setStravaSyncMsg("Impossible de charger l'image");
+                      setTimeout(() => setStravaSyncMsg(""), 3000);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+
+                <button
+                  onClick={needsStravaSync
+                    ? (IS_DEV_SYNC ? handleMockStravaSync : handleStravaSync)
+                    : handleStravaImport}
+                  disabled={stravaSyncing}
+                  className="flex-1 flex items-center justify-center gap-2.5 press-effect"
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: "14px",
-                    background: "var(--color-white-06)",
-                    border: "1px solid var(--color-white-10)",
+                    background: stravaSyncing ? "var(--color-orange-dim)" : "var(--color-strava)",
+                    borderRadius: "12px",
+                    padding: "15px 20px",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    color: "white",
+                    opacity: stravaSyncing ? 0.7 : 1,
                   }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5v14M5 12h14" stroke="var(--color-text)" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
+                  {!stravaSyncing && <StravaIcon size={20} />}
+                  {stravaSyncing ? "Recherche en cours…" : IS_DEV_SYNC && needsStravaSync ? "Simuler synchro (dev)" : "Sync Strava"}
                 </button>
-                {addContentMenuOpen && (
-                  <ContextMenu
-                    onClose={() => setAddContentMenuOpen(false)}
-                    menuClassName="absolute left-0 bottom-16"
-                    width={240}
-                    items={[
-                      {
-                        label: "Ajouter une image",
-                        icon: <ImageIcon size={16} color="currentColor" />,
-                        onClick: () => { setAddContentMenuOpen(false); fileInputRef.current?.click(); },
-                      },
-                      {
-                        label: "Ajouter une note",
-                        icon: <NoteIcon size={16} color="currentColor" />,
-                        onClick: () => { setAddContentMenuOpen(false); setNoteModalOpen(true); },
-                      },
-                    ]}
-                  />
-                )}
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    const compressed = await compressImage(file);
-                    setPendingImage(compressed);
-                  } catch {
-                    setStravaSyncMsg("Impossible de charger l'image");
-                    setTimeout(() => setStravaSyncMsg(""), 3000);
-                  }
-                  e.target.value = "";
-                }}
-              />
-
-              <button
-                onClick={needsStravaSync
-                  ? (IS_DEV_SYNC ? handleMockStravaSync : handleStravaSync)
-                  : handleStravaImport}
-                disabled={stravaSyncing}
-                className="flex-1 flex items-center justify-center gap-2.5 press-effect"
-                style={{
-                  background: stravaSyncing ? "var(--color-orange-dim)" : "var(--color-strava)",
-                  borderRadius: "12px",
-                  padding: "15px 20px",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  color: "white",
-                  opacity: stravaSyncing ? 0.7 : 1,
-                }}
-              >
-                {!stravaSyncing && <StravaIcon size={20} />}
-                {stravaSyncing ? "Recherche en cours…" : IS_DEV_SYNC && needsStravaSync ? "Simuler synchro (dev)" : "Sync Strava"}
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>
