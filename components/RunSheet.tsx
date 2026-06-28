@@ -17,6 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { getActiveProfileId } from "@/lib/profiles";
 import { originNeedsRedirect } from "@/lib/navigation";
 import { CalendarIcon, ImageIcon, NoteIcon, OptionsIcon, StravaIcon, TrashIcon } from "@/components/icons";
+import { ArrowForwardIcon } from "@/components/icons/ArrowForwardIcon";
+import { CrossIcon } from "@/components/icons/CrossIcon";
 import NoteModal from "@/components/NoteModal";
 import { JETBRAINS_MONO_LABEL } from "@/lib/typography";
 import { fetchActivityLaps, fetchRecentActivities, autoImportActivity } from "@/lib/strava";
@@ -293,17 +295,15 @@ export default function RunSheet() {
     setOptionsMenuOpen(false);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const profileId = getActiveProfileId();
-        if (profileId) {
-          await supabase.from("coach_analysis")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("profile_id", profileId)
-            .eq("date", dateStr);
-        }
+      const profileId = getActiveProfileId();
+      if (user && profileId) {
+        await supabase.from("coach_analysis")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("profile_id", profileId)
+          .eq("date", dateStr);
       }
-    } catch { /* silent */ }
+    } catch (err) { console.error("[dissociate-strava]", err); }
   };
 
   const handleMockStravaSync = () => {
@@ -872,6 +872,7 @@ export default function RunSheet() {
             paddingRight: 20,
           }}
           onClick={handlePickerCancel}
+          onKeyDown={(e) => e.key === "Escape" && handlePickerCancel()}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -897,9 +898,7 @@ export default function RunSheet() {
                 className="btn-icon btn-icon-surface press-effect"
                 aria-label="Fermer"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 6l12 12M6 18L18 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
+                <CrossIcon size={12} color="currentColor" />
               </button>
             </div>
             <div className="flex flex-col gap-2" style={{ padding: "0 16px calc(env(safe-area-inset-bottom, 0px) + 24px)" }}>
@@ -916,9 +915,7 @@ export default function RunSheet() {
                       {(activity.distance / 1000).toFixed(1)} km · {formatPickerDuration(activity.moving_time)} · {formatPickerTime(activity.start_date)}
                     </p>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 6l6 6-6 6" stroke="var(--color-orange)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ArrowForwardIcon size={14} color="var(--color-orange)" />
                 </button>
               ))}
             </div>
