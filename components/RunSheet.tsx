@@ -13,6 +13,8 @@ import { toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
 import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
+import { supabase } from "@/lib/supabase";
+import { getActiveProfileId } from "@/lib/profiles";
 import { originNeedsRedirect } from "@/lib/navigation";
 import { CalendarIcon, ImageIcon, NoteIcon, OptionsIcon, StravaIcon, TrashIcon } from "@/components/icons";
 import NoteModal from "@/components/NoteModal";
@@ -280,6 +282,31 @@ export default function RunSheet() {
 
   const handlePickerCancel = () => setStravaPickerActivities([]);
 
+  const handleDissociateStrava = async () => {
+    if (!doneSession) return;
+    const { stravaActivityId, importedFromStrava, laps, ...reverted } = doneSession;
+    updateSession(reverted as RunSession);
+    setDoneSession(reverted as RunSession);
+    localStorage.removeItem(`cc_coach_analysis_${dateStr}`);
+    setCoachResult(null);
+    setAnalysisAttempted(false);
+    autoSyncPush().catch(() => {});
+    setOptionsMenuOpen(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profileId = getActiveProfileId();
+        if (profileId) {
+          await supabase.from("coach_analysis")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("profile_id", profileId)
+            .eq("date", dateStr);
+        }
+      }
+    } catch { /* silent */ }
+  };
+
   const handleMockStravaSync = () => {
     if (!doneSession || stravaSyncing) return;
     const updated: RunSession = { ...doneSession, laps: DEV_MOCK_LAPS, importedFromStrava: true };
@@ -501,6 +528,30 @@ export default function RunSheet() {
                       label: "Annuler la séance",
                       icon: <TrashIcon size={16} color="currentColor" />,
                       onClick: () => { setOptionsPanel("cancel"); setOptionsMenuOpen(false); },
+                      variant: "destructive",
+                    },
+                  ]}
+                />
+              )}
+            </div>
+          ) : doneSession && (doneSession.stravaActivityId || doneSession.importedFromStrava || doneSession.laps?.length) ? (
+            <div className="relative">
+              <button
+                onClick={() => setOptionsMenuOpen((v) => !v)}
+                className="w-10 h-10 rounded-full flex items-center justify-center press-effect"
+                style={{ background: "var(--color-surface-2)", border: "1px solid var(--color-surface-3)", color: "var(--color-secondary)" }}
+                aria-label="Options"
+              >
+                <OptionsIcon size={20} color="currentColor" />
+              </button>
+              {optionsMenuOpen && (
+                <ContextMenu
+                  onClose={() => setOptionsMenuOpen(false)}
+                  items={[
+                    {
+                      label: "Dissocier Strava",
+                      icon: <StravaIcon size={16} />,
+                      onClick: handleDissociateStrava,
                       variant: "destructive",
                     },
                   ]}
