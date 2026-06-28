@@ -11,7 +11,7 @@ import RunPlanSection from "@/components/RunPlanSection";
 import SessionBriefCard from "@/components/SessionBriefCard";
 import { toLocalDateStr } from "@/lib/plan";
 import { getCoachRuns, deleteCoachRun, addCoachRun } from "@/lib/coachPlan";
-import { getSessions, getStravaTokens, addSession, updateSession, cancelDay } from "@/lib/storage";
+import { getSessions, getStravaTokens, addSession, updateSession, deleteSession, cancelDay } from "@/lib/storage";
 import { autoSyncPush } from "@/lib/sync";
 import { supabase } from "@/lib/supabase";
 import { getActiveProfileId } from "@/lib/profiles";
@@ -284,9 +284,8 @@ export default function RunSheet() {
 
   const handleDissociateStrava = async () => {
     if (!doneSession) return;
-    const { stravaActivityId, importedFromStrava, laps, ...reverted } = doneSession;
-    updateSession(reverted as RunSession);
-    setDoneSession(reverted as RunSession);
+    deleteSession(doneSession.id);
+    setDoneSession(null);
     localStorage.removeItem(`cc_coach_analysis_${dateStr}`);
     setCoachResult(null);
     setAnalysisAttempted(false);

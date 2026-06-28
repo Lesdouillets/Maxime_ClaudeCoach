@@ -195,7 +195,11 @@ export function FitnessCard({ todayCoachWorkout, todaySession, onOpenSession, va
     <button
       className="w-full text-left rounded-2xl overflow-hidden relative press-effect"
       onClick={onOpenSession}
-      style={{ height: CARD_HEIGHT, border: `1px solid color-mix(in srgb, ${accent} 50%, transparent)` }}
+      style={{
+        height: CARD_HEIGHT,
+        border: isDone ? `1px solid var(--color-neon)` : `1px solid color-mix(in srgb, ${accent} 50%, transparent)`,
+        boxShadow: isDone ? `0 0 16px var(--color-neon-10)` : undefined,
+      }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={IMAGES[isUpper ? "upper" : "lower"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
