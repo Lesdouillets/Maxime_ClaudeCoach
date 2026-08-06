@@ -6,11 +6,16 @@
 // d'une app mobile. Il vit donc ici, dans les secrets du projet Supabase, et
 // aucun client n'en a jamais connaissance.
 //
-// Déployer : supabase functions deploy strava-auth
-// Secrets requis :
-//   supabase secrets set STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=...
+// Deux projets à servir, chacun avec sa propre copie du secret. Sans
+// `--project-ref`, le CLI vise le projet lié, ce qui n'est pas toujours celui
+// qu'on croit :
+//   supabase functions deploy strava-auth --project-ref <ref>
+//   supabase secrets set STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=... --project-ref <ref>
+//
+// Une fonction déployée sans ses secrets répond 500 alors que le client, lui,
+// se croit configuré : il ne connaît que l'identifiant public.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -26,12 +31,18 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/// Client agissant au nom de l'appelant, et son identifiant.
+///
+/// Le client porte le JWT reçu : toute lecture qu'il fera sera filtrée par les
+/// politiques RLS au nom de cet utilisateur, et pas d'un autre.
+type Caller = { id: string; client: SupabaseClient };
+
 /// Vérifie que l'appelant est bien un utilisateur connecté.
 ///
 /// Sans ce contrôle, la fonction serait un oracle ouvert : n'importe qui
 /// pourrait lui faire rafraîchir un jeton, et donc se servir du secret qu'on
 /// cherche précisément à protéger.
-async function requireUser(req: Request): Promise<string | null> {
+async function requireCaller(req: Request): Promise<Caller | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return null;
 
@@ -43,7 +54,29 @@ async function requireUser(req: Request): Promise<string | null> {
 
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) return null;
-  return data.user.id;
+  return { id: data.user.id, client };
+}
+
+/// Le jeton de rafraîchissement rangé pour ce profil, lu au nom de l'appelant.
+///
+/// C'est le cœur de la garantie : la fonction ne rafraîchit **jamais** un jeton
+/// qu'on lui présente, seulement celui qu'elle va chercher elle-même. Sinon,
+/// détenir le jeton d'autrui — fuite, sauvegarde, journal — suffirait à s'en
+/// servir, puisque c'est précisément le secret qui manquait pour l'exploiter.
+async function ownRefreshToken(
+  caller: Caller,
+  profileId: string,
+): Promise<string | null> {
+  const { data } = await caller.client
+    .from("strava_tokens")
+    .select("tokens")
+    .eq("user_id", caller.id)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  const token = (data?.tokens as Record<string, unknown> | undefined)
+    ?.refresh_token;
+  return typeof token === "string" ? token : null;
 }
 
 /// Relaie la demande à Strava en y ajoutant les identifiants de l'application.
@@ -71,35 +104,37 @@ Deno.serve(async (req: Request) => {
   // franchir la passerelle Supabase, donc c'est ici que se joue le contrôle.
   // Répondre quoi que ce soit d'autre en premier — même « mal configuré » —
   // renseignerait un appelant qui n'a rien à savoir.
-  const userId = await requireUser(req);
-  if (!userId) return json({ error: "Authentification requise" }, 401);
+  const caller = await requireCaller(req);
+  if (!caller) return json({ error: "Authentification requise" }, 401);
 
   if (!Deno.env.get("STRAVA_CLIENT_ID") || !Deno.env.get("STRAVA_CLIENT_SECRET")) {
     return json({ error: "Identifiants Strava non configurés sur le projet" }, 500);
   }
 
-  let body: { action?: string; code?: string; refresh_token?: string };
+  let body: { action?: string; code?: string; profile_id?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Corps de requête illisible" }, 400);
   }
 
-  // Chaque utilisateur autorise son propre compte Strava : la fonction ne
-  // connaît que la demande qu'on lui passe, jamais un compte tiers.
-  const params = (() => {
-    if (body.action === "exchange" && body.code) {
-      return { code: body.code, grant_type: "authorization_code" };
+  // L'échange n'a pas besoin de garde supplémentaire : un code d'autorisation
+  // ne délivre que les jetons de celui qui vient de donner son consentement.
+  let params: Record<string, string> | null = null;
+
+  if (body.action === "exchange" && typeof body.code === "string") {
+    params = { code: body.code, grant_type: "authorization_code" };
+  } else if (body.action === "refresh" && typeof body.profile_id === "string") {
+    const refreshToken = await ownRefreshToken(caller, body.profile_id);
+    if (!refreshToken) {
+      return json({ error: "Aucun compte Strava relié à ce profil" }, 404);
     }
-    if (body.action === "refresh" && body.refresh_token) {
-      return { refresh_token: body.refresh_token, grant_type: "refresh_token" };
-    }
-    return null;
-  })();
+    params = { refresh_token: refreshToken, grant_type: "refresh_token" };
+  }
 
   if (!params) {
     return json(
-      { error: "action attendue : 'exchange' avec code, ou 'refresh' avec refresh_token" },
+      { error: "action attendue : 'exchange' avec code, ou 'refresh' avec profile_id" },
       400,
     );
   }
