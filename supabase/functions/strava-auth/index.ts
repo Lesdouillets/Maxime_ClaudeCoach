@@ -24,6 +24,28 @@ const CORS = {
 
 const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 
+// Lus une fois pour l'isolat : ce sont des constantes de déploiement, et les
+// relire à chaque site d'usage laisse la vérification de présence et l'envoi
+// se désynchroniser en silence.
+const CLIENT_ID = Deno.env.get("STRAVA_CLIENT_ID");
+const CLIENT_SECRET = Deno.env.get("STRAVA_CLIENT_SECRET");
+
+/// Cause machine de l'échec, pour que le client n'ait pas à la deviner du code
+/// HTTP. Un même statut recouvre des situations qui n'appellent pas la même
+/// réaction : « Strava a refusé » se répare en se reconnectant, « Strava est
+/// injoignable » s'attend.
+type FailureCode =
+  | "auth_required"
+  | "not_configured"
+  | "bad_request"
+  | "not_linked"
+  | "strava_refused"
+  | "strava_unreachable";
+
+function fail(code: FailureCode, message: string, status: number): Response {
+  return json({ code, error: message }, status);
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -79,6 +101,45 @@ async function ownRefreshToken(
   return typeof token === "string" ? token : null;
 }
 
+/// Réécrit la ligne de jetons du profil avec ce que Strava vient de renvoyer.
+///
+/// La fonction est seule à connaître le moment exact de la rotation ; laisser
+/// le client s'en charger ouvre une fenêtre pendant laquelle la base contient
+/// un jeton que Strava a déjà invalidé.
+async function persistTokens(
+  caller: Caller,
+  profileId: string,
+  fresh: unknown,
+): Promise<void> {
+  if (typeof fresh !== "object" || fresh === null) return;
+  const next = fresh as Record<string, unknown>;
+
+  const { data } = await caller.client
+    .from("strava_tokens")
+    .select("tokens")
+    .eq("user_id", caller.id)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  const merged = {
+    ...(data?.tokens as Record<string, unknown> ?? {}),
+    access_token: next.access_token,
+    refresh_token: next.refresh_token,
+    expires_at: next.expires_at,
+  };
+
+  const { error } = await caller.client.from("strava_tokens").upsert(
+    {
+      user_id: caller.id,
+      profile_id: profileId,
+      tokens: merged,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,profile_id" },
+  );
+  if (error) console.error("[strava-auth] écriture des jetons", error);
+}
+
 /// Relaie la demande à Strava en y ajoutant les identifiants de l'application.
 async function callStrava(
   params: Record<string, string>,
@@ -87,8 +148,8 @@ async function callStrava(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: Deno.env.get("STRAVA_CLIENT_ID"),
-      client_secret: Deno.env.get("STRAVA_CLIENT_SECRET"),
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
       ...params,
     }),
   });
@@ -105,49 +166,71 @@ Deno.serve(async (req: Request) => {
   // Répondre quoi que ce soit d'autre en premier — même « mal configuré » —
   // renseignerait un appelant qui n'a rien à savoir.
   const caller = await requireCaller(req);
-  if (!caller) return json({ error: "Authentification requise" }, 401);
+  if (!caller) {
+    return fail("auth_required", "Session absente ou expirée", 401);
+  }
 
-  if (!Deno.env.get("STRAVA_CLIENT_ID") || !Deno.env.get("STRAVA_CLIENT_SECRET")) {
-    return json({ error: "Identifiants Strava non configurés sur le projet" }, 500);
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    return fail(
+      "not_configured",
+      "Identifiants Strava non configurés sur ce projet",
+      500,
+    );
   }
 
   let body: { action?: string; code?: string; profile_id?: string };
   try {
     body = await req.json();
   } catch {
-    return json({ error: "Corps de requête illisible" }, 400);
+    return fail("bad_request", "Corps de requête illisible", 400);
   }
 
   // L'échange n'a pas besoin de garde supplémentaire : un code d'autorisation
   // ne délivre que les jetons de celui qui vient de donner son consentement.
   let params: Record<string, string> | null = null;
+  const refreshingProfile =
+    body.action === "refresh" && typeof body.profile_id === "string"
+      ? body.profile_id
+      : null;
 
   if (body.action === "exchange" && typeof body.code === "string") {
     params = { code: body.code, grant_type: "authorization_code" };
-  } else if (body.action === "refresh" && typeof body.profile_id === "string") {
-    const refreshToken = await ownRefreshToken(caller, body.profile_id);
+  } else if (refreshingProfile) {
+    const refreshToken = await ownRefreshToken(caller, refreshingProfile);
     if (!refreshToken) {
-      return json({ error: "Aucun compte Strava relié à ce profil" }, 404);
+      return fail("not_linked", "Aucun compte Strava relié à ce profil", 404);
     }
     params = { refresh_token: refreshToken, grant_type: "refresh_token" };
   }
 
   if (!params) {
-    return json(
-      { error: "action attendue : 'exchange' avec code, ou 'refresh' avec profile_id" },
+    return fail(
+      "bad_request",
+      "action attendue : 'exchange' avec code, ou 'refresh' avec profile_id",
       400,
     );
   }
 
+  let result;
   try {
-    const { ok, status, data } = await callStrava(params);
-    if (!ok) {
-      console.error("[strava-auth] refus de Strava", status, data);
-      return json({ error: "Strava a refusé la demande", status }, 502);
-    }
-    return json(data);
+    result = await callStrava(params);
   } catch (err) {
     console.error("[strava-auth] échec de l'appel", err);
-    return json({ error: "Strava injoignable" }, 502);
+    return fail("strava_unreachable", "Strava injoignable", 502);
   }
+
+  if (!result.ok) {
+    console.error("[strava-auth] refus de Strava", result.status, result.data);
+    return fail("strava_refused", "Strava a refusé la demande", 502);
+  }
+
+  // Le rafraîchissement fait tourner le jeton chez Strava : l'ancien est mort
+  // dès cette réponse. C'est donc ici, et pas après un aller-retour de plus
+  // jusqu'au téléphone, que la ligne doit être réécrite — une coupure dans
+  // cette fenêtre laisserait en base un jeton définitivement inutilisable.
+  if (refreshingProfile) {
+    await persistTokens(caller, refreshingProfile, result.data);
+  }
+
+  return json(result.data);
 });
