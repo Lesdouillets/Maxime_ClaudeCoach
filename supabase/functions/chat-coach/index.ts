@@ -349,6 +349,37 @@ const COACH_TOOLS = [
   },
 ] as const;
 
+/**
+ * Fusionne un lot de plans dans les propositions en attente, en remplaçant ceux
+ * de même identifiant.
+ *
+ * Le coach appelle volontiers `propose_plan_batch` plusieurs fois dans le même
+ * tour — il sépare les runs des séances de fitness — et il peut corriger sa
+ * proposition à l'itération suivante. Affecter écraserait le premier lot sans
+ * que rien ne le signale ; concaténer sans clé afficherait la correction en
+ * double.
+ */
+function mergePlansById(
+  current: unknown[],
+  incoming: Record<string, unknown>[],
+): unknown[] {
+  const merged = [...current] as Record<string, unknown>[];
+
+  for (const plan of incoming) {
+    const id = plan.id;
+    // Un plan sans identifiant ne peut pas être rapproché d'un autre : on
+    // l'ajoute, le client lui en attribuera un à la lecture.
+    const index = typeof id === "string"
+      ? merged.findIndex((existing) => existing.id === id)
+      : -1;
+
+    if (index === -1) merged.push(plan);
+    else merged[index] = plan;
+  }
+
+  return merged;
+}
+
 function resolvePlansByIds(
   planIds: string[],
   conversationMessages: unknown[],
@@ -634,10 +665,14 @@ Deno.serve(async (req: Request) => {
         let toolResultContent = "";
 
         if (name === "propose_plan_batch") {
-          result.pending_plans = Array.isArray(input.plans) ? input.plans : [];
-          result.pending_delete_ids = Array.isArray(input.delete_ids) ? (input.delete_ids as string[]) : [];
-          toolResultContent = `OK — ${result.pending_plans.length} plan(s) proposé(s), en attente de confirmation user.`;
-          console.log("[chat-coach] propose_plan_batch:", result.pending_plans.length, "plans");
+          const plans = Array.isArray(input.plans) ? (input.plans as Record<string, unknown>[]) : [];
+          const deleteIds = Array.isArray(input.delete_ids) ? (input.delete_ids as string[]) : [];
+
+          result.pending_plans = mergePlansById(result.pending_plans, plans);
+          result.pending_delete_ids = [...new Set([...result.pending_delete_ids, ...deleteIds])];
+
+          toolResultContent = `OK — ${result.pending_plans.length} plan(s) en attente de confirmation user.`;
+          console.log("[chat-coach] propose_plan_batch:", plans.length, "plans reçus,", result.pending_plans.length, "en attente");
         } else if (name === "apply_plan_batch") {
           const planIds = Array.isArray(input.plan_ids) ? (input.plan_ids as string[]) : [];
           result.modified_plans = resolvePlansByIds(planIds, conversationMessages, currentTurnProposedPlans);
