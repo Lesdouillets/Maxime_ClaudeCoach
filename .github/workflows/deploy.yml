@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  # Nécessaire pour déclencher le workflow de staging depuis celui-ci.
+  actions: write
 
 concurrency:
   group: "deploy-gh-pages"
@@ -62,6 +64,17 @@ jobs:
           git checkout staging
           git merge main --no-edit
           git push origin staging
+
+      # Le push ci-dessus est fait avec le GITHUB_TOKEN, et GitHub refuse par
+      # principe de déclencher un workflow sur un tel push — c'est sa protection
+      # contre les boucles. Staging recevait donc le code sans jamais être
+      # redéployé. `workflow_dispatch` est l'une des deux exceptions à cette
+      # règle : on appelle donc le déploiement explicitement, ce qui évite un
+      # jeton personnel à créer, stocker et renouveler.
+      - name: Déclencher le déploiement staging
+        run: gh workflow run deploy-staging.yml --ref staging
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-functions:
     runs-on: ubuntu-latest
