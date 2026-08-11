@@ -3,10 +3,21 @@
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  type AthleteProfile,
+  formatAthleteLine,
+  formatHeartRateZones,
+  loadAthleteProfile,
+  MAX_HR_INSTRUCTION,
+  validateMaxHr,
+} from "../_shared/athleteProfile.ts";
 
 // Dupliqué depuis lib/coachMemory.ts#formatCoachMemoryForPrompt — à synchroniser manuellement si lib/coachMemory.ts évolue
 // La Edge Function Deno ne peut pas importer depuis le client Next.js
-function formatCoachMemoryForPrompt(memory: Record<string, unknown>): string {
+function formatCoachMemoryForPrompt(
+  memory: Record<string, unknown>,
+  hasMeasuredWeight: boolean,
+): string {
   const lines: string[] = [];
 
   const run = (memory.run ?? {}) as Record<string, unknown>;
@@ -36,13 +47,17 @@ function formatCoachMemoryForPrompt(memory: Record<string, unknown>): string {
   }
   if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
 
+  // Le poids du bloc PROFIL est une pesée datée ; celui-ci est ce que le coach
+  // a cru comprendre d'un commentaire. Les afficher tous les deux, c'est lui
+  // donner deux chiffres contradictoires à arbitrer.
   const body = (memory.body ?? {}) as Record<string, unknown>;
-  if (body.currentWeight !== undefined) {
-    const bodyParts: string[] = [`${body.currentWeight}kg`];
-    if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
-    if (body.trend) bodyParts.push(`tendance ${body.trend}`);
-    lines.push(`Poids : ${bodyParts.join(", ")}`);
+  const bodyParts: string[] = [];
+  if (!hasMeasuredWeight && body.currentWeight !== undefined) {
+    bodyParts.push(`${body.currentWeight}kg`);
   }
+  if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
+  if (body.trend) bodyParts.push(`tendance ${body.trend}`);
+  if (bodyParts.length > 0) lines.push(`Poids : ${bodyParts.join(", ")}`);
 
   const keyNotes = Array.isArray(memory.keyNotes) ? memory.keyNotes as Array<{ date: string; note: string }> : [];
   const recentNotes = keyNotes.slice(-3);
@@ -59,11 +74,22 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function buildSystemPrompt(profileName: string): string {
+// Client admin — la lecture du profil corps se fait hors de la session de
+// l'appelant, comme chat-coach le fait pour ses archives.
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+function buildSystemPrompt(
+  profileName: string,
+  athlete: AthleteProfile,
+  maxHr?: number,
+): string {
   return `Tu es Alex, coach sportif de ${profileName}. Tu analyses les séances terminées et **mets à jour le programme à venir si les données le justifient**.
 
 ## PROFIL DE ${profileName}
-- 33 ans | 1,83 m | ~75 kg → objectif 74 kg
+${formatAthleteLine(athlete)}
 - Niveau intermédiaire | Temps limité (2 enfants)
 - Jours fixes : Lundi (haut du corps) / Mercredi (run) / Jeudi ou Vendredi (bas du corps) / Dimanche (long run)
 - Développé militaire : point faible, progression lente et prudente
@@ -75,8 +101,7 @@ function buildSystemPrompt(profileName: string): string {
 - Ne jamais augmenter charge ET volume simultanément — choisir l'un ou l'autre
 - Semaine de décharge : -1 série par exercice, charge maintenue
 
-## ZONES FC (FC max ~187 bpm)
-- Z1 < 112 bpm | Z2 112–149 | Z3 149–168 | Z4 168–178 | Z5 > 178
+${formatHeartRateZones(maxHr)}
 
 ## TON RÔLE DE COACH
 
@@ -198,6 +223,7 @@ Après chaque analyse, tu peux mettre à jour la mémoire coach si la séance r�
 - fitness.upperBody.keyLifts ou lowerBody.keyLifts : si un exercice clé franchit un palier notable (PR, régression marquée). Format : {"Développé couché haltères": "20kg×4×8 — PR"}
 - fitness.upperBody.lastSession ou lowerBody.lastSession : à chaque séance upper/lower (date de la séance analysée)
 - body.currentWeight : UNIQUEMENT si le poids est explicitement mentionné dans le commentaire de séance
+${MAX_HR_INSTRUCTION}
 - keyNotes : si un événement important survient (blessure identifiée dans les données, objectif mentionné en commentaire)
 
 **Quand laisser memory_update: null :**
@@ -298,6 +324,7 @@ function buildUserPrompt(
   previousAnalyses: Array<{ date: string; analysis: string }> = [],
   chatContext?: string,
   coachMemory?: Record<string, unknown>,
+  hasMeasuredWeight = false,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -362,7 +389,9 @@ function buildUserPrompt(
     ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
     : "";
 
-  const memorySection = coachMemory ? formatCoachMemoryForPrompt(coachMemory) : "";
+  const memorySection = coachMemory
+    ? formatCoachMemoryForPrompt(coachMemory, hasMeasuredWeight)
+    : "";
   const memoryBlock = memorySection ? `\n${memorySection}\n` : "";
 
   const nearSection = nearFuturePlans.length > 0
@@ -397,7 +426,15 @@ Deno.serve(async (req: Request) => {
     // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType, userId, profileId } = body;
+
+    // Profil corps et dernière pesée. Sans identifiants — le web n'en envoie
+    // pas — le profil reste vide et le prompt garde ses valeurs d'origine.
+    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
+    const maxHr = validateMaxHr(
+      (coachMemory as Record<string, Record<string, unknown>> | undefined)
+        ?.body?.maxHr,
+    );
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -434,7 +471,7 @@ Deno.serve(async (req: Request) => {
         system: [
           {
             type: "text",
-            text: buildSystemPrompt(profileName),
+            text: buildSystemPrompt(profileName, athlete, maxHr),
             cache_control: { type: "ephemeral" },
           },
         ],
@@ -445,7 +482,7 @@ Deno.serve(async (req: Request) => {
               ? [
                   {
                     type: "text",
-                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined),
                   },
                   {
                     type: "image",
@@ -456,7 +493,7 @@ Deno.serve(async (req: Request) => {
                     },
                   },
                 ]
-              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined),
           },
         ],
       }),

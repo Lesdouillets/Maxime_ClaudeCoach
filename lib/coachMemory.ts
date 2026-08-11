@@ -24,6 +24,7 @@ export interface CoachMemory {
     currentWeight?: number; // kg
     trend?: string;         // ex: "−0.2kg/semaine"
     target?: number;        // kg
+    maxHr?: number;         // bpm — écrit par le coach seul, jamais par l'utilisateur
   };
   keyNotes: Array<{
     date: string; // "YYYY-MM-DD"

@@ -1,4 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  type AthleteProfile,
+  formatAthleteLine,
+  formatHeartRateZones,
+  loadAthleteProfile,
+  MAX_HR_INSTRUCTION,
+  validateMaxHr,
+} from "../_shared/athleteProfile.ts";
 
 // Edge Function — conversation directe avec le coach Alex
 // Déployer : supabase functions deploy chat-coach --no-verify-jwt
@@ -43,11 +51,15 @@ function compactArchives(archives: ArchiveRow[]): string {
   return parts.length > 0 ? parts.join("\n\n") : "Aucune conversation archivée.";
 }
 
-function buildSystemPrompt(profileName: string): string {
+function buildSystemPrompt(
+  profileName: string,
+  athlete: AthleteProfile,
+  maxHr?: number,
+): string {
   return `Tu es Alex, coach sportif personnel de ${profileName}. Tu discutes directement avec lui pour ajuster ou créer son programme d'entraînement selon ses objectifs.
 
 ## PROFIL DE ${profileName}
-- 33 ans | 1,83 m | ~75 kg → objectif 74 kg
+${formatAthleteLine(athlete)}
 - Niveau intermédiaire | Temps limité (2 enfants)
 - Jours fixes : Lundi (haut du corps) / Mercredi (run) / Jeudi ou Vendredi (bas du corps) / Dimanche (long run)
 - Développé militaire : point faible, progression lente et prudente
@@ -59,8 +71,7 @@ function buildSystemPrompt(profileName: string): string {
 - Ne jamais augmenter charge ET volume simultanément — choisir l'un ou l'autre
 - Semaine de décharge : -1 série par exercice, charge maintenue
 
-## ZONES FC (FC max ~187 bpm)
-- Z1 < 112 bpm | Z2 112–149 | Z3 149–168 | Z4 168–178 | Z5 > 178
+${formatHeartRateZones(maxHr)}
 
 ## MODE CONVERSATION
 
@@ -174,11 +185,15 @@ interface CoachMemory {
     currentWeight?: number;
     trend?: string;
     target?: number;
+    maxHr?: number;
   };
   keyNotes: Array<{ date: string; note: string }>;
 }
 
-function formatCoachMemoryForPrompt(memory: CoachMemory): string {
+function formatCoachMemoryForPrompt(
+  memory: CoachMemory,
+  hasMeasuredWeight: boolean,
+): string {
   const lines: string[] = [];
 
   const runParts: string[] = [];
@@ -200,12 +215,16 @@ function formatCoachMemoryForPrompt(memory: CoachMemory): string {
   }
   if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
 
-  if (memory.body.currentWeight !== undefined) {
-    const bodyParts: string[] = [`${memory.body.currentWeight}kg`];
-    if (memory.body.target !== undefined) bodyParts.push(`objectif ${memory.body.target}kg`);
-    if (memory.body.trend) bodyParts.push(`tendance ${memory.body.trend}`);
-    lines.push(`Poids : ${bodyParts.join(", ")}`);
+  // Le poids du bloc PROFIL est une pesée datée ; celui-ci est ce que le coach
+  // a cru comprendre d'une conversation. Les afficher tous les deux, c'est lui
+  // donner deux chiffres contradictoires à arbitrer.
+  const bodyParts: string[] = [];
+  if (!hasMeasuredWeight && memory.body.currentWeight !== undefined) {
+    bodyParts.push(`${memory.body.currentWeight}kg`);
   }
+  if (memory.body.target !== undefined) bodyParts.push(`objectif ${memory.body.target}kg`);
+  if (memory.body.trend) bodyParts.push(`tendance ${memory.body.trend}`);
+  if (bodyParts.length > 0) lines.push(`Poids : ${bodyParts.join(", ")}`);
 
   const recentNotes = memory.keyNotes.slice(-3);
   if (recentNotes.length > 0) {
@@ -279,7 +298,8 @@ const COACH_TOOLS = [
       "À utiliser UNIQUEMENT pour des informations significatives long terme : " +
       "blessure, objectif de course, contrainte physique, tendance FC confirmée, poids mentionné. " +
       "PAS pour les détails d'une séance (déjà dans les données brutes). " +
-      "La mémoire sera injectée dans toutes les conversations futures.",
+      "La mémoire sera injectée dans toutes les conversations futures.\n" +
+      MAX_HR_INSTRUCTION,
     input_schema: {
       type: "object",
       properties: {
@@ -318,6 +338,7 @@ const COACH_TOOLS = [
             currentWeight: { type: "number" },
             trend: { type: "string" },
             target: { type: "number" },
+            maxHr: { type: "number" },
           },
         },
         keyNotes: {
@@ -479,6 +500,13 @@ Deno.serve(async (req: Request) => {
     }
     const resolvedMimeType = mimeTypeStr ?? "image/jpeg";
 
+    // Profil corps et dernière pesée. Sans identifiants — un client qui ne les
+    // envoie pas — le profil est vide et le prompt garde ses valeurs d'origine.
+    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
+    const maxHr = validateMaxHr(
+      (coachMemory as CoachMemory | undefined)?.body?.maxHr,
+    );
+
     if (!messages || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
     }
@@ -495,7 +523,10 @@ Deno.serve(async (req: Request) => {
 
     // Injection mémoire persistante si disponible
     if (coachMemory) {
-      const memoryText = formatCoachMemoryForPrompt(coachMemory as CoachMemory);
+      const memoryText = formatCoachMemoryForPrompt(
+        coachMemory as CoachMemory,
+        athlete.weightKg !== undefined,
+      );
       if (memoryText) contextParts.push(`\n${memoryText}`);
     }
 
@@ -568,7 +599,7 @@ Deno.serve(async (req: Request) => {
         ]
       : recentMessages;
 
-    const systemPrompt = buildSystemPrompt(profileName);
+    const systemPrompt = buildSystemPrompt(profileName, athlete, maxHr);
     const conversationMessages: unknown[] = [...apiMessages];
 
     const result: ChatCoachResult = {
