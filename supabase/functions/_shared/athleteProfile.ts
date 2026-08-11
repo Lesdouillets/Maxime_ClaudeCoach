@@ -66,30 +66,70 @@ export async function loadAthleteProfile(
       .maybeSingle(),
   ]);
 
+  // Le repli étant le prompt d'origine, une lecture en échec est autrement
+  // indiscernable d'un profil vide : le coach repartirait sur « 33 ans,
+  // ~75 kg » sans que rien ne le signale. C'est le seul endroit où échouer en
+  // silence produit un conseil faux plutôt qu'un écran vide.
+  if (profile.error) {
+    console.error("[athleteProfile] lecture de profiles:", profile.error.message);
+  }
+  if (weight.error) {
+    console.error("[athleteProfile] lecture de weight_entries:", weight.error.message);
+  }
+
   const row = profile.data;
-  const birthYear = row?.birth_year as number | null | undefined;
 
   return {
-    ageYears: birthYear ? new Date().getFullYear() - birthYear : undefined,
-    heightCm: (row?.height_cm as number | null) ?? undefined,
-    targetWeightKg: numberOrUndefined(row?.target_weight_kg),
-    weightKg: numberOrUndefined(weight.data?.kg),
+    ageYears: age(positive(row?.birth_year)),
+    heightCm: positive(row?.height_cm),
+    targetWeightKg: positive(row?.target_weight_kg),
+    weightKg: positive(weight.data?.kg),
   };
 }
 
-function numberOrUndefined(value: unknown): number | undefined {
+/// Une mesure vaut d'être reprise si elle est un nombre strictement positif.
+/// Un zéro n'est pas une taille, ni un poids : c'est une colonne jamais
+/// remplie. Un seul prédicat pour les quatre champs, sinon `formatAthleteLine`
+/// et `hasMeasuredWeight` finissent par ne pas être d'accord sur le zéro.
+function positive(value: unknown): number | undefined {
   const parsed = Number(value);
-  return value === null || value === undefined || Number.isNaN(parsed)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/// L'âge, à la date d'anniversaire près — la seule année suffit à un prompt et
+/// évite de stocker une date complète.
+function age(birthYear?: number): number | undefined {
+  return birthYear === undefined
     ? undefined
-    : parsed;
+    : new Date().getFullYear() - birthYear;
+}
+
+/// Bornes au-delà desquelles une valeur vient d'une faute de frappe et non
+/// d'une mesure. Une frappe de trop dans les réglages (`9999`) donnerait au
+/// coach un athlète de -7973 ans.
+const PLAUSIBLE = {
+  ageYears: { min: 10, max: 100 },
+  heightCm: { min: 100, max: 250 },
+} as const;
+
+function plausible(
+  value: number | undefined,
+  range: { min: number; max: number },
+): number | undefined {
+  return value !== undefined && value >= range.min && value <= range.max
+    ? value
+    : undefined;
 }
 
 /// La ligne d'identité du bloc PROFIL.
 export function formatAthleteLine(profile: AthleteProfile): string {
-  const age = profile.ageYears ? `${profile.ageYears} ans` : FALLBACK.age;
+  const ageYears = plausible(profile.ageYears, PLAUSIBLE.ageYears);
+  const heightCm = plausible(profile.heightCm, PLAUSIBLE.heightCm);
 
-  const height = profile.heightCm
-    ? `${(profile.heightCm / 100).toFixed(2).replace(".", ",")} m`
+  const age = ageYears ? `${ageYears} ans` : FALLBACK.age;
+
+  const height = heightCm
+    ? `${(heightCm / 100).toFixed(2).replace(".", ",")} m`
     : FALLBACK.height;
 
   // Le tilde disait l'approximation d'une valeur devinée. Une pesée datée n'en
@@ -126,18 +166,60 @@ export function formatHeartRateZones(maxHr?: number): string {
 }
 
 export function validateMaxHr(maxHr?: unknown): number | undefined {
-  const parsed = Number(maxHr);
-  if (!Number.isFinite(parsed)) return undefined;
+  if (maxHr === undefined || maxHr === null) return undefined;
 
+  const parsed = Number(maxHr);
   const rounded = Math.round(parsed);
-  return rounded >= MAX_HR_RANGE.min && rounded <= MAX_HR_RANGE.max
-    ? rounded
-    : undefined;
+
+  if (
+    !Number.isFinite(parsed) ||
+    rounded < MAX_HR_RANGE.min ||
+    rounded > MAX_HR_RANGE.max
+  ) {
+    // Sans trace, une valeur aberrante en mémoire est invisible : le coach ne
+    // verrait que le bloc par défaut et pourrait la réécrire indéfiniment.
+    console.warn(`[athleteProfile] FC max ignorée, hors bornes : ${maxHr}`);
+    return undefined;
+  }
+
+  return rounded;
+}
+
+/// La FC max supposée tant que le coach n'a rien retenu — celle du bloc de
+/// zones d'origine.
+export const ASSUMED_MAX_HR = 187;
+
+/// Le marqueur posé sur une séance dont la FC dépasse la FC max supposée.
+///
+/// Sans lui, la consigne ci-dessous ne pouvait jamais se déclencher : seule la
+/// FC *moyenne* entrait dans le prompt, et une moyenne de course au-dessus de
+/// 187 n'arrive pas. Le marqueur n'apparaît que dans ce cas précis, donc il ne
+/// coûte rien le reste du temps.
+export function maxHrAlert(observed: number, assumed: number): string {
+  return ` ⚠FCmax observée ${Math.round(observed)} (supposée ${assumed})`;
+}
+
+/// La plus haute FC relevée sur les fractions d'une séance, si elle dépasse la
+/// FC max supposée.
+export function exceedingMaxHr(
+  laps: unknown,
+  assumed: number,
+): number | undefined {
+  if (!Array.isArray(laps)) return undefined;
+
+  const peak = laps.reduce((highest: number, lap: unknown) => {
+    const value = Number((lap as Record<string, unknown>)?.max_heartrate);
+    return Number.isFinite(value) && value > highest ? value : highest;
+  }, 0);
+
+  return peak > assumed ? peak : undefined;
 }
 
 /// La consigne qui autorise le coach à corriger la FC max — et lui interdit de
 /// la deviner.
 export const MAX_HR_INSTRUCTION =
-  "- body.maxHr : UNIQUEMENT si une activité montre une FC supérieure à la FC max supposée. " +
-  "Une FC max ne se déduit ni de l'âge ni des progrès : l'entraînement baisse la FC de repos et " +
-  "la FC à allure donnée, pas la FC max. Ne la baisse jamais de toi-même.";
+  "- body.maxHr : UNIQUEMENT si une séance porte le marqueur ⚠FCmax observée, " +
+  "ou si l'utilisateur rapporte lui-même une FC plus haute que la FC max supposée. " +
+  "Retiens alors la valeur observée, pas une estimation. " +
+  "Une FC max ne se déduit ni de l'âge ni des progrès : l'entraînement baisse la FC de repos " +
+  "et la FC à allure donnée, pas la FC max. Ne la baisse jamais de toi-même, et ne l'invente jamais.";

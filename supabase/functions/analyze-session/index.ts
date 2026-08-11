@@ -6,14 +6,17 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   type AthleteProfile,
   formatAthleteLine,
+  ASSUMED_MAX_HR,
+  exceedingMaxHr,
   formatHeartRateZones,
   loadAthleteProfile,
+  maxHrAlert,
   MAX_HR_INSTRUCTION,
   validateMaxHr,
 } from "../_shared/athleteProfile.ts";
 
-// Dupliqué depuis lib/coachMemory.ts#formatCoachMemoryForPrompt — à synchroniser manuellement si lib/coachMemory.ts évolue
-// La Edge Function Deno ne peut pas importer depuis le client Next.js
+// Jumeau de la même fonction dans chat-coach : une fonction edge Deno ne peut
+// pas importer depuis le client Next.js, et les deux prompts en ont besoin.
 function formatCoachMemoryForPrompt(
   memory: Record<string, unknown>,
   hasMeasuredWeight: boolean,
@@ -236,7 +239,10 @@ memory_update: null est la réponse correcte dans la majorité des cas.`;
 }
 
 // Format the current session as compact text (read-only for Claude — no need for JSON structure)
-function sessionToText(s: Record<string, unknown>): string {
+function sessionToText(
+  s: Record<string, unknown>,
+  assumedMaxHr = ASSUMED_MAX_HR,
+): string {
   const date = String(s.date ?? "").slice(0, 10);
   const comment = s.comment ? ` | "${s.comment}"` : "";
 
@@ -247,6 +253,11 @@ function sessionToText(s: Record<string, unknown>): string {
       ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Math.round(Number(s.avgPaceSecPerKm) % 60)).padStart(2, "0")}/km`
       : "";
     const hr = s.avgHeartRate ? ` FC:${s.avgHeartRate}` : "";
+
+    // Le seul signal qui autorise le coach à revoir la FC max, et il n'entrait
+    // nulle part : une fraction au-dessus de la valeur supposée.
+    const peak = exceedingMaxHr(s.laps, assumedMaxHr);
+    const peakAlert = peak === undefined ? "" : maxHrAlert(peak, assumedMaxHr);
 
     const lapsText = Array.isArray(s.laps) && (s.laps as unknown[]).length > 1
       ? (s.laps as Record<string, unknown>[])
@@ -264,7 +275,7 @@ function sessionToText(s: Record<string, unknown>): string {
       : null;
 
     const paceStr = pace ? ` @${pace}` : "";
-    return `run ${date} | ${dist}km${paceStr}${hr}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
+    return `run ${date} | ${dist}km${paceStr}${hr}${peakAlert}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
   }
 
   // fitness
@@ -325,6 +336,7 @@ function buildUserPrompt(
   chatContext?: string,
   coachMemory?: Record<string, unknown>,
   hasMeasuredWeight = false,
+  assumedMaxHr = ASSUMED_MAX_HR,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -403,7 +415,7 @@ function buildUserPrompt(
     : "";
 
   return `${historySection}${chatContextSection}${memoryBlock}## Séance réalisée (${sessionDate})
-${sessionToText(session as Record<string, unknown>)}
+${sessionToText(session as Record<string, unknown>, assumedMaxHr)}
 
 ## Plan coach prévu pour cette séance
 ${todayPlan ? JSON.stringify(todayPlan) : "Aucun plan coach défini pour cette séance"}
@@ -428,14 +440,6 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType, userId, profileId } = body;
 
-    // Profil corps et dernière pesée. Sans identifiants — le web n'en envoie
-    // pas — le profil reste vide et le prompt garde ses valeurs d'origine.
-    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
-    const maxHr = validateMaxHr(
-      (coachMemory as Record<string, Record<string, unknown>> | undefined)
-        ?.body?.maxHr,
-    );
-
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
     }
@@ -444,6 +448,15 @@ Deno.serve(async (req: Request) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: CORS });
     }
+
+    // Après les validations : deux requêtes de moins sur une demande qui part
+    // en 400. Sans identifiants — le web n'en envoie pas — le profil reste vide
+    // et le prompt garde ses valeurs d'origine.
+    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
+    const maxHr = validateMaxHr(
+      (coachMemory as Record<string, Record<string, unknown>> | undefined)
+        ?.body?.maxHr,
+    );
 
     // Valide les champs image contre les types acceptés par l'API Anthropic
     const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -482,7 +495,7 @@ Deno.serve(async (req: Request) => {
               ? [
                   {
                     type: "text",
-                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined),
+                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined, maxHr ?? ASSUMED_MAX_HR),
                   },
                   {
                     type: "image",
@@ -493,7 +506,7 @@ Deno.serve(async (req: Request) => {
                     },
                   },
                 ]
-              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined),
+              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined, maxHr ?? ASSUMED_MAX_HR),
           },
         ],
       }),

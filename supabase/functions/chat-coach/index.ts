@@ -190,6 +190,29 @@ interface CoachMemory {
   keyNotes: Array<{ date: string; note: string }>;
 }
 
+/// Filtre ce que le modèle demande à écrire en mémoire.
+///
+/// La mémoire est fusionnée telle quelle et réinjectée dans tous les prompts
+/// suivants : une FC max aberrante déplacerait les cinq zones sans retour
+/// arrière possible, aucun écran ne permettant de la corriger. On la refuse à
+/// l'écriture plutôt qu'à la lecture — sinon elle reste en base et le coach la
+/// réécrit à chaque tour.
+function sanitizeMemoryUpdate(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const body = input.body;
+  if (body === null || typeof body !== "object") return input;
+
+  const { maxHr, ...rest } = body as Record<string, unknown>;
+  if (maxHr === undefined) return input;
+
+  const validated = validateMaxHr(maxHr);
+  return {
+    ...input,
+    body: validated === undefined ? rest : { ...rest, maxHr: validated },
+  };
+}
+
 function formatCoachMemoryForPrompt(
   memory: CoachMemory,
   hasMeasuredWeight: boolean,
@@ -298,7 +321,8 @@ const COACH_TOOLS = [
       "À utiliser UNIQUEMENT pour des informations significatives long terme : " +
       "blessure, objectif de course, contrainte physique, tendance FC confirmée, poids mentionné. " +
       "PAS pour les détails d'une séance (déjà dans les données brutes). " +
-      "La mémoire sera injectée dans toutes les conversations futures.\n" +
+      "La mémoire sera injectée dans toutes les conversations futures.\n\n" +
+      "Champ à part :\n" +
       MAX_HR_INSTRUCTION,
     input_schema: {
       type: "object",
@@ -500,16 +524,17 @@ Deno.serve(async (req: Request) => {
     }
     const resolvedMimeType = mimeTypeStr ?? "image/jpeg";
 
-    // Profil corps et dernière pesée. Sans identifiants — un client qui ne les
-    // envoie pas — le profil est vide et le prompt garde ses valeurs d'origine.
+    if (!messages || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
+    }
+
+    // Après les validations : deux requêtes de moins sur une demande qui part
+    // en 400. Sans identifiants — un client qui ne les envoie pas — le profil
+    // reste vide et le prompt garde ses valeurs d'origine.
     const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
     const maxHr = validateMaxHr(
       (coachMemory as CoachMemory | undefined)?.body?.maxHr,
     );
-
-    if (!messages || messages.length === 0) {
-      return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
-    }
 
     // Prefer the client-supplied date (local timezone) to avoid UTC drift
     const today = typeof clientToday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientToday)
@@ -676,7 +701,7 @@ Deno.serve(async (req: Request) => {
           toolResultContent = `OK — ${result.modified_plans.length} plan(s) appliqué(s).`;
           console.log("[chat-coach] apply_plan_batch:", result.modified_plans.length, "plans résolus");
         } else if (name === "update_memory") {
-          result.memory_update = input;
+          result.memory_update = sanitizeMemoryUpdate(input);
           toolResultContent = "Mémoire mise à jour.";
           console.log("[chat-coach] update_memory appelé");
         } else if (name === "fetch_previous_conversations") {
