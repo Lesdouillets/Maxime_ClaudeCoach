@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   type AthleteProfile,
   formatAthleteLine,
@@ -7,6 +7,7 @@ import {
   MAX_HR_INSTRUCTION,
   validateMaxHr,
 } from "../_shared/athleteProfile.ts";
+import { formatCoachMemoryForPrompt } from "../_shared/coachMemoryPrompt.ts";
 
 // Edge Function — conversation directe avec le coach Alex
 // Déployer : supabase functions deploy chat-coach --no-verify-jwt
@@ -213,50 +214,6 @@ function sanitizeMemoryUpdate(
   };
 }
 
-function formatCoachMemoryForPrompt(
-  memory: CoachMemory,
-  hasMeasuredWeight: boolean,
-): string {
-  const lines: string[] = [];
-
-  const runParts: string[] = [];
-  if (memory.run.trend) runParts.push(memory.run.trend);
-  if (memory.run.lastLongRun) runParts.push(`Dernière sortie longue : ${memory.run.lastLongRun}`);
-  if (memory.run.nextRace) runParts.push(`Prochaine course : ${memory.run.nextRace}`);
-  if (memory.run.notes) runParts.push(`⚠️ ${memory.run.notes}`);
-  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
-
-  const fitParts: string[] = [];
-  if (memory.fitness.cycle) fitParts.push(memory.fitness.cycle);
-  if (memory.fitness.upperBody?.keyLifts) {
-    const lifts = Object.entries(memory.fitness.upperBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
-    if (lifts) fitParts.push(`Upper: ${lifts}`);
-  }
-  if (memory.fitness.lowerBody?.keyLifts) {
-    const lifts = Object.entries(memory.fitness.lowerBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
-    if (lifts) fitParts.push(`Lower: ${lifts}`);
-  }
-  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
-
-  // Le poids du bloc PROFIL est une pesée datée ; celui-ci est ce que le coach
-  // a cru comprendre d'une conversation. Les afficher tous les deux, c'est lui
-  // donner deux chiffres contradictoires à arbitrer.
-  const bodyParts: string[] = [];
-  if (!hasMeasuredWeight && memory.body.currentWeight !== undefined) {
-    bodyParts.push(`${memory.body.currentWeight}kg`);
-  }
-  if (memory.body.target !== undefined) bodyParts.push(`objectif ${memory.body.target}kg`);
-  if (memory.body.trend) bodyParts.push(`tendance ${memory.body.trend}`);
-  if (bodyParts.length > 0) lines.push(`Poids : ${bodyParts.join(", ")}`);
-
-  const recentNotes = memory.keyNotes.slice(-3);
-  if (recentNotes.length > 0) {
-    lines.push(`Notes : ${recentNotes.map((n: { date: string; note: string }) => `[${n.date}] ${n.note}`).join(" | ")}`);
-  }
-
-  if (lines.length === 0) return "";
-  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
-}
 
 const COACH_TOOLS = [
   {
@@ -549,8 +506,8 @@ Deno.serve(async (req: Request) => {
     // Injection mémoire persistante si disponible
     if (coachMemory) {
       const memoryText = formatCoachMemoryForPrompt(
-        coachMemory as CoachMemory,
-        athlete.weightKg !== undefined,
+        coachMemory as Record<string, unknown>,
+        athlete,
       );
       if (memoryText) contextParts.push(`\n${memoryText}`);
     }

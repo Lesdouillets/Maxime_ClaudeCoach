@@ -1,19 +1,24 @@
 // deno test supabase/functions/_shared/athleteProfile.test.ts
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
-  exceedingMaxHr,
   formatAthleteLine,
   formatHeartRateZones,
   loadAthleteProfile,
+  maxHrMarker,
   validateMaxHr,
 } from "./athleteProfile.ts";
 
 /// Un client Supabase de façade : chaque méthode de la chaîne se renvoie
 /// elle-même, et la promesse finale rend ce qu'on lui a donné pour la table.
+///
+/// Le cast est assumé : doubler la centaine de méthodes de `SupabaseClient`
+/// n'apprendrait rien de plus sur `loadAthleteProfile`, et garder le vrai type
+/// côté production est ce qui fait qu'un nom de colonne fautif ne compile pas.
 function fakeClient(
   byTable: Record<string, { data?: unknown; error?: { message: string } }>,
-) {
+): SupabaseClient {
   return {
     from(table: string) {
       const result = byTable[table] ?? { data: null };
@@ -24,7 +29,7 @@ function fakeClient(
       chain.maybeSingle = () => Promise.resolve(result);
       return chain;
     },
-  };
+  } as unknown as SupabaseClient;
 }
 
 Deno.test("un profil vide rend la ligne d'origine, mot pour mot", () => {
@@ -89,10 +94,25 @@ Deno.test("les bornes plausibles sont acceptées", () => {
   assertEquals(validateMaxHr(191.4), 191);
 });
 
-Deno.test("une taille ou un âge hors de portée humaine retombe sur le repli", () => {
+Deno.test("une valeur hors de portée humaine est écartée au chargement", async () => {
   // Une frappe de trop dans les réglages, pas une mesure.
+  const client = fakeClient({
+    profiles: {
+      data: { birth_year: 9999, height_cm: 18300, target_weight_kg: 7350 },
+    },
+    weight_entries: { data: { kg: 758 } },
+  });
+
+  const profile = await loadAthleteProfile(client, "u1", "p1");
+
+  assertEquals(profile, {
+    ageYears: undefined,
+    heightCm: undefined,
+    targetWeightKg: undefined,
+    weightKg: undefined,
+  });
   assertEquals(
-    formatAthleteLine({ ageYears: -7973, heightCm: 18300 }),
+    formatAthleteLine(profile),
     "- 33 ans | 1,83 m | ~75 kg → objectif 74 kg",
   );
 });
@@ -111,7 +131,7 @@ Deno.test("sans identifiants, aucune requête n'est faite", async () => {
       called = true;
       throw new Error("ne devrait pas être appelé");
     },
-  };
+  } as unknown as SupabaseClient;
 
   assertEquals(await loadAthleteProfile(client, undefined, "p1"), {});
   assertEquals(await loadAthleteProfile(client, "u1", undefined), {});
@@ -173,12 +193,15 @@ Deno.test("un profil rempli en base ressort tel quel", async () => {
 Deno.test("le marqueur FC max n'apparaît qu'au-dessus de la valeur supposée", () => {
   const laps = [{ max_heartrate: 174 }, { max_heartrate: 168 }];
 
-  assertEquals(exceedingMaxHr(laps, 187), undefined);
-  assertEquals(exceedingMaxHr([...laps, { max_heartrate: 191 }], 187), 191);
+  assertEquals(maxHrMarker(laps, 187), "");
+  assertEquals(
+    maxHrMarker([...laps, { max_heartrate: 191 }], 187),
+    " ⚠FCmax observée 191 (supposée 187)",
+  );
 });
 
 Deno.test("des fractions absentes ou sans FC ne déclenchent rien", () => {
-  assertEquals(exceedingMaxHr(undefined, 187), undefined);
-  assertEquals(exceedingMaxHr([], 187), undefined);
-  assertEquals(exceedingMaxHr([{ distance: 1000 }], 187), undefined);
+  assertEquals(maxHrMarker(undefined, 187), "");
+  assertEquals(maxHrMarker([], 187), "");
+  assertEquals(maxHrMarker([{ distance: 1000 }], 187), "");
 });

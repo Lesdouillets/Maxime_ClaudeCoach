@@ -7,70 +7,14 @@ import {
   type AthleteProfile,
   formatAthleteLine,
   ASSUMED_MAX_HR,
-  exceedingMaxHr,
+
   formatHeartRateZones,
   loadAthleteProfile,
-  maxHrAlert,
+  maxHrMarker,
   MAX_HR_INSTRUCTION,
   validateMaxHr,
 } from "../_shared/athleteProfile.ts";
-
-// Jumeau de la même fonction dans chat-coach : une fonction edge Deno ne peut
-// pas importer depuis le client Next.js, et les deux prompts en ont besoin.
-function formatCoachMemoryForPrompt(
-  memory: Record<string, unknown>,
-  hasMeasuredWeight: boolean,
-): string {
-  const lines: string[] = [];
-
-  const run = (memory.run ?? {}) as Record<string, unknown>;
-  const runParts: string[] = [];
-  if (run.trend) runParts.push(String(run.trend));
-  if (run.lastLongRun) runParts.push(`Dernière sortie longue : ${run.lastLongRun}`);
-  if (run.nextRace) runParts.push(`Prochaine course : ${run.nextRace}`);
-  if (run.notes) runParts.push(`⚠️ ${run.notes}`);
-  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
-
-  const fitness = (memory.fitness ?? {}) as Record<string, unknown>;
-  const fitParts: string[] = [];
-  if (fitness.cycle) fitParts.push(String(fitness.cycle));
-  const upperBody = (fitness.upperBody ?? {}) as Record<string, unknown>;
-  if (upperBody.keyLifts) {
-    const lifts = Object.entries(upperBody.keyLifts as Record<string, string>)
-      .map(([k, v]) => `${k} ${v}`)
-      .join(", ");
-    if (lifts) fitParts.push(`Upper: ${lifts}`);
-  }
-  const lowerBody = (fitness.lowerBody ?? {}) as Record<string, unknown>;
-  if (lowerBody.keyLifts) {
-    const lifts = Object.entries(lowerBody.keyLifts as Record<string, string>)
-      .map(([k, v]) => `${k} ${v}`)
-      .join(", ");
-    if (lifts) fitParts.push(`Lower: ${lifts}`);
-  }
-  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
-
-  // Le poids du bloc PROFIL est une pesée datée ; celui-ci est ce que le coach
-  // a cru comprendre d'un commentaire. Les afficher tous les deux, c'est lui
-  // donner deux chiffres contradictoires à arbitrer.
-  const body = (memory.body ?? {}) as Record<string, unknown>;
-  const bodyParts: string[] = [];
-  if (!hasMeasuredWeight && body.currentWeight !== undefined) {
-    bodyParts.push(`${body.currentWeight}kg`);
-  }
-  if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
-  if (body.trend) bodyParts.push(`tendance ${body.trend}`);
-  if (bodyParts.length > 0) lines.push(`Poids : ${bodyParts.join(", ")}`);
-
-  const keyNotes = Array.isArray(memory.keyNotes) ? memory.keyNotes as Array<{ date: string; note: string }> : [];
-  const recentNotes = keyNotes.slice(-3);
-  if (recentNotes.length > 0) {
-    lines.push(`Notes : ${recentNotes.map((n) => `[${n.date}] ${n.note}`).join(" | ")}`);
-  }
-
-  if (lines.length === 0) return "";
-  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
-}
+import { formatCoachMemoryForPrompt } from "../_shared/coachMemoryPrompt.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -241,7 +185,7 @@ memory_update: null est la réponse correcte dans la majorité des cas.`;
 // Format the current session as compact text (read-only for Claude — no need for JSON structure)
 function sessionToText(
   s: Record<string, unknown>,
-  assumedMaxHr = ASSUMED_MAX_HR,
+  assumedMaxHr: number,
 ): string {
   const date = String(s.date ?? "").slice(0, 10);
   const comment = s.comment ? ` | "${s.comment}"` : "";
@@ -256,8 +200,7 @@ function sessionToText(
 
     // Le seul signal qui autorise le coach à revoir la FC max, et il n'entrait
     // nulle part : une fraction au-dessus de la valeur supposée.
-    const peak = exceedingMaxHr(s.laps, assumedMaxHr);
-    const peakAlert = peak === undefined ? "" : maxHrAlert(peak, assumedMaxHr);
+    const peakAlert = maxHrMarker(s.laps, assumedMaxHr);
 
     const lapsText = Array.isArray(s.laps) && (s.laps as unknown[]).length > 1
       ? (s.laps as Record<string, unknown>[])
@@ -332,11 +275,11 @@ function buildUserPrompt(
   session: unknown,
   coachPlans: unknown[],
   recentSessions: unknown[],
-  previousAnalyses: Array<{ date: string; analysis: string }> = [],
-  chatContext?: string,
-  coachMemory?: Record<string, unknown>,
-  hasMeasuredWeight = false,
-  assumedMaxHr = ASSUMED_MAX_HR,
+  previousAnalyses: Array<{ date: string; analysis: string }>,
+  chatContext: string | undefined,
+  coachMemory: Record<string, unknown> | undefined,
+  athlete: AthleteProfile,
+  assumedMaxHr: number,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -402,7 +345,7 @@ function buildUserPrompt(
     : "";
 
   const memorySection = coachMemory
-    ? formatCoachMemoryForPrompt(coachMemory, hasMeasuredWeight)
+    ? formatCoachMemoryForPrompt(coachMemory, athlete)
     : "";
   const memoryBlock = memorySection ? `\n${memorySection}\n` : "";
 
@@ -458,6 +401,19 @@ Deno.serve(async (req: Request) => {
         ?.body?.maxHr,
     );
 
+    // Construit une fois : les deux branches du ternaire image l'envoyaient à
+    // l'identique, et recalculaient les mêmes valeurs dérivées.
+    const userPrompt = buildUserPrompt(
+      session,
+      coachPlans,
+      recentSessions,
+      previousAnalyses,
+      chatContext,
+      coachMemory,
+      athlete,
+      maxHr ?? ASSUMED_MAX_HR,
+    );
+
     // Valide les champs image contre les types acceptés par l'API Anthropic
     const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     const imageBase64Str = typeof imageBase64 === "string" ? imageBase64 : null;
@@ -495,7 +451,7 @@ Deno.serve(async (req: Request) => {
               ? [
                   {
                     type: "text",
-                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined, maxHr ?? ASSUMED_MAX_HR),
+                    text: userPrompt,
                   },
                   {
                     type: "image",
@@ -506,7 +462,7 @@ Deno.serve(async (req: Request) => {
                     },
                   },
                 ]
-              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory, athlete.weightKg !== undefined, maxHr ?? ASSUMED_MAX_HR),
+              : userPrompt,
           },
         ],
       }),
