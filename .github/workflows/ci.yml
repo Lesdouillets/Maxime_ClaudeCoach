@@ -23,8 +23,11 @@ jobs:
         with:
           deno-version: v2.x
 
+      # `--node-modules-dir=auto` : le dépôt porte un package.json Next.js, donc
+      # Deno attend un node_modules déjà installé pour résoudre les spécificateurs
+      # `npm:`. Sur un runner neuf il n'y en a pas — on le laisse gérer le sien.
       - name: Typage
-        run: deno check supabase/functions/*/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/*/index.ts
 
       - name: Tests
-        run: deno test supabase/functions/
+        run: deno test --node-modules-dir=auto supabase/functions/
