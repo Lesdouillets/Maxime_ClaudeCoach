@@ -1,5 +1,7 @@
 import type { StravaActivity, StravaLap, StravaTokens } from "./types";
 import { getStravaTokens, saveStravaTokens } from "./storage";
+import { supabase } from "./supabase";
+import { getActiveProfileId } from "./profiles";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID ?? "";
 const REDIRECT_URI = process.env.NEXT_PUBLIC_STRAVA_REDIRECT_URI ?? "";
@@ -17,37 +19,36 @@ export function getStravaAuthUrl(): string {
   return `https://www.strava.com/oauth/authorize?${params.toString()}`;
 }
 
-// ─── Token Exchange (requires proxy or direct for dev) ────────────────────────
-// NOTE: Strava does not support PKCE. The client_secret cannot be embedded
-// in a static app. For production, a lightweight proxy is required.
-// For local dev, NEXT_PUBLIC_STRAVA_CLIENT_SECRET can be used temporarily.
+// ─── Échange et rafraîchissement des jetons ───────────────────────────────────
+// Strava ne supporte pas PKCE : ces deux opérations réclament le client_secret.
+// Embarqué dans un site statique, il est lisible par quiconque ouvre le bundle
+// JS — ce qui a été le cas ici de fin mai à août 2026. Il vit désormais dans les
+// secrets du projet Supabase, et c'est la fonction edge `strava-auth` qui parle
+// à Strava. L'app Flutter passe par le même relais.
+
+/// Appelle le relais. La fonction exige une session Supabase : elle vérifie
+/// l'appelant avant tout, sans quoi elle serait un oracle ouvert sur le secret.
+async function callStravaAuth(
+  body: { action: "exchange"; code: string } | { action: "refresh"; profile_id: string }
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke("strava-auth", { body });
+
+  if (error || !data) {
+    throw new Error(`Strava auth failed: ${error?.message ?? "réponse vide"}`);
+  }
+  return data as Record<string, unknown>;
+}
 
 export async function exchangeCodeForTokens(code: string): Promise<StravaTokens> {
-  const clientSecret = process.env.NEXT_PUBLIC_STRAVA_CLIENT_SECRET ?? "";
-
-  const res = await fetch("https://www.strava.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      client_secret: clientSecret,
-      code,
-      grant_type: "authorization_code",
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Strava token exchange failed: ${res.statusText}`);
-  }
-
-  const data = await res.json();
+  const data = await callStravaAuth({ action: "exchange", code });
+  const athlete = data.athlete as { id: number; firstname: string; lastname: string };
 
   return {
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at: data.expires_at,
-    athlete_id: data.athlete.id,
-    athlete_name: `${data.athlete.firstname} ${data.athlete.lastname}`,
+    access_token: data.access_token as string,
+    refresh_token: data.refresh_token as string,
+    expires_at: data.expires_at as number,
+    athlete_id: athlete.id,
+    athlete_name: `${athlete.firstname} ${athlete.lastname}`,
   };
 }
 
@@ -57,27 +58,19 @@ export async function refreshTokenIfNeeded(tokens: StravaTokens): Promise<Strava
   const now = Math.floor(Date.now() / 1000);
   if (tokens.expires_at > now + 300) return tokens; // valid for 5+ min
 
-  const clientSecret = process.env.NEXT_PUBLIC_STRAVA_CLIENT_SECRET ?? "";
+  // Le relais ne rafraîchit pas le jeton qu'on lui présente, mais celui qu'il
+  // va chercher lui-même en base pour ce profil : détenir le jeton d'autrui ne
+  // suffit donc pas à s'en servir.
+  const profileId = getActiveProfileId();
+  if (!profileId) throw new Error("Token refresh failed: aucun profil actif");
 
-  const res = await fetch("https://www.strava.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      client_secret: clientSecret,
-      refresh_token: tokens.refresh_token,
-      grant_type: "refresh_token",
-    }),
-  });
+  const data = await callStravaAuth({ action: "refresh", profile_id: profileId });
 
-  if (!res.ok) throw new Error("Token refresh failed");
-
-  const data = await res.json();
   const refreshed: StravaTokens = {
     ...tokens,
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at: data.expires_at,
+    access_token: data.access_token as string,
+    refresh_token: data.refresh_token as string,
+    expires_at: data.expires_at as number,
   };
 
   saveStravaTokens(refreshed);
