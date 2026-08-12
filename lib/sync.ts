@@ -235,16 +235,13 @@ async function pushDayEvents(userId: string, profileId: string, events: DayEvent
   }
 }
 
-async function pushWeightEntries(userId: string, profileId: string, entries: WeightEntry[]) {
-  // Déduplique par date
-  const deduped = Array.from(new Map(entries.map((e) => [e.date, e])).values());
-  await supabase.from("weight_entries").delete().eq("user_id", userId).eq("profile_id", profileId);
-  if (deduped.length === 0) return;
-  const { error } = await supabase.from("weight_entries").insert(
-    deduped.map((e) => ({ user_id: userId, profile_id: profileId, date: e.date, kg: e.kg }))
-  );
-  if (error) throw new Error(error.message);
-}
+// Les pesées ne sont plus poussées d'ici : l'app Flutter les écrit désormais
+// directement en base, à la journée, et ce push-là commençait par tout
+// supprimer avant de réinsérer le contenu du localStorage — il les aurait
+// effacées à la première mutation faite sur le web.
+//
+// Le pull reste en place : le web continue d'afficher les pesées saisies
+// ailleurs. Celles saisies ici ne quittent plus le navigateur.
 
 async function pushExNotes(userId: string, profileId: string, notes: { date: string; notes: object }[]) {
   const deduped = Array.from(new Map(notes.map((n) => [n.date, n])).values());
@@ -437,7 +434,6 @@ async function _runSync(userId: string, profileId: string): Promise<void> {
     pushSessions(userId, profileId, mergedSessions),
     pushCoachPlans(userId, profileId, mergedCoachPlans),
     pushDayEvents(userId, profileId, mergedDayEvents),
-    pushWeightEntries(userId, profileId, mergedWeightEntries),
     pushExNotes(userId, profileId, mergedExNotes),
     pushCoachAnalyses(userId, profileId, mergedCoachAnalyses),
     pushStravaTokens(userId, profileId),
@@ -514,7 +510,6 @@ export async function autoSyncPush(): Promise<void> {
       pushSessions(user.id, profileId, readSessions()),
       pushCoachPlans(user.id, profileId, readCoachPlans()),
       pushDayEvents(user.id, profileId, readDayEvents()),
-      pushWeightEntries(user.id, profileId, readWeightEntries()),
       pushExNotes(user.id, profileId, readExNotes()),
       pushCoachAnalyses(user.id, profileId, readCoachAnalyses()),
       pushStravaTokens(user.id, profileId),
