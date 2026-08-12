@@ -33,7 +33,6 @@ jobs:
         env:
           NEXT_PUBLIC_STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
           NEXT_PUBLIC_STRAVA_REDIRECT_URI: ${{ secrets.STRAVA_REDIRECT_URI }}
-          NEXT_PUBLIC_STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
           NEXT_PUBLIC_BASE_PATH: /Maxime_ClaudeCoach/stg2
           NEXT_PUBLIC_SUPABASE_URL: https://oogyxvjawdcarsfvinjg.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_STAGING_ANON_KEY }}
