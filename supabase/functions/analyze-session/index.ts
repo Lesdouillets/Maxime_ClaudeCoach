@@ -3,67 +3,40 @@
 // Secret requis : supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  type AthleteProfile,
+  formatAthleteLine,
+  ASSUMED_MAX_HR,
 
-// Dupliqué depuis lib/coachMemory.ts#formatCoachMemoryForPrompt — à synchroniser manuellement si lib/coachMemory.ts évolue
-// La Edge Function Deno ne peut pas importer depuis le client Next.js
-function formatCoachMemoryForPrompt(memory: Record<string, unknown>): string {
-  const lines: string[] = [];
-
-  const run = (memory.run ?? {}) as Record<string, unknown>;
-  const runParts: string[] = [];
-  if (run.trend) runParts.push(String(run.trend));
-  if (run.lastLongRun) runParts.push(`Dernière sortie longue : ${run.lastLongRun}`);
-  if (run.nextRace) runParts.push(`Prochaine course : ${run.nextRace}`);
-  if (run.notes) runParts.push(`⚠️ ${run.notes}`);
-  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
-
-  const fitness = (memory.fitness ?? {}) as Record<string, unknown>;
-  const fitParts: string[] = [];
-  if (fitness.cycle) fitParts.push(String(fitness.cycle));
-  const upperBody = (fitness.upperBody ?? {}) as Record<string, unknown>;
-  if (upperBody.keyLifts) {
-    const lifts = Object.entries(upperBody.keyLifts as Record<string, string>)
-      .map(([k, v]) => `${k} ${v}`)
-      .join(", ");
-    if (lifts) fitParts.push(`Upper: ${lifts}`);
-  }
-  const lowerBody = (fitness.lowerBody ?? {}) as Record<string, unknown>;
-  if (lowerBody.keyLifts) {
-    const lifts = Object.entries(lowerBody.keyLifts as Record<string, string>)
-      .map(([k, v]) => `${k} ${v}`)
-      .join(", ");
-    if (lifts) fitParts.push(`Lower: ${lifts}`);
-  }
-  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
-
-  const body = (memory.body ?? {}) as Record<string, unknown>;
-  if (body.currentWeight !== undefined) {
-    const bodyParts: string[] = [`${body.currentWeight}kg`];
-    if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
-    if (body.trend) bodyParts.push(`tendance ${body.trend}`);
-    lines.push(`Poids : ${bodyParts.join(", ")}`);
-  }
-
-  const keyNotes = Array.isArray(memory.keyNotes) ? memory.keyNotes as Array<{ date: string; note: string }> : [];
-  const recentNotes = keyNotes.slice(-3);
-  if (recentNotes.length > 0) {
-    lines.push(`Notes : ${recentNotes.map((n) => `[${n.date}] ${n.note}`).join(" | ")}`);
-  }
-
-  if (lines.length === 0) return "";
-  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
-}
+  formatHeartRateZones,
+  loadAthleteProfile,
+  maxHrMarker,
+  MAX_HR_INSTRUCTION,
+  validateMaxHr,
+} from "../_shared/athleteProfile.ts";
+import { formatCoachMemoryForPrompt } from "../_shared/coachMemoryPrompt.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function buildSystemPrompt(profileName: string): string {
+// Client admin — la lecture du profil corps se fait hors de la session de
+// l'appelant, comme chat-coach le fait pour ses archives.
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+function buildSystemPrompt(
+  profileName: string,
+  athlete: AthleteProfile,
+  maxHr?: number,
+): string {
   return `Tu es Alex, coach sportif de ${profileName}. Tu analyses les séances terminées et **mets à jour le programme à venir si les données le justifient**.
 
 ## PROFIL DE ${profileName}
-- 33 ans | 1,83 m | ~75 kg → objectif 74 kg
+${formatAthleteLine(athlete)}
 - Niveau intermédiaire | Temps limité (2 enfants)
 - Jours fixes : Lundi (haut du corps) / Mercredi (run) / Jeudi ou Vendredi (bas du corps) / Dimanche (long run)
 - Développé militaire : point faible, progression lente et prudente
@@ -75,8 +48,7 @@ function buildSystemPrompt(profileName: string): string {
 - Ne jamais augmenter charge ET volume simultanément — choisir l'un ou l'autre
 - Semaine de décharge : -1 série par exercice, charge maintenue
 
-## ZONES FC (FC max ~187 bpm)
-- Z1 < 112 bpm | Z2 112–149 | Z3 149–168 | Z4 168–178 | Z5 > 178
+${formatHeartRateZones(maxHr)}
 
 ## TON RÔLE DE COACH
 
@@ -198,6 +170,7 @@ Après chaque analyse, tu peux mettre à jour la mémoire coach si la séance r�
 - fitness.upperBody.keyLifts ou lowerBody.keyLifts : si un exercice clé franchit un palier notable (PR, régression marquée). Format : {"Développé couché haltères": "20kg×4×8 — PR"}
 - fitness.upperBody.lastSession ou lowerBody.lastSession : à chaque séance upper/lower (date de la séance analysée)
 - body.currentWeight : UNIQUEMENT si le poids est explicitement mentionné dans le commentaire de séance
+${MAX_HR_INSTRUCTION}
 - keyNotes : si un événement important survient (blessure identifiée dans les données, objectif mentionné en commentaire)
 
 **Quand laisser memory_update: null :**
@@ -210,7 +183,10 @@ memory_update: null est la réponse correcte dans la majorité des cas.`;
 }
 
 // Format the current session as compact text (read-only for Claude — no need for JSON structure)
-function sessionToText(s: Record<string, unknown>): string {
+function sessionToText(
+  s: Record<string, unknown>,
+  assumedMaxHr: number,
+): string {
   const date = String(s.date ?? "").slice(0, 10);
   const comment = s.comment ? ` | "${s.comment}"` : "";
 
@@ -221,6 +197,10 @@ function sessionToText(s: Record<string, unknown>): string {
       ? `${Math.floor(Number(s.avgPaceSecPerKm) / 60)}:${String(Math.round(Number(s.avgPaceSecPerKm) % 60)).padStart(2, "0")}/km`
       : "";
     const hr = s.avgHeartRate ? ` FC:${s.avgHeartRate}` : "";
+
+    // Le seul signal qui autorise le coach à revoir la FC max, et il n'entrait
+    // nulle part : une fraction au-dessus de la valeur supposée.
+    const peakAlert = maxHrMarker(s.laps, assumedMaxHr);
 
     const lapsText = Array.isArray(s.laps) && (s.laps as unknown[]).length > 1
       ? (s.laps as Record<string, unknown>[])
@@ -238,7 +218,7 @@ function sessionToText(s: Record<string, unknown>): string {
       : null;
 
     const paceStr = pace ? ` @${pace}` : "";
-    return `run ${date} | ${dist}km${paceStr}${hr}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
+    return `run ${date} | ${dist}km${paceStr}${hr}${peakAlert}${comment}${lapsText ? `\n  Fractions: ${lapsText}` : ""}`;
   }
 
   // fitness
@@ -295,9 +275,11 @@ function buildUserPrompt(
   session: unknown,
   coachPlans: unknown[],
   recentSessions: unknown[],
-  previousAnalyses: Array<{ date: string; analysis: string }> = [],
-  chatContext?: string,
-  coachMemory?: Record<string, unknown>,
+  previousAnalyses: Array<{ date: string; analysis: string }>,
+  chatContext: string | undefined,
+  coachMemory: Record<string, unknown> | undefined,
+  athlete: AthleteProfile,
+  assumedMaxHr: number,
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -362,7 +344,9 @@ function buildUserPrompt(
     ? `\n## Objectif déclaré récemment (conversation coach)\n${chatContext}\n`
     : "";
 
-  const memorySection = coachMemory ? formatCoachMemoryForPrompt(coachMemory) : "";
+  const memorySection = coachMemory
+    ? formatCoachMemoryForPrompt(coachMemory, athlete)
+    : "";
   const memoryBlock = memorySection ? `\n${memorySection}\n` : "";
 
   const nearSection = nearFuturePlans.length > 0
@@ -374,7 +358,7 @@ function buildUserPrompt(
     : "";
 
   return `${historySection}${chatContextSection}${memoryBlock}## Séance réalisée (${sessionDate})
-${sessionToText(session as Record<string, unknown>)}
+${sessionToText(session as Record<string, unknown>, assumedMaxHr)}
 
 ## Plan coach prévu pour cette séance
 ${todayPlan ? JSON.stringify(todayPlan) : "Aucun plan coach défini pour cette séance"}
@@ -397,7 +381,7 @@ Deno.serve(async (req: Request) => {
     // The ANTHROPIC_API_KEY is server-side only; the function URL is not public.
 
     const body = await req.json();
-    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType } = body;
+    const { session, coachPlans = [], recentSessions = [], profileName = "Maxime", previousAnalyses = [], chatContext, coachMemory, imageBase64, imageMimeType, userId, profileId } = body;
 
     if (!session) {
       return new Response(JSON.stringify({ error: "session required" }), { status: 400, headers: CORS });
@@ -407,6 +391,28 @@ Deno.serve(async (req: Request) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: CORS });
     }
+
+    // Après les validations : deux requêtes de moins sur une demande qui part
+    // en 400. Sans identifiants — le web n'en envoie pas — le profil reste vide
+    // et le prompt garde ses valeurs d'origine.
+    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
+    const maxHr = validateMaxHr(
+      (coachMemory as Record<string, Record<string, unknown>> | undefined)
+        ?.body?.maxHr,
+    );
+
+    // Construit une fois : les deux branches du ternaire image l'envoyaient à
+    // l'identique, et recalculaient les mêmes valeurs dérivées.
+    const userPrompt = buildUserPrompt(
+      session,
+      coachPlans,
+      recentSessions,
+      previousAnalyses,
+      chatContext,
+      coachMemory,
+      athlete,
+      maxHr ?? ASSUMED_MAX_HR,
+    );
 
     // Valide les champs image contre les types acceptés par l'API Anthropic
     const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -434,7 +440,7 @@ Deno.serve(async (req: Request) => {
         system: [
           {
             type: "text",
-            text: buildSystemPrompt(profileName),
+            text: buildSystemPrompt(profileName, athlete, maxHr),
             cache_control: { type: "ephemeral" },
           },
         ],
@@ -445,7 +451,7 @@ Deno.serve(async (req: Request) => {
               ? [
                   {
                     type: "text",
-                    text: buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+                    text: userPrompt,
                   },
                   {
                     type: "image",
@@ -456,7 +462,7 @@ Deno.serve(async (req: Request) => {
                     },
                   },
                 ]
-              : buildUserPrompt(session, coachPlans, recentSessions, previousAnalyses, chatContext, coachMemory),
+              : userPrompt,
           },
         ],
       }),

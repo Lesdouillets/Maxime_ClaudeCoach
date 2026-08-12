@@ -1,4 +1,13 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  type AthleteProfile,
+  formatAthleteLine,
+  formatHeartRateZones,
+  loadAthleteProfile,
+  MAX_HR_INSTRUCTION,
+  validateMaxHr,
+} from "../_shared/athleteProfile.ts";
+import { formatCoachMemoryForPrompt } from "../_shared/coachMemoryPrompt.ts";
 
 // Edge Function — conversation directe avec le coach Alex
 // Déployer : supabase functions deploy chat-coach --no-verify-jwt
@@ -43,11 +52,15 @@ function compactArchives(archives: ArchiveRow[]): string {
   return parts.length > 0 ? parts.join("\n\n") : "Aucune conversation archivée.";
 }
 
-function buildSystemPrompt(profileName: string): string {
+function buildSystemPrompt(
+  profileName: string,
+  athlete: AthleteProfile,
+  maxHr?: number,
+): string {
   return `Tu es Alex, coach sportif personnel de ${profileName}. Tu discutes directement avec lui pour ajuster ou créer son programme d'entraînement selon ses objectifs.
 
 ## PROFIL DE ${profileName}
-- 33 ans | 1,83 m | ~75 kg → objectif 74 kg
+${formatAthleteLine(athlete)}
 - Niveau intermédiaire | Temps limité (2 enfants)
 - Jours fixes : Lundi (haut du corps) / Mercredi (run) / Jeudi ou Vendredi (bas du corps) / Dimanche (long run)
 - Développé militaire : point faible, progression lente et prudente
@@ -59,8 +72,7 @@ function buildSystemPrompt(profileName: string): string {
 - Ne jamais augmenter charge ET volume simultanément — choisir l'un ou l'autre
 - Semaine de décharge : -1 série par exercice, charge maintenue
 
-## ZONES FC (FC max ~187 bpm)
-- Z1 < 112 bpm | Z2 112–149 | Z3 149–168 | Z4 168–178 | Z5 > 178
+${formatHeartRateZones(maxHr)}
 
 ## MODE CONVERSATION
 
@@ -174,47 +186,34 @@ interface CoachMemory {
     currentWeight?: number;
     trend?: string;
     target?: number;
+    maxHr?: number;
   };
   keyNotes: Array<{ date: string; note: string }>;
 }
 
-function formatCoachMemoryForPrompt(memory: CoachMemory): string {
-  const lines: string[] = [];
+/// Filtre ce que le modèle demande à écrire en mémoire.
+///
+/// La mémoire est fusionnée telle quelle et réinjectée dans tous les prompts
+/// suivants : une FC max aberrante déplacerait les cinq zones sans retour
+/// arrière possible, aucun écran ne permettant de la corriger. On la refuse à
+/// l'écriture plutôt qu'à la lecture — sinon elle reste en base et le coach la
+/// réécrit à chaque tour.
+function sanitizeMemoryUpdate(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const body = input.body;
+  if (body === null || typeof body !== "object") return input;
 
-  const runParts: string[] = [];
-  if (memory.run.trend) runParts.push(memory.run.trend);
-  if (memory.run.lastLongRun) runParts.push(`Dernière sortie longue : ${memory.run.lastLongRun}`);
-  if (memory.run.nextRace) runParts.push(`Prochaine course : ${memory.run.nextRace}`);
-  if (memory.run.notes) runParts.push(`⚠️ ${memory.run.notes}`);
-  if (runParts.length > 0) lines.push(`Run : ${runParts.join(" | ")}`);
+  const { maxHr, ...rest } = body as Record<string, unknown>;
+  if (maxHr === undefined) return input;
 
-  const fitParts: string[] = [];
-  if (memory.fitness.cycle) fitParts.push(memory.fitness.cycle);
-  if (memory.fitness.upperBody?.keyLifts) {
-    const lifts = Object.entries(memory.fitness.upperBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
-    if (lifts) fitParts.push(`Upper: ${lifts}`);
-  }
-  if (memory.fitness.lowerBody?.keyLifts) {
-    const lifts = Object.entries(memory.fitness.lowerBody.keyLifts).map(([k, v]) => `${k} ${v}`).join(", ");
-    if (lifts) fitParts.push(`Lower: ${lifts}`);
-  }
-  if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
-
-  if (memory.body.currentWeight !== undefined) {
-    const bodyParts: string[] = [`${memory.body.currentWeight}kg`];
-    if (memory.body.target !== undefined) bodyParts.push(`objectif ${memory.body.target}kg`);
-    if (memory.body.trend) bodyParts.push(`tendance ${memory.body.trend}`);
-    lines.push(`Poids : ${bodyParts.join(", ")}`);
-  }
-
-  const recentNotes = memory.keyNotes.slice(-3);
-  if (recentNotes.length > 0) {
-    lines.push(`Notes : ${recentNotes.map((n: { date: string; note: string }) => `[${n.date}] ${n.note}`).join(" | ")}`);
-  }
-
-  if (lines.length === 0) return "";
-  return `## Mémoire coach (contexte persistant)\n${lines.join("\n")}`;
+  const validated = validateMaxHr(maxHr);
+  return {
+    ...input,
+    body: validated === undefined ? rest : { ...rest, maxHr: validated },
+  };
 }
+
 
 const COACH_TOOLS = [
   {
@@ -279,7 +278,9 @@ const COACH_TOOLS = [
       "À utiliser UNIQUEMENT pour des informations significatives long terme : " +
       "blessure, objectif de course, contrainte physique, tendance FC confirmée, poids mentionné. " +
       "PAS pour les détails d'une séance (déjà dans les données brutes). " +
-      "La mémoire sera injectée dans toutes les conversations futures.",
+      "La mémoire sera injectée dans toutes les conversations futures.\n\n" +
+      "Champ à part :\n" +
+      MAX_HR_INSTRUCTION,
     input_schema: {
       type: "object",
       properties: {
@@ -318,6 +319,7 @@ const COACH_TOOLS = [
             currentWeight: { type: "number" },
             trend: { type: "string" },
             target: { type: "number" },
+            maxHr: { type: "number" },
           },
         },
         keyNotes: {
@@ -514,6 +516,14 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "messages required" }), { status: 400, headers: CORS });
     }
 
+    // Après les validations : deux requêtes de moins sur une demande qui part
+    // en 400. Sans identifiants — un client qui ne les envoie pas — le profil
+    // reste vide et le prompt garde ses valeurs d'origine.
+    const athlete = await loadAthleteProfile(supabaseAdmin, userId, profileId);
+    const maxHr = validateMaxHr(
+      (coachMemory as CoachMemory | undefined)?.body?.maxHr,
+    );
+
     // Prefer the client-supplied date (local timezone) to avoid UTC drift
     const today = typeof clientToday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientToday)
       ? clientToday
@@ -526,7 +536,10 @@ Deno.serve(async (req: Request) => {
 
     // Injection mémoire persistante si disponible
     if (coachMemory) {
-      const memoryText = formatCoachMemoryForPrompt(coachMemory as CoachMemory);
+      const memoryText = formatCoachMemoryForPrompt(
+        coachMemory as Record<string, unknown>,
+        athlete,
+      );
       if (memoryText) contextParts.push(`\n${memoryText}`);
     }
 
@@ -599,7 +612,7 @@ Deno.serve(async (req: Request) => {
         ]
       : recentMessages;
 
-    const systemPrompt = buildSystemPrompt(profileName);
+    const systemPrompt = buildSystemPrompt(profileName, athlete, maxHr);
     const conversationMessages: unknown[] = [...apiMessages];
 
     const result: ChatCoachResult = {
@@ -680,7 +693,7 @@ Deno.serve(async (req: Request) => {
           toolResultContent = `OK — ${result.modified_plans.length} plan(s) appliqué(s).`;
           console.log("[chat-coach] apply_plan_batch:", result.modified_plans.length, "plans résolus");
         } else if (name === "update_memory") {
-          result.memory_update = input;
+          result.memory_update = sanitizeMemoryUpdate(input);
           toolResultContent = "Mémoire mise à jour.";
           console.log("[chat-coach] update_memory appelé");
         } else if (name === "fetch_previous_conversations") {
