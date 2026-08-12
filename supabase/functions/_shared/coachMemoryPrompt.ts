@@ -46,12 +46,22 @@ export function formatCoachMemoryForPrompt(
   }
   if (fitParts.length > 0) lines.push(`Fitness : ${fitParts.join(" | ")}`);
 
+  // Chaque valeur que la base porte déjà est retirée d'ici : le bloc PROFIL
+  // affiche une pesée datée et un objectif saisi, celui-ci ne garde que ce que
+  // le coach a déduit d'une conversation. Les donner deux fois, c'est lui
+  // laisser deux chiffres à arbitrer.
+  //
+  // Écart assumé avec l'ancienne version : elle conditionnait toute la ligne à
+  // la présence de `currentWeight`, si bien qu'un objectif connu disparaissait
+  // parce qu'un champ sans rapport manquait.
   const body = (memory.body ?? {}) as Record<string, unknown>;
   const bodyParts: string[] = [];
   if (athlete.weightKg === undefined && body.currentWeight !== undefined) {
     bodyParts.push(`${body.currentWeight}kg`);
   }
-  if (body.target !== undefined) bodyParts.push(`objectif ${body.target}kg`);
+  if (athlete.targetWeightKg === undefined && body.target !== undefined) {
+    bodyParts.push(`objectif ${body.target}kg`);
+  }
   if (body.trend) bodyParts.push(`tendance ${body.trend}`);
   if (bodyParts.length > 0) lines.push(`Poids : ${bodyParts.join(", ")}`);
 
